@@ -3,6 +3,8 @@ services:
     build:
       context: .
       target: dev
+    environment:
+      PYTHONPATH: server
     ports:
       - "5000:5000"
     develop:

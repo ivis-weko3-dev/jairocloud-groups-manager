@@ -1,8 +1,4 @@
-from flask import Flask
-
-app = Flask(__name__)
+from factory import create_app
 
 
-@app.route("/")
-def home():
-    return "Welcome to the mAP Web UI!"
+app = create_app()
