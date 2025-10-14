@@ -29,7 +29,7 @@ class RuntimeConfig(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> URL:
         """Database connection URI for SQLAlchemy."""
         return make_url(
-            f"postgresql+psycopg2://{self.POSTGRES_USER}:"
+            f"postgresql+psycopg://{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/"
             f"{self.POSTGRES_DB}"
         )
