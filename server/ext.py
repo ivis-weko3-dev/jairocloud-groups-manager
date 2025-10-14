@@ -1,6 +1,7 @@
 from flask import Flask
 
 from db.shared import db
+from db.loader import load_models
 
 
 class MapWebUI:
@@ -35,3 +36,4 @@ class MapWebUI:
             app (Flask): The Flask application instance.
         """
         db.init_app(app)
+        load_models()

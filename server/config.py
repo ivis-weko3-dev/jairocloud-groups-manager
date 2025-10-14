@@ -1,5 +1,6 @@
 from pydantic import computed_field
 from pydantic_settings import BaseSettings
+from sqlalchemy.engine import URL, make_url
 
 
 class RuntimeConfig(BaseSettings):
@@ -14,6 +15,9 @@ class RuntimeConfig(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     """PostgreSQL database host."""
 
+    POSTGRES_PORT: int = 5432
+    """PostgreSQL database port."""
+
     POSTGRES_PASSWORD: str = "mappass"
     """PostgreSQL database password."""
 
@@ -22,11 +26,11 @@ class RuntimeConfig(BaseSettings):
 
     @computed_field
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> str:
+    def SQLALCHEMY_DATABASE_URI(self) -> URL:
         """Database connection URI for SQLAlchemy."""
-        return (
+        return make_url(
             f"postgresql+psycopg2://{self.POSTGRES_USER}:"
-            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}/"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/"
             f"{self.POSTGRES_DB}"
         )
 
