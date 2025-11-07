@@ -1,26 +1,26 @@
 <script setup lang="ts">
+const localePath = useLocalePath()
+
 const columns = [
   {
-    label: 'Resources',
+    label: $t('Management'),
     children: [
-      { label: 'Services', to: '/services' },
-      { label: 'Groups', to: '/groups' },
-      { label: 'Users', to: '/users' },
+      { label: $t('Repositories'), to: localePath('/repositories') },
+      { label: $t('Groups'), to: localePath('/groups') },
+      { label: $t('User'), to: localePath('/users') },
     ],
   },
   {
-    label: 'Other',
+    label: $t('Others'),
     children: [
-      { label: 'Settings', to: '/settings' },
+      { label: $t('History'), to: '/history' },
     ],
   },
 ]
 </script>
 
 <template>
-  <USeparator
-    icon="i-simple-icons-nuxtdotjs" class="h-px"
-  />
+  <USeparator icon="i-simple-icons-nuxtdotjs" class="h-px" />
 
   <UFooter :ui="{ top: 'border-b border-default' }">
     <template #top>

@@ -1,11 +1,16 @@
 {
   "Groups": "Groups",
+  "History": "History",
   "Home": "Home",
+  "Management": "Management",
+  "Others": "Others",
+  "Repositories": "Repositories\n",
   "Services": "Services",
   "Settings": "Settings",
   "User": "User",
   "mAP-web-ui": "mAP web UI",
   "sign-in": "Sign In",
+  "sign-out": "Sign Out",
   "top-page-description": "This is the top page.",
   "welcom-to": "Welcom to Web UI"
 }

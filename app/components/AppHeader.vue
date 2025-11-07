@@ -1,30 +1,28 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
-
-const rute = useRoute()
+import type { DropdownMenuItem } from '@nuxt/ui'
 
 const { setLocale } = useI18n()
-const localePath = useLocalePath()
 const { currentLocale: locale, locales } = useAvailableLocales()
 
-const items = computed<NavigationMenuItem[]>(() => [
-  { label: $t('Home'), to: localePath('/') },
-  { label: $t('Services'), to: localePath('/services'), active: rute.path.startsWith('/services') },
-  { label: $t('Groups'), to: localePath('/groups'), active: rute.path.startsWith('/groups') },
-  { label: $t('User'), to: localePath('/users'), active: rute.path.startsWith('/users') },
-  { label: $t('Settings'), to: localePath('/settings') },
-])
+const items: DropdownMenuItem[] = [
+  { label: 'プロフィール', icon: 'i-lucide-user', to: '/profile' },
+  { label: '設定', icon: 'i-lucide-settings', to: '/settings' },
+  { label: 'ヘルプ', icon: 'i-lucide-help-circle', to: '/help' },
+  { label: 'ログアウト', icon: 'i-lucide-log-out', to: '/logout', color: 'error' },
+]
+
+const isAouthenticated = true
 </script>
 
 <template>
-  <UHeader>
+  <UHeader :toggle="false">
     <template #left>
       <NuxtLinkLocale to="/">
         <AppLogo class="w-auto h-6" />
       </NuxtLinkLocale>
     </template>
 
-    <UNavigationMenu :items="items" variant="link" />
+    <HeaderSearch v-if="isAouthenticated" />
 
     <template #right>
       <UColorModeButton />
@@ -34,25 +32,12 @@ const items = computed<NavigationMenuItem[]>(() => [
         @update:model-value="setLocale($event as AvailableLocaleCode)"
       />
 
-      <UButton
-        icon="i-lucide-log-in" color="neutral" variant="ghost" to="/login"
-        class="lg:hidden"
-      />
-
-      <UButton
-        :label="$t('sign-in')" color="neutral" variant="outline" to="/login"
-        class="hidden lg:inline-flex"
-      />
-    </template>
-
-    <template #body>
-      <UNavigationMenu :items="items" orientation="vertical" class="-mx-2.5" />
-
-      <USeparator class="my-6" />
-      <UButton
-        :label="$t('sign-in')" color="neutral" variant="subtle" to="/login"
-        block class="mb-3"
-      />
+      <UDropdownMenu :items="items" arrow :modal="false">
+        <UButton
+          v-if="isAouthenticated" label="大田 次郎"
+          icon="i-lucide-user-circle" color="neutral" variant="subtle"
+        />
+      </UDropdownMenu>
     </template>
   </UHeader>
 </template>

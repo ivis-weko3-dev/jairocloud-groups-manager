@@ -12,6 +12,7 @@ export default withNuxt([
     rules: {
       'camelcase': ['error', { properties: 'always' }],
       'no-console': 'error',
+      'vue/first-attribute-linebreak': ['error', { singleline: 'beside', multiline: 'below' }],
       'vue/max-attributes-per-line': [
         'warn', { singleline: { max: 4 }, multiline: { max: 4 } },
       ],
@@ -25,6 +26,7 @@ export default withNuxt([
       'unicorn/filename-case': [
         'error', { case: 'pascalCase', ignore: ['app.vue'] },
       ],
+      'vue/no-multiple-template-root': 'off',
     },
   },
   {

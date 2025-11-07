@@ -1,11 +1,16 @@
 {
   "Groups": "グループ",
+  "History": "履歴",
   "Home": "ホーム",
+  "Management": "マネジメント",
+  "Others": "その他",
+  "Repositories": "リポジトリ",
   "Services": "サービス",
   "Settings": "設定",
   "User": "ユーザー",
   "mAP-web-ui": "mAP web UI",
   "sign-in": "サインイン",
+  "sign-out": "サインアウト",
   "top-page-description": "ここはトップページです。",
   "welcom-to": "ようこそ Web UI へ"
 }
