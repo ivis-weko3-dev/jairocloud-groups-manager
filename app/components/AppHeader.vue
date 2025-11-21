@@ -13,7 +13,6 @@ const items = computed<DropdownMenuItem[][]>(() => {
   const localePath = useLocalePath()
   return [[
     { label: $t('profile'), icon: 'i-lucide-user', to: localePath(`/users/${user.value?.id}`) },
-    // { label: $t('settings'), icon: 'i-lucide-settings', to: localePath('/settings') },
     { label: $t('help'), icon: 'i-lucide-help-circle', to: localePath('/help') },
   ], [
     { label: $t('logout'), icon: 'i-lucide-log-out', to: '/logout', color: 'error' }],

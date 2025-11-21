@@ -5,10 +5,12 @@ const next = route.query.next
 const wayfURL = 'https://test-ds.gakunin.nii.ac.jp/WAYF'
 const wayJsURL = 'https://test-ds.gakunin.nii.ac.jp/WAYF/embedded-wayf.js'
 
-const appEntityID = 'localhost/shibboleth-sp'
-const appHandlerURL = 'localhost/Shibboleth.sso'
+const spEntityID = 'localhost/shibboleth-sp'
+const spHandlerURL = 'localhost/Shibboleth.sso'
 const appCallbackURL = 'localhost/auth/callback'
-const returnURL = next ? `${appCallbackURL}?next=${encodeURIComponent(String(next))}` : appCallbackURL
+const returnURL = next
+  ? `${appCallbackURL}?next=${encodeURIComponent(next as string)}`
+  : appCallbackURL
 
 /*  eslint-disable @stylistic/max-len, no-useless-escape */
 const embeddedWAYF = `
@@ -30,12 +32,12 @@ var wayf_URL = "${wayfURL}";
 // EntityID of the Service Provider that protects this Resource
 // Examples: "https://econf.switch.ch/shibboleth", "https://dokeos.unige.ch/shibboleth"
 // [Mandatory]
-var wayf_sp_entityID = "${appEntityID}";
+var wayf_sp_entityID = "${spEntityID}";
 
 // Shibboleth Service Provider handler URL
 // Examples: "https://point.switch.ch/Shibboleth.sso", "https://rr.aai.switch.ch/aaitest/Shibboleth.sso"
 // [Mandatory, if wayf_use_discovery_service = false]
-var wayf_sp_handlerURL = "${appHandlerURL}";
+var wayf_sp_handlerURL = "${spHandlerURL}";
 
 // URL on this resource that the user shall be returned to after authentication
 // Examples: "https://econf.switch.ch/aai/home", "https://olat.uzh.ch/my/courses"
@@ -294,6 +296,7 @@ onMounted(() => {
   const wayfContainer = document.querySelector('#embedded-wayf-iframe-area')
   if (wayfContainer && wayfContainer.parentNode) {
     const iframeElement = document.createElement('iframe')
+    iframeElement.id = 'embedded-wayf-iframe'
     iframeElement.srcdoc = embeddedWAYF
     iframeElement.width = '100%'
     iframeElement.style.maxWidth = '800px'

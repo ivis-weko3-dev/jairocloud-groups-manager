@@ -120,7 +120,9 @@ services:
 
   nginx:
     build:
-      context: ./nginx
+      context: .
+      dockerfile: nginx/Dockerfile
+      target: development
     image: web-ui-nginx
     container_name: nginx
     ports:

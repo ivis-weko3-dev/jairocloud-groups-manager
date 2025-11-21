@@ -10,6 +10,19 @@
     are used. See example-shibboleth2.xml for samples of explicitly configuring them.
     -->
 
+    <RequestMapper type="XML">
+        <RequestMap>
+            <Host name="localhost"
+                authType="shibboleth"
+                requireSession="true"
+                redirectToSSL="443">
+                <Path name="/secure" />
+                <!-- other Path, PathRegex or Query elements here -->
+            </Host>
+            <!-- other Host or HostRegex elements here -->
+        </RequestMap>
+    </RequestMapper>
+
     <!-- The ApplicationDefaults element is where most of Shibboleth's SAML bits are defined. -->
     <ApplicationDefaults entityID="localhost/shibboleth-sp"
         REMOTE_USER="eppn persistent-id targeted-id"

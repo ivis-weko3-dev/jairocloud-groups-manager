@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
 ARG NGINX_VERSION=1.29.3
+ARG NODE_VERSION=24.11
+ARG SHIB_MOD_VERSION=2.0.2
 
 # ============================
 # Build stage: Build nginx-http-shibboleth module
@@ -8,29 +10,45 @@ ARG NGINX_VERSION=1.29.3
 FROM debian:trixie-slim AS build
 
 ARG NGINX_VERSION
-ENV NGINX_VERSION=${NGINX_VERSION}
+ARG SHIB_MOD_VERSION
 WORKDIR /usr/src
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential git wget ca-certificates \
-    libpcre2-dev zlib1g-dev libssl-dev && \
+    build-essential git wget ca-certificates libpcre2-dev zlib1g-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     tar xzf nginx-${NGINX_VERSION}.tar.gz
-RUN wget https://github.com/nginx-shib/nginx-http-shibboleth/archive/v2.0.2.tar.gz && \
-    tar xzf v2.0.2.tar.gz
+RUN wget https://github.com/nginx-shib/nginx-http-shibboleth/archive/v${SHIB_MOD_VERSION}.tar.gz && \
+    tar xzf v${SHIB_MOD_VERSION}.tar.gz
 
 WORKDIR /usr/src/nginx-${NGINX_VERSION}
-RUN ./configure --with-compat --add-dynamic-module=../nginx-http-shibboleth-2.0.2 && \
+RUN ./configure --with-compat --add-dynamic-module=../nginx-http-shibboleth-${SHIB_MOD_VERSION} && \
     make modules
 
 
 # ============================
-# Runtime stage: Nginx + Shibboleth SP
+# Build stage: Nuxt application
 # ============================
-FROM nginx:${NGINX_VERSION}-trixie
+FROM node:${NODE_VERSION}-slim AS app
+
+WORKDIR /code
+RUN chown node:node /code
+
+RUN npm install -g pnpm
+
+USER node
+COPY --chown=node:node . .
+RUN pnpm install --frozen-lockfile
+
+RUN NODE_ENV=production pnpm run generate
+
+
+# ============================
+# Configuration stage: Nginx with Shibboleth
+# ============================
+FROM nginx:${NGINX_VERSION}-trixie AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
@@ -46,21 +64,52 @@ RUN mkdir -p /var/run/shibboleth && \
     chown _shibd:_shibd /var/run/shibboleth
 
 # nginx-http-shibboleth
-COPY --from=build /usr/src/nginx-${NGINX_VERSION}/objs/ngx_http_shibboleth_module.so /etc/nginx/modules/
+COPY --from=build \
+    /usr/src/nginx-${NGINX_VERSION}/objs/ngx_http_shibboleth_module.so \
+    /etc/nginx/modules/
 
-COPY supervisord.conf /etc/supervisord.conf
-COPY shibboleth2.xml /etc/shibboleth/shibboleth2.xml
+COPY nginx/supervisord.conf /etc/supervisord.conf
+COPY nginx/shibboleth2.xml /etc/shibboleth/shibboleth2.xml
 
-COPY ./conf.d /etc/nginx/conf.d
-COPY ./ssl/server.crt /etc/nginx/server.crt
-COPY ./ssl/server.key /etc/nginx/server.key
+COPY nginx/conf.d /etc/nginx/conf.d
+COPY nginx/ssl/server.crt /etc/nginx/server.crt
+COPY nginx/ssl/server.key /etc/nginx/server.key
 
-COPY ./ssl/server.crt /etc/shibboleth/server.crt
-COPY ./ssl/server.key /etc/shibboleth/server.key
+COPY nginx/ssl/server.crt /etc/shibboleth/server.crt
+COPY nginx/ssl/server.key /etc/shibboleth/server.key
 RUN chmod 644 /etc/shibboleth/server.crt /etc/shibboleth/server.key
 
-RUN sed -i '1s|^|load_module modules/ngx_http_shibboleth_module.so;\n|' /etc/nginx/nginx.conf
+RUN sed -i \
+    '1s|^|load_module modules/ngx_http_shibboleth_module.so;\n|' \
+    /etc/nginx/nginx.conf
 
+
+EXPOSE 80 443
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+
+
+# ============================
+# Development stage: Proxy application to dev server
+# ============================
+FROM base AS development
+
+RUN sed -i \
+    '/# Application resources requests/,/# replace this for dev server/ \
+    s|app[.]inc|app.dev.inc|' \
+    /etc/nginx/conf.d/default.conf
+
+EXPOSE 80 443
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+
+
+# ============================
+# Production stage: Proxy application resources
+# ============================
+FROM base AS production
+
+COPY --from=app --chown=nginx:nginx /code/.output/public /usr/share/nginx/html
 
 EXPOSE 80 443
 
