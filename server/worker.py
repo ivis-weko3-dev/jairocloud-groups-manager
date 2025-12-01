@@ -1,6 +1,6 @@
 import typing as t
 
-from factory import create_app
+from .factory import create_app
 
 if t.TYPE_CHECKING:
     from celery import Celery

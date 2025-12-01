@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData, util
 
-
 NAMING_CONVENTION = util.immutabledict(
     {
         "ix": "ix_%(column_0_label)s",

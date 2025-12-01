@@ -1,16 +1,17 @@
-from datetime import datetime
-from typing import Literal, Annotated
+import typing as t
 
-from pydantic import Field, HttpUrl, UUID4
+from datetime import datetime  # noqa: TC003
 
 from const import MAP_GROUP_SCHEMA
-from schema.base import BaseModel
+from pydantic import UUID4, Field, HttpUrl
+
+from .base import BaseModel
 
 
 class MapGroup(BaseModel):
     """A group resource entity in mAP API."""
 
-    schemas: list[str] = [MAP_GROUP_SCHEMA]
+    schemas: t.Sequence[str] = Field(default_factory=lambda: [MAP_GROUP_SCHEMA])
     """Schema URIs that define the attributes present in the Group resource."""
 
     id: UUID4
@@ -37,21 +38,21 @@ class MapGroup(BaseModel):
     meta: Meta
     """Metadata about the group."""
 
-    members: list[Member] = []
+    members: list[Member] = Field(default_factory=list)
     """The members of the group."""
 
-    administrators: list[Administrator] = []
+    administrators: list[Administrator] = Field(default_factory=list)
     """The administrators of the group."""
 
-    services: list[Service] = []
+    services: list[Service] = Field(default_factory=list)
     """The services associated with the group."""
 
 
-type Visibility = Literal["Public", "Private", "Hidden"]
+type Visibility = t.Literal["Public", "Private", "Hidden"]
 
 
 class Meta(BaseModel):
-    resource_type: Literal["Group"] = "Group"
+    resource_type: t.Literal["Group"] = "Group"
     """The type of resource. Always 'Group'. Alias to 'resourceType'."""
 
     created: datetime
@@ -63,7 +64,7 @@ class Meta(BaseModel):
     """
 
 
-type Member = Annotated[MemberUser | MemberGroup, Field(..., discriminator="type")]
+type Member = t.Annotated[MemberUser | MemberGroup, Field(..., discriminator="type")]
 
 
 class MemberUser(BaseModel):
@@ -75,7 +76,7 @@ class MemberUser(BaseModel):
     )
     """The URI of the corresponding User resource. Alias to '$ref'."""
 
-    type: Literal["User"] = "User"
+    type: t.Literal["User"] = "User"
     """The type of the member. Always 'User'."""
 
     display: str
@@ -84,7 +85,7 @@ class MemberUser(BaseModel):
     value: str
     """The user ID"""
 
-    custom_role: list[str] = []
+    custom_role: list[str] = Field(default_factory=list)
     """The custom roles assigned to the user. Alias to 'customRole'."""
 
 
@@ -97,7 +98,7 @@ class MemberGroup(BaseModel):
     )
     """The URI of the corresponding Group resource. Alias to '$ref'."""
 
-    type: Literal["Group"] = "Group"
+    type: t.Literal["Group"] = "Group"
     """The type of the member. Always 'Group'."""
 
     display: str

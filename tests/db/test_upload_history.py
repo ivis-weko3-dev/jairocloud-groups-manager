@@ -1,11 +1,13 @@
-import pytest
-from typing import get_args
 import uuid
 
-from sqlalchemy.exc import IntegrityError
-from psycopg.errors import CheckViolation
+from typing import get_args
 
-from db.upload_history import UploadHistory
+import pytest
+
+from psycopg.errors import CheckViolation
+from sqlalchemy.exc import IntegrityError
+
+from server.db.upload_history import UploadHistory
 
 
 def test_create_upload_history_record(app, db):
@@ -46,14 +48,14 @@ def test_upload_history_status_choices(app, db, status):
 
 
 def test_invalid_status_raises_error(app, db):
-    with pytest.raises(IntegrityError) as exc_info:
-        invalid_record = UploadHistory()
-        invalid_record.user_id = uuid.uuid4()
-        invalid_record.file_uid = uuid.uuid4()
-        invalid_record.filename = "invalidstatus.txt"
-        invalid_record.status = "X"  # pyright: ignore[reportAttributeAccessIssue]
+    invalid_record = UploadHistory()
+    invalid_record.user_id = uuid.uuid4()
+    invalid_record.file_uid = uuid.uuid4()
+    invalid_record.filename = "invalidstatus.txt"
+    invalid_record.status = "X"  # pyright: ignore[reportAttributeAccessIssue]
+    db.session.add(invalid_record)
 
-        db.session.add(invalid_record)
+    with pytest.raises(IntegrityError) as exc_info:
         db.session.commit()
 
     assert isinstance(exc_info.value.orig, CheckViolation)

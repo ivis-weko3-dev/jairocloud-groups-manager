@@ -2,9 +2,9 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
-from db import db
-from db.service_settings import ServiceSettings
-from schema.others import ClientCert, OAuthToken
+from server.db import db
+from server.db.service_settings import ServiceSettings
+from server.schema.others import ClientCert, OAuthToken
 
 
 def _get_setting[T: BaseModel](key: str, model: type[T]) -> T | None:
@@ -15,7 +15,9 @@ def _get_setting[T: BaseModel](key: str, model: type[T]) -> T | None:
         model (type[T]): The Pydantic model class to represent the setting value.
 
     Returns:
-        T | None: An instance of the setting value, or None if the setting does not exist.
+        T | None:
+            An instance of the setting value, or None if the setting does not exist.
+
     """
     setting = db.session.get(ServiceSettings, key)
     if setting:
@@ -29,6 +31,7 @@ def _set_setting(key: str, value: BaseModel) -> None:
     Args:
         key (str): The key of the setting to set or update.
         value (BaseModel): The Pydantic model instance representing the setting value.
+
     """
     setting = db.session.get(ServiceSettings, key)
     if setting:
@@ -51,6 +54,7 @@ def get_client_cert():
 
     Returns:
         ClientCert | None: The stored client certificate, or None if not found.
+
     """
     return _get_setting("client_cert", ClientCert)
 
@@ -60,6 +64,7 @@ def set_client_cert(cert: _ClientCert) -> None:
 
     Args:
         cert (ClientCert): The client certificate to store.
+
     """
     if not isinstance(cert, ClientCert):
         cert = ClientCert(**cert.__dict__)
@@ -79,6 +84,7 @@ def get_access_token():
 
     Returns:
         OAuthToken | None: The stored OAuth access token, or None if not found.
+
     """
     return _get_setting("access_token", OAuthToken)
 
@@ -88,6 +94,7 @@ def set_access_token(token: _OAuthToken) -> None:
 
     Args:
         token (OAuthToken): The OAuth access token to store.
+
     """
     if not isinstance(token, OAuthToken):
         token = OAuthToken(**token.__dict__)

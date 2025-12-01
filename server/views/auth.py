@@ -1,11 +1,16 @@
 import requests
-from flask import Blueprint, current_app, redirect, request, url_for
 
-from client.oauth import issue_certificate, get_access_token
-from config import config
-from const import MAP_OAUTH_AUTHORIZE_ENDPOINT
-from services.service_settings import get_client_cert, set_client_cert, set_access_token
-from schema.others import OAuthCodeArgs
+from flask import Blueprint, current_app, jsonify, redirect, request, url_for
+
+from server.client.oauth import get_access_token, issue_certificate
+from server.config import config
+from server.const import MAP_OAUTH_AUTHORIZE_ENDPOINT
+from server.schema.others import OAuthCodeArgs
+from server.services.service_settings import (
+    get_client_cert,
+    set_access_token,
+    set_client_cert,
+)
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -15,7 +20,7 @@ def issue_cert():
     """Endpoint to issue a client certificate."""
     entity_id = request.args.get("entity_id")
     if not entity_id:
-        return {"error": "Missing entity_id parameter."}, 400
+        return jsonify(error="Missing entity_id parameter."), 400
     cert = issue_certificate(entity_id)
     set_client_cert(cert)
 

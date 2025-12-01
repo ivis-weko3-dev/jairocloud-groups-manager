@@ -1,9 +1,9 @@
 import traceback
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
-from client.users import exixt_eppn
-from services.service_settings import get_access_token, get_client_cert
+from server.client.users import exixt_eppn
+from server.services.service_settings import get_access_token, get_client_cert
 
 bp = Blueprint("users", __name__, url_prefix="/api/users")
 

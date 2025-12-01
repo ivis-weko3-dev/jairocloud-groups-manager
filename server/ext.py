@@ -1,18 +1,22 @@
-from flask import Flask
+import typing as t
 
-from db.shared import db
-from db.loader import load_models
-from views.route import create_blueprints
+from .db.loader import load_models
+from .db.shared import db
+from .views.route import create_blueprints
+
+if t.TYPE_CHECKING:
+    from flask import Flask
 
 
 class MapWebUI:
     """Main application class for the mAP Web UI."""
 
-    def __init__(self, app: Flask | None = None):
+    def __init__(self, app: Flask | None = None) -> None:
         """Initialize the MapWebUI application.
 
         Args:
             app (Flask | None): The Flask application instance.
+
         """
         self.app = app
 
@@ -24,6 +28,7 @@ class MapWebUI:
 
         Args:
             app (Flask): The Flask application instance.
+
         """
         self.app = app
         self.init_db_app(app)
@@ -32,11 +37,12 @@ class MapWebUI:
 
         app.extensions["map_web_ui"] = self
 
-    def init_db_app(self, app: Flask):
+    def init_db_app(self, app: Flask):  # noqa: PLR6301
         """Initialize the database with the Flask application.
 
         Args:
             app (Flask): The Flask application instance.
+
         """
         db.init_app(app)
         load_models()

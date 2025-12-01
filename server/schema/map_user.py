@@ -1,16 +1,18 @@
-from datetime import datetime
+import typing as t
+
+from datetime import datetime  # noqa: TC003
 from typing import Literal
 
-from pydantic import EmailStr, Field, HttpUrl, UUID4
+from pydantic import UUID4, EmailStr, Field, HttpUrl
 
-from const import MAP_USER_SCHEMA
-from schema.base import BaseModel
+from server.const import MAP_USER_SCHEMA
+from server.schema.base import BaseModel
 
 
 class MapUser(BaseModel):
     """A user resource entity in mAP API."""
 
-    schemas: list[str] = [MAP_USER_SCHEMA]
+    schemas: t.Sequence[str] = Field(default_factory=lambda: [MAP_USER_SCHEMA])
     """Schema URIs that define the attributes present in the User resource."""
 
     id: UUID4
@@ -28,15 +30,15 @@ class MapUser(BaseModel):
     meta: Meta | None = None
     """Metadata about the user."""
 
-    edu_person_principal_names: list[EPPN] = []
+    edu_person_principal_names: list[EPPN] = Field(default_factory=list)
     """A list of ePPN values associated with the user.
     Alias to 'eduPersonPrincipalNames'.
     """
 
-    emails: list[Email] = []
+    emails: list[Email] = Field(default_factory=list)
     """A list of email addresses associated with the user."""
 
-    groups: list[Group] = []
+    groups: list[Group] = Field(default_factory=list)
     """A list of groups the user belongs to."""
 
 

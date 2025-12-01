@@ -1,16 +1,19 @@
-from typing import Literal
+import typing as t
 
-from const import MAP_ERROR_SCHEMA
-from schema.base import BaseModel
+from pydantic import Field
+
+from server.const import MAP_ERROR_SCHEMA
+
+from .base import BaseModel
 
 
 class MapError(BaseModel):
     """An error response entity in mAP API."""
 
-    schemas: list[str] = [MAP_ERROR_SCHEMA]
+    schemas: t.Sequence[str] = Field(default_factory=lambda: [MAP_ERROR_SCHEMA])
     """Schema URIs that define the attributes present in the Error resource."""
 
-    status: Literal[
+    status: t.Literal[
         "307",
         "308",
         "400",
@@ -26,7 +29,7 @@ class MapError(BaseModel):
     ]
     """The HTTP status code of the error as a string."""
 
-    scim_type: Literal[
+    scim_type: t.Literal[
         "invalidFilter",
         "tooMany",
         "uniqueness",
@@ -34,7 +37,6 @@ class MapError(BaseModel):
         "invalidValue",
         "invalidSyntax",
         "noTarget",
-        "invalidValue",
         "invalidVers",
         "sensitive",
     ]

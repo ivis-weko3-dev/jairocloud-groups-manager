@@ -6,10 +6,10 @@ from sqlalchemy.engine import URL, make_url
 class RuntimeConfig(BaseSettings):
     """Configuration for runtime settings."""
 
-    SERVER_NAME: str = "localhost:5000"
+    SERVER_NAME: str = "localhost:5050"
     """The server name."""
 
-    SECRET_KEY: str = "sample_secret_key"
+    SECRET_KEY: str = "sample_secret_key"  # noqa: S105
     """A secret key for cryptographic operations."""
 
     POSTGRES_USER: str = "mapuser"
@@ -21,7 +21,7 @@ class RuntimeConfig(BaseSettings):
     POSTGRES_PORT: int = 5432
     """PostgreSQL database port."""
 
-    POSTGRES_PASSWORD: str = "mappass"
+    POSTGRES_PASSWORD: str = "mappass"  # noqa: S105
     """PostgreSQL database password."""
 
     POSTGRES_DB: str = "mapdb"
@@ -29,7 +29,7 @@ class RuntimeConfig(BaseSettings):
 
     @computed_field
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> URL:
+    def SQLALCHEMY_DATABASE_URI(self) -> URL:  # noqa: N802
         """Database connection URI for SQLAlchemy."""
         return make_url(
             f"postgresql+psycopg://{self.POSTGRES_USER}:"
@@ -45,7 +45,7 @@ class RuntimeConfig(BaseSettings):
 
     @computed_field
     @property
-    def CELERY(self) -> dict[str, str | bool]:
+    def CELERY(self) -> dict[str, str | bool]:  # noqa: N802
         """Celery configuration dictionary."""
         return {
             "broker_url": self.CELERY_BROKER_URL,

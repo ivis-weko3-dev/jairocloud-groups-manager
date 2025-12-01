@@ -1,12 +1,13 @@
+import typing as t
 import uuid
+
 from datetime import datetime
-from typing import get_args, Literal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from db.shared import db
+from .shared import db
 
 
 class UploadHistory(db.Model):
@@ -14,7 +15,7 @@ class UploadHistory(db.Model):
 
     __tablename__ = "upload_history"
 
-    type Status = Literal["S", "P", "F", "C"]
+    type Status = t.Literal["S", "P", "F", "C"]
     """Allowed status values for the upload history.
     - 'S': Success
     - 'P': In Progress
@@ -54,7 +55,7 @@ class UploadHistory(db.Model):
 
     __table_args__ = (
         CheckConstraint(
-            status.in_(get_args(Status.__value__)),
+            status.in_(t.get_args(Status.__value__)),
             name="status",
         ),
     )

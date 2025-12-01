@@ -1,19 +1,17 @@
 import time
 
 import requests
+
 from flask import current_app
 from pydantic import TypeAdapter
 from pydantic_core import ValidationError
 from requests.status_codes import codes
 
-from config import config
-from const import MAP_EXIST_EPPN_ENDPOINT
-
-from client.utils import compute_signature
-
-from schema.map_user import MapUser
-from schema.map_error import MapError
-
+from server.client.utils import compute_signature
+from server.config import config
+from server.const import MAP_EXIST_EPPN_ENDPOINT
+from server.schema.map_error import MapError
+from server.schema.map_user import MapUser
 
 type ExixtEppnResponse = MapUser | MapError
 

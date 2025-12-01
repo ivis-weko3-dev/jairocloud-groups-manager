@@ -1,11 +1,11 @@
 from typing import Any
 
-from sqlalchemy import String, JSON
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import JSON, String
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
-from db.shared import db
+from .shared import db
 
 
 class ServiceSettings(db.Model):

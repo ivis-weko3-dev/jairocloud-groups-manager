@@ -1,4 +1,1 @@
-from db.proxy import db
-
-
-__all__ = ["db"]
+from .proxy import db  # noqa: F401

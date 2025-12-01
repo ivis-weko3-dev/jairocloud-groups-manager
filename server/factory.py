@@ -1,12 +1,15 @@
 from celery import Celery, Task
 from flask import Flask
 
-from ext import MapWebUI
+from .ext import MapWebUI
 
 
-def create_app(config_object: object | str = "config.config"):
+def create_app(config_object: object | str = "server.config.config"):
     app = Flask(__name__)
+    app.config.from_prefixed_env()
     app.config.from_object(config_object)
+    app.json.sort_keys = False  # pyright: ignore[reportAttributeAccessIssue]
+    app.json.ensure_ascii = False  # pyright: ignore[reportAttributeAccessIssue]
 
     celery_init_app(app)
     _map_web_ui = MapWebUI(app)

@@ -21,7 +21,7 @@ MAP_OAUTH_ISSUE_ENDPOINT: Final = "/oauth/sslauth/issue.php"
 MAP_OAUTH_AUTHORIZE_ENDPOINT: Final = "/oauth/shib/authrequest.php"
 """The OAuth endpoint for authorizing clients with mAP Core."""
 
-MAP_OAUTH_TOKEN_ENDPOINT: Final = "/oauth/token.php"
+MAP_OAUTH_TOKEN_ENDPOINT: Final = "/oauth/token.php"  # noqa: S105
 """The OAuth endpoint for obtaining access tokens from mAP Core."""
 
 MAP_EXIST_EPPN_ENDPOINT: Final = "/api/v2/Existeppn"

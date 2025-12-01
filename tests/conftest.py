@@ -1,18 +1,23 @@
-import pytest
+import typing as t
+
 from pathlib import Path
 
-from flask import Flask
+import pytest
+
 from sqlalchemy_utils import create_database, database_exists
 
-import const
-from config import RuntimeConfig
-from db.shared import db as db_
-from factory import create_app
+from server import const
+from server.config import RuntimeConfig
+from server.db.shared import db as db_
+from server.factory import create_app
+
+if t.TYPE_CHECKING:
+    from flask import Flask
 
 
 def is_running_in_docker() -> bool:
     try:
-        with open("/.dockerenv"):
+        with Path("/.dockerenv").open(encoding="utf-8"):
             return True
     except FileNotFoundError:
         return False

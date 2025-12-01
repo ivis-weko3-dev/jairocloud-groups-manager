@@ -1,13 +1,15 @@
 import traceback
+
 from typing import Protocol
 
 import requests
+
 from flask import current_app, url_for
 from pydantic_core import ValidationError
 
-from config import config
-from const import MAP_OAUTH_ISSUE_ENDPOINT, MAP_OAUTH_TOKEN_ENDPOINT
-from schema.others import ClientCert, OAuthToken
+from server.config import config
+from server.const import MAP_OAUTH_ISSUE_ENDPOINT, MAP_OAUTH_TOKEN_ENDPOINT
+from server.schema.others import ClientCert, OAuthToken
 
 
 def issue_certificate(entity_id: str) -> ClientCert:
@@ -18,6 +20,7 @@ def issue_certificate(entity_id: str) -> ClientCert:
 
     Returns:
         ClientCert: The issued client certificate.
+
     """
     redirect_uri = url_for("auth.callback", _external=True)
 
@@ -29,6 +32,7 @@ def issue_certificate(entity_id: str) -> ClientCert:
                 "redirect_uri": redirect_uri,
             },
             cert=(config.WEB_UI_SP_CERT_PATH, config.WEB_UI_SP_KEY_PATH),
+            timeout=10,
         )
         response.raise_for_status()
         data = response.json()
@@ -59,11 +63,14 @@ def get_access_token(code: _OAuthCode, cert: _ClientCert) -> OAuthToken:
     """Exchange an authorization code for an access token.
 
     Args:
-        code (OAuthCode): The authorization code received from the OAuth provider.
-        cert (ClientCert): The client certificate containing client_id and client_secret.
+        code (OAuthCode):
+            The authorization code received from the OAuth provider.
+        cert (ClientCert):
+            The client certificate containing client_id and client_secret.
 
     Returns:
         OAuthToken: The obtained OAuth access token.
+
     """
     redirect_uri = url_for("auth.callback", _external=True)
 
@@ -76,6 +83,7 @@ def get_access_token(code: _OAuthCode, cert: _ClientCert) -> OAuthToken:
                 "redirect_uri": redirect_uri,
             },
             auth=(cert.client_id, cert.client_secret),
+            timeout=10,
         )
         response.raise_for_status()
         data = response.json()
