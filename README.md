@@ -1,5 +1,6 @@
 # JAIRO Cloud Groups Manager
 
+[![GitHub Licensed](https://img.shields.io/github/license/RCOSDP/jairocloud-groups-manager)](./LICENSE)
 [![Flask](https://img.shields.io/badge/Flask-3BABC3?logo=flask&labelColor=000000)](https://flask.palletsprojects.com)
 [![Nuxt UI](https://img.shields.io/badge/Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
 
