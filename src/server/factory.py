@@ -1,3 +1,5 @@
+import os
+
 from celery import Celery, Task
 from flask import Flask
 
@@ -13,6 +15,13 @@ def create_app(import_name: str) -> Flask:
 
     """
     app = Flask(import_name)
+    app.config.from_mapping(
+        CELERY={
+            "broker_url": os.environ["CELERY_BROKER_URL"],
+            "result_backend": os.environ["CELERY_RESULT_BACKEND"],
+        },
+    )
+    app.config.from_prefixed_env()
     celery_init_app(app)
 
     return app
@@ -36,6 +45,7 @@ def celery_init_app(app: Flask) -> Celery:
                 return self.run(*args, **kwargs)
 
     celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.config_from_object(app.config["CELERY"])
     celery_app.set_default()
     app.extensions["celery"] = celery_app
 

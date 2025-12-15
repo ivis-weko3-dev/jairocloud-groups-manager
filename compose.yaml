@@ -1,0 +1,44 @@
+# Docker Compose configuration for development environment
+
+services:
+  web:
+    restart: "always"
+    build:
+      context: .
+      target: dev
+    image: jc-groups-manager-dev
+    container_name: web
+    environment:
+      FLASK_SECRET_KEY: CHANGE ME
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    ports:
+      - "5050:5050"
+
+  worker:
+    restart: "always"
+    build:
+      context: .
+      target: dev
+    image: jc-groups-manager-dev
+    container_name: worker
+    environment:
+      FLASK_SECRET_KEY: CHANGE ME
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    command: celery -A server.celery worker
+    depends_on:
+      - redis
+      - rabbitmq
+
+  redis:
+    restart: "always"
+    image: redis:7.4.1
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    restart: "always"
+    image: rabbitmq:4.0.2
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout 10800000"

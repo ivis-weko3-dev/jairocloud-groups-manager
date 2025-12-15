@@ -1,0 +1,34 @@
+# Docker
+Dockerfile
+.dockerignore
+compose.yaml
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.devcontainer/
+.github/
+.vscode/
+
+# Python
+.venv/
+**/__pycache__/
+*.pyc
+**/*.egg-info/
+build/
+
+# Node
+.nuxt/
+.output/
+node_modules/
+dist/
+
+# CI
+htmlcov/
+.coverage
+.pytest_cache/
+
+# other contents
+.data
