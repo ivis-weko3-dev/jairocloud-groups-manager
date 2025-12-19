@@ -1,10 +1,11 @@
 import typing as t
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
-from pydantic.alias_generators import to_camel
+from pydantic import EmailStr, Field, HttpUrl
 
 from server.const import MAP_USER_SCHEMA
+
+from .base import BaseModel
 
 
 class MapUser(BaseModel):
@@ -22,7 +23,7 @@ class MapUser(BaseModel):
     external_id: str | None = None
     """External identifier for the user. Alias for 'externalId'."""
 
-    user_name: str
+    user_name: str | None = None
     """User's name. Alias for 'userName'."""
 
     preferred_language: t.Literal["en", "ja"] | None = None
@@ -42,15 +43,6 @@ class MapUser(BaseModel):
     groups: list[Group] | None = None
     """List of groups the user belongs to."""
 
-    model_config = ConfigDict(
-        extra="forbid",
-        validate_assignment=True,
-        alias_generator=to_camel,
-        validate_by_name=True,
-        validate_by_alias=True,
-    )
-    """Base model configuration."""
-
 
 class Meta(BaseModel):
     """Schema for user resource metadata."""
@@ -69,15 +61,6 @@ class Meta(BaseModel):
     created_by: str | None
     """ID of the user who created this resource. Alias for 'createdBy'."""
 
-    model_config = ConfigDict(
-        extra="forbid",
-        validate_assignment=True,
-        alias_generator=to_camel,
-        validate_by_name=True,
-        validate_by_alias=True,
-    )
-    """Base model configuration."""
-
 
 class EPPN(BaseModel):
     """Schema for an eduPersonPrincipalName (ePPN) value associated with a user."""
@@ -89,15 +72,6 @@ class EPPN(BaseModel):
     """Entity ID of the Identity Provider that issued this ePPN.
     Alias for 'idpEntityId'.
     """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        validate_assignment=True,
-        alias_generator=to_camel,
-        validate_by_name=True,
-        validate_by_alias=True,
-    )
-    """Base model configuration."""
 
 
 class Email(BaseModel):
@@ -123,11 +97,3 @@ class Group(BaseModel):
         ),
     ] = None
     """URI of the corresponding Group resource. Alias for '$ref'."""
-
-    model_config = ConfigDict(
-        extra="forbid",
-        validate_assignment=True,
-        validate_by_name=True,
-        validate_by_alias=True,
-    )
-    """Base model configuration."""
