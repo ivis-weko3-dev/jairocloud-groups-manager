@@ -6,6 +6,7 @@
 
 import typing as t
 
+from .api.router import create_blueprints
 from .config import RuntimeConfig, setup_config
 from .const import DEFAULT_CONFIG_PATH
 
@@ -42,6 +43,8 @@ class JAIROCloudGroupsManager:
         """
         self.app = app
         self.init_config(app)
+
+        create_blueprints(app)
 
         app.extensions["jairocloud-groups-manager"] = self
 
