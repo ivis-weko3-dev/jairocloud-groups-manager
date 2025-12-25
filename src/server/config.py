@@ -84,6 +84,7 @@ class RuntimeConfig(BaseSettings):
         frozen=True,
         alias_generator=lambda s: s.lower(),
         validate_default=True,
+        validate_by_name=True,
     )
     """Base model configuration."""
 
