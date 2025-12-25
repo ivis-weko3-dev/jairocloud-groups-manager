@@ -23,10 +23,14 @@ With DevContainer, your development environment is ready in no time!
     uv sync && uv pip install -e .
     pnpm install -r
     ```
-3. Start the development server:
-   ```bash
-   LOCAL_WORKSPACE_FOLDER=$(pwd) docker compose up --watch
-   ```
+3. Create docker network:
+    ```bash
+    docker network create jairocloud-groups-manager_default
+    ```
+4. Start the development server:
+    ```bash
+    LOCAL_WORKSPACE_FOLDER=$(pwd) docker compose up --watch
+    ```
 
 > [!TIP]
 > When the Vite dev server fails to start due to permission problems, create a `.nuxt` directory on the host machine or run `pnpm postinstall`, then try again.

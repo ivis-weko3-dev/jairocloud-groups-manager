@@ -29,6 +29,8 @@ services:
           path: uv.lock
         - action: rebuild
           path: Dockerfile
+    networks:
+      - jairocloud-groups-manager_default
 
   worker:
     restart: "always"
@@ -56,6 +58,8 @@ services:
           path: uv.lock
         - action: rebuild
           path: Dockerfile
+    networks:
+      - jairocloud-groups-manager_default
 
   app:
     build:
@@ -88,6 +92,8 @@ services:
       - type: bind
         source: ${LOCAL_WORKSPACE_FOLDER}/.nuxt
         target: /code/.nuxt
+    networks:
+      - jairocloud-groups-manager_default
 
   nginx:
     build:
@@ -102,6 +108,8 @@ services:
     depends_on:
       - web
       - app
+    networks:
+      - jairocloud-groups-manager_default
 
   postgres:
     restart: "always"
@@ -114,12 +122,16 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - jairocloud-groups-manager_default
 
   redis:
     restart: "always"
     image: redis:7.4.1
     ports:
       - "6379:6379"
+    networks:
+      - jairocloud-groups-manager_default
 
   rabbitmq:
     restart: "always"
@@ -129,3 +141,7 @@ services:
 
 volumes:
   pgdata:
+
+networks:
+  jairocloud-groups-manager_default:
+    external: true

@@ -3,6 +3,12 @@
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
   "remoteUser": "vscode",
 
+  "initializeCommand": "docker network create jairocloud-groups-manager_default || true",
+  "runArgs": [
+    "--network",
+    "jairocloud-groups-manager_default"
+  ],
+
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.14"
