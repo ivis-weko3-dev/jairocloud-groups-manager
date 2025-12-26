@@ -30,12 +30,17 @@ dev = [
 pythonpath = ["."]
 addopts = [
     "--import-mode=importlib",
-    "--cov=src/server",
-    "--cov-branch"
 ]
 
 [tool.coverage.run]
+branch = true
+source = ["src/server"]
+
+[tool.coverage.report]
 omit = ["__init__.py", "tests/*"]
+exclude_lines = [
+  "if t.TYPE_CHECKING:",
+]
 
 
 [tool.ruff.lint]
