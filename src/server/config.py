@@ -36,6 +36,12 @@ class RuntimeConfig(BaseSettings):
     SECRET_KEY: str = "CHANGE ME"
     """Secret key for cryptographic operations."""
 
+    MAP_CORE: MapCoreConfig
+    """mAP Core service configuration."""
+
+    SP: SpConfig
+    """This application's Service Provider configuration."""
+
     CELERY: CeleryConfig = Field(default_factory=lambda: CeleryConfig())  # noqa: PLW0108
     """Celery configuration values."""
 
@@ -87,6 +93,29 @@ class RuntimeConfig(BaseSettings):
         validate_by_name=True,
     )
     """Base model configuration."""
+
+
+class SpConfig(BaseModel):
+    """Schema for Service Provider configuration."""
+
+    entity_id: str
+    """Entity ID of the Service Provider."""
+
+    crt: str
+    """Path to the Service Provider's certificate file."""
+
+    key: str
+    """Path to the Service Provider's private key file."""
+
+
+class MapCoreConfig(BaseModel):
+    """Schema for mAP Core service configuration."""
+
+    base_url: str
+    """Base URL of the mAP Core service."""
+
+    timeout: t.Annotated[int, "seconds"] = 10
+    """Timeout (in seconds) for requests to mAP Core service."""
 
 
 class CeleryConfig(BaseModel):

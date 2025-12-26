@@ -9,13 +9,21 @@ from typing import Final
 DEFAULT_CONFIG_PATH: Final = "configs/server.config.toml"
 """Default path to the server configuration TOML file."""
 
+
 MAP_USER_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:User"
-"""The schema URI for mAP User resources."""
+"""Schema URI for mAP User resources."""
 
 MAP_GROUP_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:Group"
-"""The schema URI for mAP Group resources."""
+"""Schema URI for mAP Group resources."""
 
 MAP_SERVICE_SCHEMA: Final = (
     "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:Service"
 )
-"""The schema URI for mAP Service resources."""
+"""Schema URI for mAP Service resources."""
+
+
+MAP_OAUTH_ISSUE_ENDPOINT: Final = "/oauth/sslauth/issue.php"
+"""Endpoint for issuing client credentials in mAP Core Authorization Server."""
+
+MAP_OAUTH_TOKEN_ENDPOINT: Final = "/oauth/token.php"  # noqa: S105
+"""The OAuth endpoint for obtaining access tokens from mAP Core."""

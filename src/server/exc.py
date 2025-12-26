@@ -13,5 +13,9 @@ class ServiceSettingsError(JAIROCloudGroupsManagerError):
     """Exception for service settings."""
 
 
-class ClientCredentialsError(ServiceSettingsError):
+class CredentialsError(ServiceSettingsError):
     """Exception for client credentials."""
+
+
+class OAuthTokenError(ServiceSettingsError):
+    """Exception for OAuth token."""

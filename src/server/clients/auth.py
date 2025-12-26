@@ -1,0 +1,74 @@
+#
+# Copyright (C) 2025 National Institute of Informatics.
+#
+
+"""Client for mAP Core Authorization Server."""
+
+import typing as t
+
+import requests
+
+from flask import url_for
+
+from server.config import config
+from server.const import MAP_OAUTH_ISSUE_ENDPOINT, MAP_OAUTH_TOKEN_ENDPOINT
+from server.schemas.auth import ClientCredentials, OAuthToken
+
+if t.TYPE_CHECKING:
+    from .types import _ClientCreds, _SpCerts
+
+
+def issue_client_credentials(entity_id: str, certs: _SpCerts) -> ClientCredentials:
+    """Issue client credentials from mAP Core Authorization Server.
+
+    Args:
+        entity_id (str): Entity ID of the Service Provider.
+        certs (_SpCerts):
+            File paths for certificates and private keys used for mutual
+            TLS authentication. It must contain members `crt` and `key`.
+
+    Returns:
+        ClientCredentials: Issued client credentials.
+    """
+    redirect_uri = url_for("api.callback.auth_code", _external=True)
+
+    response = requests.post(
+        f"{config.MAP_CORE.base_url}{MAP_OAUTH_ISSUE_ENDPOINT}",
+        params={
+            "entity_id": entity_id,
+            "redirect_uri": redirect_uri,
+        },
+        cert=(certs.crt, certs.key),
+        timeout=config.MAP_CORE.timeout,
+    )
+    response.raise_for_status()
+
+    return ClientCredentials.model_validate(response.json())
+
+
+def issue_access_token(code: str, credentials: _ClientCreds) -> OAuthToken:
+    """Issue an OAuth access token using the authorization code.
+
+    Args:
+        code (str): Authorization code received from mAP Core Authorization Server.
+        credentials (_ClientCreds):
+            Client credentials. It must contain members `client_id` and `client_secret`.
+
+    Returns:
+        OAuthToken: Issued OAuth token. It has access token, refresh token, etc.
+    """
+    redirect_uri = url_for("api.callback.auth_code", _external=True)
+
+    response = requests.post(
+        f"{config.MAP_CORE.base_url}{MAP_OAUTH_TOKEN_ENDPOINT}",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+        },
+        auth=(credentials.client_id, credentials.client_secret),
+        timeout=config.MAP_CORE.timeout,
+    )
+    response.raise_for_status()
+
+    return OAuthToken.model_validate(response.json())

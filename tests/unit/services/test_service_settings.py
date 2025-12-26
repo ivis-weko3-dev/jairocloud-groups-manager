@@ -5,7 +5,7 @@ from unittest.mock import ANY
 import pytest
 
 from server.db.service_settings import ServiceSettings
-from server.exc import ClientCredentialsError
+from server.exc import CredentialsError
 from server.schemas.auth import ClientCredentials
 from server.services.service_settings import (
     _get_setting,
@@ -47,7 +47,7 @@ def test_get_client_credentials_invalid_setting(db, mocker: MockerFixture):
     }
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=setting)
 
-    with pytest.raises(ClientCredentialsError) as exc_info:
+    with pytest.raises(CredentialsError) as exc_info:
         get_client_credentials()
 
     mock_get.assert_called_once_with("client_credentials")

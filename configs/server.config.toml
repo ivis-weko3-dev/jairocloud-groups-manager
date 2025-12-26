@@ -6,6 +6,21 @@ server_name = 'localhost'
 # Secret key for cryptographic operations.
 secret_key = 'CHANGE ME'
 
+[sp]
+# Entity ID of the Service Provider.
+entity_id = "https://localhost/shibboleth-sp"
+
+crt = "./certs/server.crt"
+
+key = "./certs/server.key"
+
+[map_core]
+# Base URL for the mAP Core service.
+base_url = "https://sptest.cg.gakunin.jp"
+
+# Timeout (in seconds) for requests to mAP Core service.
+timeout = 10
+
 [celery]
 # URL of the Celery message broker.
 broker_url = "amqp://guest:guest@rabbitmq:5672//"

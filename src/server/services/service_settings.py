@@ -13,8 +13,8 @@ from pydantic_core import ValidationError
 
 from server.db import db
 from server.db.service_settings import ServiceSettings
-from server.exc import ClientCredentialsError
-from server.schemas.auth import ClientCredentials
+from server.exc import CredentialsError, OAuthTokenError
+from server.schemas.auth import ClientCredentials, OAuthToken
 
 
 def get_client_credentials() -> ClientCredentials | None:
@@ -24,7 +24,7 @@ def get_client_credentials() -> ClientCredentials | None:
         ClientCredentials: The credentials if present and valid, otherwise None.
 
     Raises:
-        ClientCredentialsError: If the stored credentials are invalid.
+        CredentialsError: If the stored credentials are invalid.
     """
     setting = _get_setting("client_credentials")
     if setting is None:
@@ -34,7 +34,7 @@ def get_client_credentials() -> ClientCredentials | None:
         creds = ClientCredentials(**setting)
     except ValidationError as exc:
         error = "Invalid client credentials in service settings."
-        raise ClientCredentialsError(error) from exc
+        raise CredentialsError(error) from exc
 
     return creds
 
@@ -46,6 +46,37 @@ def save_client_credentials(credentials: ClientCredentials) -> None:
         credentials (ClientCredentials): The credentials to save.
     """
     _save_setting("client_credentials", credentials.model_dump(mode="json"))
+
+
+def get_oauth_token() -> OAuthToken | None:
+    """Get OAuth token from service settings.
+
+    Returns:
+        OAuthToken: The token if present and valid, otherwise None.
+
+    Raises:
+        OAuthTokenError: If the stored token is invalid.
+    """
+    setting = _get_setting("oauth_token")
+    if setting is None:
+        return None
+
+    try:
+        token = OAuthToken(**setting)
+    except ValidationError as exc:
+        error = "Invalid OAuth token in service settings."
+        raise OAuthTokenError(error) from exc
+
+    return token
+
+
+def save_oauth_token(token: OAuthToken) -> None:
+    """Save OAuth token to service settings.
+
+    Args:
+        token (OAuthToken): The token to save.
+    """
+    _save_setting("oauth_token", token.model_dump(mode="json"))
 
 
 def _get_setting(key: str) -> dict[str, t.Any] | None:
