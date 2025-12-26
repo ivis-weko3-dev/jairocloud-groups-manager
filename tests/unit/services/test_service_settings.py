@@ -18,7 +18,7 @@ if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def test_get_client_credentials(db, mocker: MockerFixture):
+def test_get_client_credentials(mocker: MockerFixture):
     setting = {
         "client_id": "test_client_id",
         "client_secret": "test_client_secret",
@@ -33,14 +33,14 @@ def test_get_client_credentials(db, mocker: MockerFixture):
     mock_get.assert_called_once_with("client_credentials")
 
 
-def test_get_client_credentials_no_setting(db, mocker: MockerFixture):
+def test_get_client_credentials_no_setting(mocker: MockerFixture):
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=None)
     creds = get_client_credentials()
     assert creds is None
     mock_get.assert_called_once_with("client_credentials")
 
 
-def test_get_client_credentials_invalid_setting(db, mocker: MockerFixture):
+def test_get_client_credentials_invalid_setting(mocker: MockerFixture):
     setting = {
         "client_id": "test_client_id",
         # Missing client_secret
@@ -54,7 +54,7 @@ def test_get_client_credentials_invalid_setting(db, mocker: MockerFixture):
     exc_info.match("Invalid client credentials in service settings.")
 
 
-def test_save_client_credentials(db, mocker: MockerFixture):
+def test_save_client_credentials(mocker: MockerFixture):
     creds = ClientCredentials(
         client_id="save_client_id",
         client_secret="save_client_secret",
@@ -69,7 +69,7 @@ def test_save_client_credentials(db, mocker: MockerFixture):
     assert json_value["client_secret"] == "save_client_secret"
 
 
-def test__get_setting(db, mocker: MockerFixture):
+def test__get_setting(app, mocker: MockerFixture):
     setting_value = {"foo": "bar"}
     setting = ServiceSettings(key="test_key", value=setting_value)  # pyright: ignore[reportCallIssue]
     mocker.patch("server.services.service_settings.db.session.get", return_value=setting)
@@ -78,14 +78,14 @@ def test__get_setting(db, mocker: MockerFixture):
     assert result == setting_value
 
 
-def test__get_setting_not_found(db, mocker: MockerFixture):
+def test__get_setting_not_found(app, mocker: MockerFixture):
     mocker.patch("server.services.service_settings.db.session.get", return_value=None)
 
     result = _get_setting("nonexistent_key")
     assert result is None
 
 
-def test__save_setting_create(db, mocker: MockerFixture):
+def test__save_setting_create(app, mocker: MockerFixture):
     mock_session_get = mocker.patch("server.services.service_settings.db.session.get", return_value=None)
     mock_add = mocker.patch("server.services.service_settings.db.session.add")
     mock_commit = mocker.patch("server.services.service_settings.db.session.commit")
@@ -103,7 +103,7 @@ def test__save_setting_create(db, mocker: MockerFixture):
     assert added_setting.value == setting_value
 
 
-def test__save_setting_update(db, mocker: MockerFixture):
+def test__save_setting_update(app, mocker: MockerFixture):
     setting_key = "existing_key"
     setting_value = {"existing": "value"}
     existing_setting = ServiceSettings(key=setting_key, value=setting_value)  # pyright: ignore[reportCallIssue]

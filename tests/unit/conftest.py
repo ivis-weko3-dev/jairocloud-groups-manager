@@ -4,11 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from sqlalchemy_utils import create_database, database_exists
-
 from server import const
-from server.config import PostgresConfig, RuntimeConfig
-from server.db.base import db as db_
+from server.config import RuntimeConfig
 from server.factory import create_app
 
 if t.TYPE_CHECKING:
@@ -16,11 +13,7 @@ if t.TYPE_CHECKING:
 
 
 def is_running_in_docker() -> bool:
-    try:
-        with Path("/.dockerenv").open(encoding="utf-8"):
-            return True
-    except FileNotFoundError:
-        return False
+    return Path("/.dockerenv").exists()
 
 
 @pytest.fixture(autouse=True)
@@ -38,10 +31,19 @@ def instance_path(tmp_path: Path) -> Path:
 @pytest.fixture
 def test_config():
     db_host = "postgres" if is_running_in_docker() else "localhost"
-    return RuntimeConfig(
-        SECRET_KEY="test_secret_key",
-        POSTGRES=PostgresConfig(db="jctest", host=db_host),
-    )
+    return RuntimeConfig.model_validate({
+        "SECRET_KEY": "test_secret_key",
+        "SP": {
+            "entity_id": "https://test/shibboleth-sp",
+            "crt": "/test/server.crt",
+            "key": "/test/server.key",
+        },
+        "MAP_CORE": {
+            "base_url": "https://mapcore.test.jp",
+            "timeout": 3,
+        },
+        "POSTGRES": {"db": "jctest", "host": db_host},
+    })
 
 
 @pytest.fixture
@@ -57,18 +59,3 @@ def base_app(instance_path, test_config):
 def app(base_app: Flask):
     with base_app.app_context():
         yield base_app
-
-
-@pytest.fixture
-def db(app):
-    url = app.config["SQLALCHEMY_DATABASE_URI"]
-    if not database_exists(url):
-        create_database(url)
-    else:
-        db_.drop_all()
-    db_.create_all()
-
-    yield db_
-
-    db_.session.remove()
-    db_.drop_all()
