@@ -2,21 +2,21 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""Schemas for the mAP Core API user resources."""
+"""Models for schema and entity definition of mAP Core API User resources."""
 
 import typing as t
 
 from datetime import datetime
 
-from pydantic import EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 from server.const import MAP_USER_SCHEMA
 
-from .base import BaseModel
+from .common import camel_case_config, forbid_extra_config
 
 
 class MapUser(BaseModel):
-    """Schema for a user resource in the mAP Core API.
+    """Model for a user resource in the mAP Core API.
 
     Handles validation and (de)serialization of user resources.
     """
@@ -36,7 +36,7 @@ class MapUser(BaseModel):
     preferred_language: t.Literal["en", "ja"] | None = None
     """User's preferred language. Alias for 'preferredLanguage'."""
 
-    meta: Meta | None = None
+    meta: t.Annotated[Meta | None, Field(frozen=True)] = None
     """Metadata for the user."""
 
     edu_person_principal_names: list[EPPN] | None = None
@@ -50,9 +50,12 @@ class MapUser(BaseModel):
     groups: list[Group] | None = None
     """List of groups the user belongs to."""
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
 
 class Meta(BaseModel):
-    """Schema for user resource metadata."""
+    """Model for user resource metadata."""
 
     resource_type: t.Literal["User"] = "User"
     """Type of resource. Always 'User'. Alias for 'resourceType'."""
@@ -68,12 +71,12 @@ class Meta(BaseModel):
     created_by: str | None
     """ID of the user who created this resource. Alias for 'createdBy'."""
 
-    model_config = BaseModel.model_config | {"frozen": True}
-    """Make Meta instances immutable."""
+    model_config = camel_case_config | forbid_extra_config | {"frozen": True}
+    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 class EPPN(BaseModel):
-    """Schema for an eduPersonPrincipalName (ePPN) value associated with a user."""
+    """Model for an eduPersonPrincipalName (ePPN) value associated with a user."""
 
     value: str
     """eduPersonPrincipalName value."""
@@ -83,16 +86,22 @@ class EPPN(BaseModel):
     Alias for 'idpEntityId'.
     """
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure forbid extra fields."""
+
 
 class Email(BaseModel):
-    """Schema for an email address of a user."""
+    """Model for an email address of a user."""
 
     value: EmailStr
     """Email address."""
 
+    model_config = forbid_extra_config
+    """Configure forbid extra fields."""
+
 
 class Group(BaseModel):
-    """Schema for a group associated with a user."""
+    """Model for a group associated with a user."""
 
     value: str
     """Group ID."""
@@ -107,3 +116,6 @@ class Group(BaseModel):
         ),
     ] = None
     """URI of the corresponding Group resource. Alias for '$ref'."""
+
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""

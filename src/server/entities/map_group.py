@@ -2,21 +2,21 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""Schemas for the mAP Core API group resources."""
+"""Models for schema and entity definition of mAP Core API Group resources."""
 
 import typing as t
 
 from datetime import datetime
 
-from pydantic import Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 from server.const import MAP_GROUP_SCHEMA
 
-from .base import BaseModel
+from .common import camel_case_config, forbid_extra_config
 
 
 class MapGroup(BaseModel):
-    """Schema for a group resource in the mAP Core API.
+    """Model for a group resource in the mAP Core API.
 
     Handles validation and (de)serialization of group resources.
     """
@@ -57,12 +57,15 @@ class MapGroup(BaseModel):
     services: list[Service] | None = None
     """The services associated with the group."""
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
 
 type Visibility = t.Literal["Public", "Private", "Hidden"]
 
 
 class Meta(BaseModel):
-    """Schema for group resource metadata."""
+    """Model for group resource metadata."""
 
     resource_type: t.Literal["Group"] = "Group"
     """Type of resource. Always 'Group'. Alias for 'resourceType'."""
@@ -75,15 +78,15 @@ class Meta(BaseModel):
     Alias for 'lastModified'.
     """
 
-    model_config = BaseModel.model_config | {"frozen": True}
-    """Make Meta instances immutable."""
+    model_config = camel_case_config | forbid_extra_config | {"frozen": True}
+    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 type Member = t.Annotated[MemberUser | MemberGroup, Field(..., discriminator="type")]
 
 
 class MemberUser(BaseModel):
-    """Schema for a user member of a group."""
+    """Model for a user member of a group."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -108,9 +111,12 @@ class MemberUser(BaseModel):
     custom_role: list[str] | None = None
     """Custom roles assigned to the user. Alias for 'customRole'."""
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
 
 class MemberGroup(BaseModel):
-    """Schema for a group member of a group."""
+    """Model for a group member of a group."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -132,9 +138,12 @@ class MemberGroup(BaseModel):
     value: str
     """Group ID."""
 
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""
+
 
 class Administrator(BaseModel):
-    """Schema for a group administrator."""
+    """Model for a group administrator."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -153,9 +162,12 @@ class Administrator(BaseModel):
     value: str
     """User ID."""
 
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""
+
 
 class Service(BaseModel):
-    """Schema for a service associated with a group."""
+    """Model for a service associated with a group."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -178,3 +190,6 @@ class Service(BaseModel):
     """Flag indicating whether the service is an administrator of the group.
     Alias for 'administratorOfGroup'.
     """
+
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""

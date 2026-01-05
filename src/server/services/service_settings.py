@@ -13,8 +13,8 @@ from pydantic_core import ValidationError
 
 from server.db import db
 from server.db.service_settings import ServiceSettings
+from server.entities.auth import ClientCredentials, OAuthToken
 from server.exc import CredentialsError, OAuthTokenError
-from server.schemas.auth import ClientCredentials, OAuthToken
 
 
 def get_client_credentials() -> ClientCredentials | None:

@@ -5,8 +5,8 @@ from unittest.mock import ANY
 import pytest
 
 from server.db.service_settings import ServiceSettings
+from server.entities.auth import ClientCredentials
 from server.exc import CredentialsError
-from server.schemas.auth import ClientCredentials
 from server.services.service_settings import (
     _get_setting,
     _save_setting,

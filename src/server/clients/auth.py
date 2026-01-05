@@ -12,7 +12,7 @@ from flask import url_for
 
 from server.config import config
 from server.const import MAP_OAUTH_ISSUE_ENDPOINT, MAP_OAUTH_TOKEN_ENDPOINT
-from server.schemas.auth import ClientCredentials, OAuthToken
+from server.entities.auth import ClientCredentials, OAuthToken
 
 if t.TYPE_CHECKING:
     from .types import _ClientCreds, _SpCerts

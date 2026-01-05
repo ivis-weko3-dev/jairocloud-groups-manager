@@ -2,21 +2,21 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""Schemas for the mAP Core API service resources."""
+"""Models for schema and entity definition of mAP Core API Service resources."""
 
 import typing as t
 
 from datetime import datetime
 
-from pydantic import Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 from server.const import MAP_SERVICE_SCHEMA
 
-from .base import BaseModel
+from .common import camel_case_config, forbid_extra_config
 
 
 class MapService(BaseModel):
-    """Schema for a service resource in the mAP Core API.
+    """Model for a service resource in the mAP Core API.
 
     Handles validation and (de)serialization of service resources.
     """
@@ -36,7 +36,7 @@ class MapService(BaseModel):
     suspended: bool | None = None
     """Whether the service is suspended."""
 
-    meta: Meta | None = None
+    meta: t.Annotated[Meta | None, Field(frozen=True)] = None
     """Metadata about the service."""
 
     entity_id: list[ServiceEntityID] | None = None
@@ -48,9 +48,12 @@ class MapService(BaseModel):
     groups: list[Group] | None = None
     """The groups associated with the service."""
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
 
 class Meta(BaseModel):
-    """Schema for service resource metadata."""
+    """Model for service resource metadata."""
 
     resource_type: t.Literal["Service"] = "Service"
     """Type of resource. Always 'Service'. Alias for 'resourceType'."""
@@ -61,19 +64,22 @@ class Meta(BaseModel):
     last_modified: datetime
     """Date and time when the resource was last modified. Alias for 'lastModified'."""
 
-    model_config = BaseModel.model_config | {"frozen": True}
-    """Make Meta instances immutable."""
+    model_config = camel_case_config | forbid_extra_config | {"frozen": True}
+    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 class ServiceEntityID(BaseModel):
-    """Schema for a service entity ID."""
+    """Model for a service entity ID."""
 
     value: str
     """The entity ID value."""
 
+    model_config = camel_case_config | forbid_extra_config
+    """Configure forbid extra fields."""
+
 
 class Administrator(BaseModel):
-    """Schema for a service administrator."""
+    """Model for a service administrator."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -92,9 +98,12 @@ class Administrator(BaseModel):
     value: str
     """User's ID."""
 
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""
+
 
 class Group(BaseModel):
-    """Schema for a group associated with a service."""
+    """Model for a group associated with a service."""
 
     ref: t.Annotated[
         HttpUrl | None,
@@ -112,3 +121,6 @@ class Group(BaseModel):
 
     value: str
     """Group's ID."""
+
+    model_config = forbid_extra_config | {"validate_by_name": True}
+    """Configure forbid extra fields and validate by name."""
