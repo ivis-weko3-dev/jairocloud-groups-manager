@@ -6,7 +6,7 @@
 
 import typing as t
 
-from .api.router import create_blueprints
+from .api.router import create_api_blueprint
 from .cli.base import register_cli_commands
 from .config import RuntimeConfig, setup_config
 from .const import DEFAULT_CONFIG_PATH
@@ -31,7 +31,6 @@ class JAIROCloudGroupsManager:
                 instance or path to the configuration file.
 
         """
-        self.app = app
         self.config = config or DEFAULT_CONFIG_PATH
 
         if app is not None:
@@ -44,11 +43,10 @@ class JAIROCloudGroupsManager:
             app (Flask): The Flask application instance.
 
         """
-        self.app = app
         self.init_config(app)
         self.init_db_app(app)
 
-        create_blueprints(app)
+        app.register_blueprint(create_api_blueprint(), url_prefix="/api")
         register_cli_commands(app)
 
         app.extensions["jairocloud-groups-manager"] = self
