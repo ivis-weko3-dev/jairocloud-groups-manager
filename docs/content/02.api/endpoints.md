@@ -1,7 +1,7 @@
 ---
 title: エンドポイント一覧
 description: 当機能が提供する API のエンドポイント一覧。
-headline: JAIRO Cloud Groups Manager
+headline: API 仕様書
 ---
 
 ## 認証・セッション関連 API
