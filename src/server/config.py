@@ -7,9 +7,8 @@
 Provides validation, loading, and global access to runtime configuration.
 """
 
+# ruff: noqa: S105, N802
 import typing as t
-
-from contextvars import ContextVar
 
 from flask import current_app
 from pydantic import BaseModel, Field, computed_field
@@ -21,8 +20,6 @@ from pydantic_settings import (
 )
 from sqlalchemy.engine import URL, make_url
 from werkzeug.local import LocalProxy
-
-# ruff: noqa: S105, N802
 
 
 class RuntimeConfig(BaseSettings):
@@ -148,10 +145,6 @@ class PostgresConfig(BaseModel):
     """Name of the PostgreSQL database."""
 
 
-_no_config_msg = "Config has not been initialized."
-_current_config: ContextVar[RuntimeConfig] = ContextVar("current_config")
-
-
 def setup_config(path_or_obj: str | RuntimeConfig | None) -> RuntimeConfig:
     """Initialize and set the global server configuration instance.
 
@@ -166,7 +159,6 @@ def setup_config(path_or_obj: str | RuntimeConfig | None) -> RuntimeConfig:
     if not isinstance(path_or_obj, RuntimeConfig):
         path_or_obj = RuntimeConfig(_toml_file=path_or_obj)  # pyright: ignore[reportCallIssue]
 
-    _current_config.set(path_or_obj)
     return path_or_obj
 
 
