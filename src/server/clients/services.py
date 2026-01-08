@@ -2,7 +2,7 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""Client for User resources of mAP Core API."""
+"""Client for Service resources of mAP Core API."""
 
 import typing as t
 
@@ -13,29 +13,29 @@ import requests
 from pydantic import TypeAdapter
 
 from server.config import config
-from server.const import MAP_EXIST_EPPN_ENDPOINT, MAP_USERS_ENDPOINT
+from server.const import MAP_SERVICES_ENDPOINT
 from server.entities.map_error import MapError
-from server.entities.map_user import MapUser
+from server.entities.map_service import MapService
 
 from .utils import compute_signature, get_time_stamp
 
 
-type GetMapUserResponse = MapUser | MapError
+type GetMapServiceResponse = MapService | MapError
 
 
 def get_by_id(
-    user_id: str,
+    service_id: str,
     /,
     include: set[str] | None = None,
     exclude: set[str] | None = None,
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser | None:
-    """Get a User resource by its ID from mAP API.
+) -> MapService | None:
+    """Get a Service resource by its ID from mAP API.
 
     Args:
-        user_id (str): ID of the User resource.
+        service_id (str): ID of the Service resource.
         include (set[str] | None):
             Attribute names to include in the response. Optional.
         exclude (set[str] | None):
@@ -44,7 +44,7 @@ def get_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The User resource if found, otherwise None.
+        MapService: The Service resource if found, otherwise None.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -64,7 +64,7 @@ def get_by_id(
         ])
 
     response = requests.get(
-        f"{config.MAP_CORE.base_url}{MAP_USERS_ENDPOINT}/{user_id}",
+        f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{service_id}",
         params=auth_params | attributes_params,
         headers={
             "Authorization": f"Bearer {access_token}",
@@ -75,86 +75,28 @@ def get_by_id(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    adapter: TypeAdapter[GetMapUserResponse] = TypeAdapter(GetMapUserResponse)
+    adapter: TypeAdapter[GetMapServiceResponse] = TypeAdapter(GetMapServiceResponse)
     result = adapter.validate_json(response.text)
 
     if isinstance(result, MapError):
         return None
-    return result
 
-
-def get_by_eppn(
-    eppn: str,
-    include: set[str] | None = None,
-    exclude: set[str] | None = None,
-    *,
-    access_token: str,
-    client_secret: str,
-) -> MapUser | None:
-    """Get a User resource by its ePPN from mAP API.
-
-    Args:
-        eppn (str): ePPN of the User resource.
-        include (set[str] | None):
-            Attribute names to include in the response. Optional.
-        exclude (set[str] | None):
-            Attribute names to exclude from the response. Optional.
-        access_token (str): OAuth access token for authorization.
-        client_secret (str): Client secret for Authentication.
-
-    Returns:
-        MapUser: The User resource if found, otherwise None.
-    """
-    time_stamp = get_time_stamp()
-    signature = compute_signature(client_secret, access_token, time_stamp)
-    auth_params = {
-        "time_stamp": time_stamp,
-        "signature": signature,
-    }
-
-    attributes_params: dict[str, str] = {}
-    if include:
-        attributes_params[alias_generator("attributes")] = ",".join([
-            alias_generator(name) for name in include
-        ])
-    if exclude:
-        attributes_params[alias_generator("excluded_attributes")] = ",".join([
-            alias_generator(name) for name in exclude
-        ])
-
-    response = requests.get(
-        f"{config.MAP_CORE.base_url}{MAP_EXIST_EPPN_ENDPOINT}/{eppn}",
-        params=auth_params | attributes_params,
-        headers={
-            "Authorization": f"Bearer {access_token}",
-        },
-        timeout=config.MAP_CORE.timeout,
-    )
-
-    if response.status_code > HTTPStatus.BAD_REQUEST:
-        response.raise_for_status()
-
-    adapter: TypeAdapter[GetMapUserResponse] = TypeAdapter(GetMapUserResponse)
-    result = adapter.validate_json(response.text, extra="ignore")
-
-    if isinstance(result, MapError):
-        return None
     return result
 
 
 def post(
-    user: MapUser,
+    service: MapService,
     /,
     include: set[str] | None = None,
     exclude: set[str] | None = None,
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser:
-    """Create a User resource in mAP API.
+) -> MapService:
+    """Create a Service resource in mAP API.
 
     Args:
-        user (MapUser): The User resource to create.
+        service (MapService): Service resource to create.
         include (set[str] | None):
             Attribute names to include in creation. Optional.
         exclude (set[str] | None):
@@ -163,7 +105,7 @@ def post(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The created User resource.
+        MapService: The created Service resource.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -172,7 +114,7 @@ def post(
         "signature": signature,
     }
 
-    payload = user.model_dump(
+    payload = service.model_dump(
         mode="json",
         exclude=set(exclude or ()),
         by_alias=True,
@@ -190,7 +132,7 @@ def post(
         ])
 
     response = requests.post(
-        f"{config.MAP_CORE.base_url}{MAP_USERS_ENDPOINT}",
+        f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}",
         params=attributes_params,
         headers={
             "Authorization": f"Bearer {access_token}",
@@ -200,22 +142,22 @@ def post(
     )
     response.raise_for_status()
 
-    return MapUser.model_validate_json(response.text)
+    return MapService.model_validate_json(response.text)
 
 
 def put_by_id(
-    user: MapUser,
+    service: MapService,
     /,
     include: set[str] | None = None,
     exclude: set[str] | None = None,
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser:
-    """Update a User resource by its ID in mAP API.
+) -> MapService:
+    """Update a Service resource by its ID in mAP API.
 
     Args:
-        user (MapUser): The User resource to update.
+        service (MapService): Service resource to update.
         include (set[str] | None):
             Attribute names to include in update. Optional.
         exclude (set[str] | None):
@@ -224,7 +166,7 @@ def put_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The updated User resource.
+        MapService: The updated Service resource.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -233,7 +175,7 @@ def put_by_id(
         "signature": signature,
     }
 
-    payload = user.model_dump(
+    payload = service.model_dump(
         mode="json",
         exclude=set(exclude or ()),
         by_alias=True,
@@ -251,7 +193,7 @@ def put_by_id(
         ])
 
     response = requests.put(
-        f"{config.MAP_CORE.base_url}{MAP_USERS_ENDPOINT}/{user.id}",
+        f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{service.id}",
         headers={
             "Authorization": f"Bearer {access_token}",
         },
@@ -260,11 +202,11 @@ def put_by_id(
     )
     response.raise_for_status()
 
-    return MapUser.model_validate_json(response.text)
+    return MapService.model_validate_json(response.text)
 
 
 def _get_alias_generator() -> t.Callable[[str], str]:
-    generator = MapUser.model_config.get("alias_generator")
+    generator = MapService.model_config.get("alias_generator")
     if generator and not callable(generator):
         generator = generator.serialization_alias
     if generator is None:

@@ -146,7 +146,7 @@ def create(user: UserDetail) -> UserDetail:
         client_secret = get_client_secret()
         map_user: MapUser = users.post(
             user.to_map_user(),
-            exclude=("meta",),
+            exclude={"meta"},
             access_token=access_token,
             client_secret=client_secret,
         )
