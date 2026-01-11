@@ -4,6 +4,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@nuxt/content',
+    '@nuxtjs/i18n',
     '@nuxt/test-utils',
   ],
 
@@ -19,11 +20,24 @@ export default defineNuxtConfig({
     '/': { prerender: true },
   },
 
-  compatibilityDate: '2025-01-15',
+  compatibilityDate: '2026-01-10',
 
   eslint: {
     config: {
       stylistic: true,
     },
+  },
+
+  i18n: {
+    locales: [
+      { code: 'en', iso: 'es-US', file: 'en.json', name: 'English' },
+      { code: 'ja', iso: 'ja-JP', file: 'ja.json', name: '日本語' },
+    ],
+    defaultLocale: 'ja',
+    strategy: 'no_prefix',
+    detectBrowserLanguage: {
+      fallbackLocale: 'ja',
+    },
+    restructureDir: 'src/app/i18n',
   },
 })

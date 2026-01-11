@@ -1,0 +1,28 @@
+{
+  "cache-groups": {
+    "title": "Caching Groups"
+  },
+  "footer": {
+    "privacy-policy": "Privacy policy",
+    "terms-of-use": "Terms of Use"
+  },
+  "groups": {
+    "title": "Groups"
+  },
+  "header": {
+    "logoAlt": "Header App Logo"
+  },
+  "history": {
+    "title": "History"
+  },
+  "menu": {
+    "management": "Management",
+    "other": "Other"
+  },
+  "repositories": {
+    "title": "Repositories"
+  },
+  "users": {
+    "title": "Users"
+  }
+}

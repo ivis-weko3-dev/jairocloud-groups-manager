@@ -1,0 +1,28 @@
+{
+  "cache-groups": {
+    "title": "グループキャッシュ"
+  },
+  "footer": {
+    "privacy-policy": "プライバシーポリシー",
+    "terms-of-use": "利用ガイドライン"
+  },
+  "groups": {
+    "title": "グループ"
+  },
+  "header": {
+    "logoAlt": "ヘッダーロゴ"
+  },
+  "history": {
+    "title": "履歴"
+  },
+  "menu": {
+    "management": "管理",
+    "other": "その他"
+  },
+  "repositories": {
+    "title": "リポジトリ"
+  },
+  "users": {
+    "title": "ユーザー"
+  }
+}

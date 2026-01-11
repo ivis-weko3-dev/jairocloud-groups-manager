@@ -8,15 +8,14 @@ import { author } from '@@/package.json'
 import type { FooterColumn } from '@nuxt/ui'
 
 const { management, other } = useMenu()
-
-const columns = ref<FooterColumn[]>([
+const columns = computed<FooterColumn[]>(() => [
   {
-    label: 'Management',
-    children: management,
+    label: management.value.label,
+    children: management.value.children,
   },
   {
-    label: 'Other',
-    children: other,
+    label: other.value.label,
+    children: other.value.children,
   },
 ])
 </script>
@@ -47,11 +46,11 @@ const columns = ref<FooterColumn[]>([
 
     <template #right>
       <ULink to="" class="text-sm hover:underline inline-flex items-center gap-1">
-        Privacy Policy
+        {{ $t('footer.privacy-policy') }}
         <UIcon name="i-lucide-external-link" class="size-3 shrink-0" /></ULink>
       |
       <ULink to="" class="text-sm hover:underline inline-flex items-center gap-1">
-        Terms of Use
+        {{ $t('footer.terms-of-use') }}
         <UIcon name="i-lucide-external-link" class="size-3 shrink-0" /></ULink>
     </template>
   </UFooter>

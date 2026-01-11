@@ -12,7 +12,7 @@ const imageError = ref(false)
     <img
       v-if="!imageError"
       :src="header.serviceLogo"
-      alt="App Logo"
+      :alt="$t('header.logoAlt')"
       class="h-8 object-cover rounded-full"
       @error="imageError = true"
     >
