@@ -65,7 +65,7 @@ class Meta(BaseModel):
     """Date and time when the resource was last modified. Alias for 'lastModified'."""
 
     model_config = camel_case_config | forbid_extra_config | {"frozen": True}
-    """Configure to use camelCase aliasing and forbid extra fields."""
+    """Configure to use camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 class ServiceEntityID(BaseModel):

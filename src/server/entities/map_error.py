@@ -54,5 +54,5 @@ class MapError(BaseModel):
     error_code: int | None = None
     """An error response code. Alias to 'errorCode'."""
 
-    model_config = camel_case_config | forbid_extra_config
-    """Configure camelCase aliasing and forbid extra fields."""
+    model_config = camel_case_config | forbid_extra_config | {"frozen": True}
+    """Configure to use camelCase aliasing, forbid extra fields, and make immutable."""

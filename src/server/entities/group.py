@@ -59,7 +59,7 @@ class GroupDetail(BaseModel):
         users = [
             UserSummary(id=member.value, user_name=member.display)
             for member in group.members or []
-            if isinstance(member, MemberUser)
+            if member.type == "User"
         ]
         admins = [
             UserSummary(id=admin.value, user_name=admin.display)
