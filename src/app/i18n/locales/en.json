@@ -20,6 +20,7 @@
     "other": "Other"
   },
   "repositories": {
+    "description": "You can check information about the repositories you manage.",
     "title": "Repositories"
   },
   "users": {

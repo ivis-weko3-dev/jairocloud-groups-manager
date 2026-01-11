@@ -4,6 +4,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@nuxt/content',
+    '@pinia/nuxt',
     '@nuxtjs/i18n',
     '@nuxt/test-utils',
   ],

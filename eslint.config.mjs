@@ -67,7 +67,7 @@ export default withNuxt(
     },
   },
   {
-    files: ['**/app/{pages,layouts}/**/*.vue'],
+    files: ['**/app/{pages,layouts}/**/*.vue', '**/app/{plugins,middleware}/**/*.ts'],
     rules: {
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
     },

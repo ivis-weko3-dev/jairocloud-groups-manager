@@ -20,6 +20,7 @@
     "other": "その他"
   },
   "repositories": {
+    "description": "あなたが管理しているリポジトリの情報を確認できます。",
     "title": "リポジトリ"
   },
   "users": {

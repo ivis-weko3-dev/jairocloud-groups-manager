@@ -1,6 +1,9 @@
+<!--
+ Copyright (C) 2026 National Institute of Informatics.
+-->
+
 <script setup lang="ts">
-const route = useRoute()
-const next = route.query.next
+const { next } = defineProps<{ next?: string }>()
 const { wayf: wayfConfig } = useAppConfig()
 
 /* ESSENTIAL SETTINGS  */
@@ -10,7 +13,7 @@ const wayJsURL: string = wayfConfig.jsURL
 const spEntityID: string = wayfConfig.spEntityID
 const spHandlerURL: string = wayfConfig.spHandlerURL
 const callbackURL: string = wayfConfig.returnURL
-const returnURL = next ? `${callbackURL}?next=${encodeURIComponent(next as string)}` : callbackURL
+const returnURL = next ? `${callbackURL}?next=${encodeURIComponent(next)}` : callbackURL
 
 /* RECOMMENDED SETTINGS */
 const mostUsedIdps: string[] = wayfConfig.mostUsedIdps

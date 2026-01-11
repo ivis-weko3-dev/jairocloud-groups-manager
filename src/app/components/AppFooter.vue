@@ -7,6 +7,8 @@ import { author } from '@@/package.json'
 
 import type { FooterColumn } from '@nuxt/ui'
 
+const { isAuthenticated } = useAuth()
+
 const { management, other } = useMenu()
 const columns = computed<FooterColumn[]>(() => [
   {
@@ -24,7 +26,10 @@ const columns = computed<FooterColumn[]>(() => [
   <USeparator icon="i-lucide-ellipsis" class="h-px" />
 
   <UFooter :ui="{ top: 'border-b border-default' }">
-    <template #top>
+    <template
+      v-if="isAuthenticated"
+      #top
+    >
       <UContainer>
         <UPage>
           <template #left>
