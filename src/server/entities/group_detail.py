@@ -19,6 +19,9 @@ class GroupDetail(BaseModel):
     id: str
     """The unique identifier for the group."""
 
+    user_defined_id: str | None = None
+    """The part of group ID that is user-defined. Alias to 'userDefinedId'."""
+
     display_name: str
     """The display name of the group. Alias to 'displayName'."""
 
@@ -56,6 +59,12 @@ class GroupDetail(BaseModel):
         Returns:
             GroupDetail: The created GroupDetail instance.
         """
+        from server.services.utils import detect_affiliation  # noqa: PLC0415
+
+        detected = detect_affiliation(group.id)
+        user_defined_id = (
+            detected.user_defined_id if detected and detected.type == "group" else None
+        )
         users = [
             UserSummary(id=member.value, user_name=member.display)
             for member in group.members or []
@@ -67,6 +76,7 @@ class GroupDetail(BaseModel):
         ]
         group_detail = cls(
             id=group.id,
+            user_defined_id=user_defined_id,
             display_name=group.display_name or "",
             public=group.public,
             member_list_visibility=group.member_list_visibility,

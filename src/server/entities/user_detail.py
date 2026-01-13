@@ -10,9 +10,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+from server.const import USER_ROLES
+
 from .common import camel_case_config, forbid_extra_config
 from .map_user import EPPN, Email, Group, MapUser
-from .summaries import GroupSummary
+from .summaries import GroupSummary, RepositorySummary
 
 
 class UserDetail(BaseModel):
@@ -21,7 +23,7 @@ class UserDetail(BaseModel):
     id: str
     """The unique identifier for the user."""
 
-    eppn: list[str] | None = None
+    eppns: list[str] | None = None
     """The eduPersonPrincipalNames of the user."""
 
     user_name: str
@@ -32,6 +34,11 @@ class UserDetail(BaseModel):
 
     preferred_language: t.Literal["en", "ja", ""] | None = None
     """The preferred language of the user. Alias to 'preferredLanguage'."""
+
+    is_system_admin: bool | None = None
+    """Whether the user is a system administrator. Alias to 'isSystemAdmin'."""
+
+    repositories: list[RepositorySummary] | None = None
 
     groups: list[GroupSummary] | None = None
     """The groups the user belongs to."""
@@ -55,19 +62,42 @@ class UserDetail(BaseModel):
         Returns:
             UserDetail: The created UserDetail instance.
         """
-        from server.services import groups  # noqa: PLC0415
+        from server.services import groups, repositories  # noqa: PLC0415
+        from server.services.utils import detect_affiliations  # noqa: PLC0415
 
         resolved_groups: list[GroupSummary] = []
+        resolved_repos: list[RepositorySummary] = []
+        is_system_admin = False
+
         if user.groups:
-            group_ids = [group.value for group in user.groups]
-            resolved_groups = groups.search(id=group_ids)
+            detected_repos, detected_groups = detect_affiliations([
+                group.value for group in user.groups
+            ])
+
+            repo_role_map = {repo.repository_id: repo.roles for repo in detected_repos}
+            if None in repo_role_map:
+                # System Administrator did not affiliate with any repository
+                is_system_admin = USER_ROLES.SYSTEM_ADMIN in repo_role_map[None]
+                del repo_role_map[None]
+
+            resolved_groups = groups.search(
+                ids=[grp.group_id for grp in detected_groups]
+            )
+            resolved_repos += [
+                repo.model_copy(update={"user_roles": repo_role_map.get(repo.id)})
+                for repo in repositories.search(
+                    ids=[r.repository_id for r in detected_repos]
+                )
+            ]
 
         return cls(
             id=user.id,
-            eppn=[eppn.value for eppn in user.edu_person_principal_names or []],
+            eppns=[eppn.value for eppn in user.edu_person_principal_names or []],
             user_name=user.user_name or "",
             emails=[email.value for email in user.emails or []],
             preferred_language=user.preferred_language,
+            is_system_admin=is_system_admin,
+            repositories=resolved_repos,
             groups=resolved_groups,
             created=user.meta.created if user.meta else None,
             last_modified=user.meta.last_modified if user.meta else None,
@@ -83,8 +113,8 @@ class UserDetail(BaseModel):
         user.user_name = self.user_name
         if self.preferred_language:
             user.preferred_language = self.preferred_language
-        if self.eppn:
-            user.edu_person_principal_names = [EPPN(value=eppn) for eppn in self.eppn]
+        if self.eppns:
+            user.edu_person_principal_names = [EPPN(value=eppn) for eppn in self.eppns]
         if self.emails:
             user.emails = [Email(value=email) for email in self.emails]
         if self.groups:

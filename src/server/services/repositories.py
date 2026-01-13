@@ -18,6 +18,7 @@ from server.clients import services
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
 from server.entities.repository_detail import RepositoryDetail
+from server.entities.summaries import RepositorySummary
 from server.exc import (
     CredentialsError,
     OAuthTokenError,
@@ -33,6 +34,11 @@ from .utils import build_patch_operations
 if t.TYPE_CHECKING:
     from server.entities.map_service import MapService
     from server.entities.patch_request import PatchOperation
+
+
+def search(**query) -> list[RepositorySummary]:
+    # Placeholder implementation
+    return [RepositorySummary(id=repository_id) for repository_id in query["id"]]
 
 
 def get_by_id(service_id: str) -> RepositoryDetail | None:

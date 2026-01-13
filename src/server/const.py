@@ -4,6 +4,9 @@
 
 """Constant values for the server application."""
 
+# ruff: noqa: N801
+
+from enum import StrEnum
 from typing import Final
 
 DEFAULT_CONFIG_PATH: Final = "configs/server.config.toml"
@@ -53,3 +56,22 @@ MAP_SERVICES_ENDPOINT: Final = "/api/v2/Services"
 
 MAP_NOT_FOUND_PATTERN: Final = r"'(.*)' Not Found"
 """Pattern to identify 'Not Found' errors from mAP Core API."""
+
+
+class USER_ROLES(StrEnum):
+    """Constants for user roles."""
+
+    SYSTEM_ADMIN = "system_admin"
+    """Role identifier for System Administrators."""
+
+    REPOSITORY_ADMIN = "repository_admin"
+    """Role identifier for Repository Administrators."""
+
+    COMMUNITY_ADMIN = "community_admin"
+    """Role identifier for Community Administrators."""
+
+    CONTRIBUTOR = "contributor"
+    """Role identifier for Contributors."""
+
+    GENERAL_USER = "general_user"
+    """Role identifier for General Users."""

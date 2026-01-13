@@ -27,6 +27,10 @@ class RepositorySummary(BaseModel):
     sp_connecter_id: str | None = None
     """The SP Connecter ID of the repository. Alias to 'spConnecterId'."""
 
+    user_roles: list[str] | None = None
+    """The roles of the user in the repository if this is used in UserDetail.
+    Alias to 'userRoles'."""
+
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
 

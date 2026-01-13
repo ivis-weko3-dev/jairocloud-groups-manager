@@ -156,8 +156,8 @@ class GroupIdPatternsConfig(BaseModel):
     general_user: HasRepoId
     """Pattern for general user group IDs."""
 
-    custom_group: HasRepoAndCustomId
-    """Pattern for custom group IDs."""
+    user_defined: HasRepoAndUserDefinedId
+    """Pattern for user-defined group IDs."""
 
 
 class MapCoreConfig(BaseModel):
@@ -205,11 +205,11 @@ It should include `{repository_id}` placeholder.
 """
 
 
-HasRepoAndCustomId = t.Annotated[
-    str, StringConstraints(pattern=r".*\{repository_id\}.*\{custom_id\}.*")
+HasRepoAndUserDefinedId = t.Annotated[
+    str, StringConstraints(pattern=r".*\{repository_id\}.*\{user_defined_id\}.*")
 ]
 """Pattern for custom group IDs.
-It should include `{repository_id}` followed by `{custom_id}` placeholders.
+It should include `{repository_id}` followed by `{user_defined_id}` placeholders.
 """
 
 

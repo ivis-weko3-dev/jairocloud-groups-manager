@@ -54,7 +54,7 @@ def test_config():
                 "community_admin": "jc_{repository_id}_roles_comadm_test",
                 "contributor": "jc_{repository_id}_roles_contributor_test",
                 "general_user": "jc_{repository_id}_roles_generaluser_test",
-                "custom_group": "jc_{repository_id}_groups_{custom_id}_test",
+                "user_defined": "jc_{repository_id}_groups_{user_defined_id}_test",
             }
         },
         "POSTGRES": {"db": "jctest", "host": db_host},
