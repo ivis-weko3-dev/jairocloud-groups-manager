@@ -23,5 +23,13 @@ export default defineContentConfig({
         icon: z.string().optional(),
       }),
     }),
+    db: defineCollection({
+      type: 'page',
+      source: '03.db/**/*',
+      schema: z.object({
+        headline: z.string().optional(),
+        icon: z.string().optional(),
+      }),
+    }),
   },
 })

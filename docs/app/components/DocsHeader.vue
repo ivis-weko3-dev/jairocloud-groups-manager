@@ -4,7 +4,7 @@ import type { Collections } from '@nuxt/content'
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
-const categories: (Exclude<keyof Collections, 'index'>)[] = ['detailed', 'api']
+const categories: (Exclude<keyof Collections, 'index'>)[] = ['detailed', 'api', 'db']
 const categoryData = await Promise.all(
   categories.map(category =>
     useAsyncData(`links-${category}`, () => {
