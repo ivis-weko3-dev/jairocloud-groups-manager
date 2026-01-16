@@ -7,7 +7,7 @@ headline: JAIRO Cloud Groups Manager
 ---
 
 ## 本書について
-本書は、JAIRO Cloud Groups Manager（以降、当機能）が提供する API の仕様を記述したものである。
+本書は、JAIRO Cloud Groups Manager（以降、当システム）が提供する API の仕様を記述したものである。
 
 
 ## 注意事項

@@ -1,6 +1,6 @@
 ---
 title: エンドポイント一覧
-description: 当機能が提供する API のエンドポイント一覧。
+description: 当システムが提供する API のエンドポイント一覧。
 headline: API 仕様書
 ---
 

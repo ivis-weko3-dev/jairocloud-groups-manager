@@ -7,11 +7,11 @@ headline: JAIRO Cloud Groups Manager
 ---
 
 ## 本書について
-本書は、JAIRO Cloud Groups Manager（以降、当機能）のサーバーサイドの詳細設計を記述したものである。
+本書は、JAIRO Cloud Groups Manager（以降、当システム）のサーバーサイドの詳細設計を記述したものである。
 
 
 ## 前提条件
-本機能は、以下のサービスに依存する。
+当システムは、以下のサービスに依存する。
 - mAP Core Authorization Server
 - mAP Core API V2
 
