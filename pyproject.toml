@@ -39,7 +39,7 @@ source = ["src/server"]
 
 [tool.coverage.report]
 omit = ["__init__.py", "tests/*"]
-exclude_lines = [
+exclude_also = [
   "if t.TYPE_CHECKING:",
 ]
 
