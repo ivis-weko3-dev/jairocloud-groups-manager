@@ -10,13 +10,14 @@ from server.services.utils.affiliations import (
 
 
 def test_detect_affiliations(app):
-    sys = "jc_roles_sysadm_test"
-    repo = "jc_test_ac_jp_roles_repoadm_test"
-    comado = "jc_test_ac_jp_roles_comadm_test"
-    contributer = "jc_test_ac_jp_roles_contributor_test"
-    generaluser = "jc_test_ac_jp_roles_generaluser_test"
-    user = "jc_test_ac_jp_groups_test3_test"
-    result = detect_affiliations([sys, repo, comado, contributer, generaluser, user])
+    group_ids = ["jc_roles_sysadm_test",  # sysado
+                 "jc_test_ac_jp_roles_repoadm_test",  # repoado
+                 "jc_test_ac_jp_roles_comadm_test",  # comado
+                 "jc_test_ac_jp_roles_contributor_test",  # contributer
+                 "jc_test_ac_jp_roles_generaluser_test",  # generaluser
+                 "jc_test_ac_jp_groups_test3_test"]  # user
+
+    result = detect_affiliations(group_ids)
 
     expected_repository_id_sys = None
     expected_roles_sys = ["system_admin"]
@@ -29,22 +30,26 @@ def test_detect_affiliations(app):
     expected_group_id = "jc_test_ac_jp_groups_test3_test"
     expected_user_defined_id = "test3"
     expected_group_type = "group"
+    expected_length = [2, 1]
 
-    assert isinstance(result.roles[0], _RoleGroup)
-    assert result.roles[0].repository_id == expected_repository_id_sys
-    assert result.roles[0].roles == expected_roles_sys
-    assert result.roles[0].type == expected_rolegroup_type
+    assert len(result.roles) == expected_length[0]
+    assert len(result.groups) == expected_length[1]
 
-    assert isinstance(result.roles[1], _RoleGroup)
-    assert result.roles[1].repository_id == expected_repository_id
-    assert sorted(result.roles[1].roles) == sorted(expected_roles)
-    assert result.roles[1].type == expected_rolegroup_type
+    result_roles_0 = result.roles[0]
+    assert result_roles_0.type == expected_rolegroup_type
+    assert result_roles_0.repository_id == expected_repository_id_sys
+    assert result_roles_0.roles == expected_roles_sys
 
-    assert isinstance(result.groups[0], _Group)
-    assert result.groups[0].repository_id == expected_group_repository_id
-    assert result.groups[0].group_id == expected_group_id
-    assert result.groups[0].user_defined_id == expected_user_defined_id
-    assert result.groups[0].type == expected_group_type
+    result_roles_1 = result.roles[1]
+    assert result_roles_1.type == expected_rolegroup_type
+    assert result_roles_1.repository_id == expected_repository_id
+    assert sorted(result_roles_1.roles) == sorted(expected_roles)
+
+    result_groups_0 = result.groups[0]
+    assert result_groups_0.type == expected_group_type
+    assert result_groups_0.repository_id == expected_group_repository_id
+    assert result_groups_0.group_id == expected_group_id
+    assert result_groups_0.user_defined_id == expected_user_defined_id
 
 
 def test_detect_affiliation_no_match(app):
