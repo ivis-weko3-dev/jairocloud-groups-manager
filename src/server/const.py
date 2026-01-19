@@ -75,3 +75,18 @@ class USER_ROLES(StrEnum):
 
     GENERAL_USER = "general_user"
     """Role identifier for General Users."""
+
+
+HAS_REPO_ID_PATTERN: Final = r".*\{repository_id\}.*"
+"""Pattern for role-type group IDs.
+
+It should include `{repository_id}` placeholder.
+"""
+
+HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN: Final = (
+    r".*\{repository_id\}.*\{user_defined_id\}.*"
+)
+"""Pattern for user-defined group IDs.
+
+It should include `{repository_id}`, followed by `{user_defined_id}` placeholders.
+"""

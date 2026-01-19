@@ -26,6 +26,8 @@ from pydantic_settings import (
 from sqlalchemy.engine import URL, make_url
 from werkzeug.local import LocalProxy
 
+from .const import HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN, HAS_REPO_ID_PATTERN
+
 
 class RuntimeConfig(BaseSettings):
     """Schema for runtime configuration.
@@ -199,21 +201,23 @@ class PostgresConfig(BaseModel):
     """Name of the PostgreSQL database."""
 
 
-HasRepoId = t.Annotated[str, StringConstraints(pattern=r".*\{repository_id\}.*")]
+type HasRepoId = t.Annotated[str, StringConstraints(pattern=HAS_REPO_ID_PATTERN)]
 """Pattern for role-based group IDs.
+
 It should include `{repository_id}` placeholder.
 """
 
 
-HasRepoAndUserDefinedId = t.Annotated[
-    str, StringConstraints(pattern=r".*\{repository_id\}.*\{user_defined_id\}.*")
+type HasRepoAndUserDefinedId = t.Annotated[
+    str, StringConstraints(pattern=HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN)
 ]
 """Pattern for custom group IDs.
+
 It should include `{repository_id}` followed by `{user_defined_id}` placeholders.
 """
 
 
-def setup_config(path_or_obj: str | RuntimeConfig | None) -> RuntimeConfig:
+def setup_config(path_or_obj: str | RuntimeConfig) -> RuntimeConfig:
     """Initialize and set the global server configuration instance.
 
     Args:
@@ -224,7 +228,7 @@ def setup_config(path_or_obj: str | RuntimeConfig | None) -> RuntimeConfig:
         RuntimeConfig: The initialized config instance.
 
     """
-    if not isinstance(path_or_obj, RuntimeConfig):
+    if isinstance(path_or_obj, str):
         path_or_obj = RuntimeConfig(_toml_file=path_or_obj)  # pyright: ignore[reportCallIssue]
 
     return path_or_obj

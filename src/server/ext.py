@@ -12,6 +12,7 @@ from .config import RuntimeConfig, setup_config
 from .const import DEFAULT_CONFIG_PATH
 from .db.base import db
 from .db.utils import load_models
+from .exc import ConfigurationError
 
 if t.TYPE_CHECKING:
     from flask import Flask
@@ -31,7 +32,7 @@ class JAIROCloudGroupsManager:
                 instance or path to the configuration file.
 
         """
-        self.config = config or DEFAULT_CONFIG_PATH
+        self._config = config or DEFAULT_CONFIG_PATH
 
         if app is not None:
             self.init_app(app)
@@ -58,7 +59,7 @@ class JAIROCloudGroupsManager:
             app (Flask): The Flask application instance.
 
         """
-        self.config = setup_config(self.config)
+        self._config = setup_config(self._config)
 
         app.config.from_object(self.config)
         app.config.from_prefixed_env()
@@ -74,3 +75,19 @@ class JAIROCloudGroupsManager:
         """
         db.init_app(app)
         load_models()
+
+    @property
+    def config(self) -> RuntimeConfig:
+        """Runtime configuration instance.
+
+        Returns:
+            RuntimeConfig: The runtime configuration instance.
+
+        Raises:
+            ConfigurationError: If the configuration has not been initialized.
+        """
+        if isinstance(self._config, str):
+            error = "Configuration has not been initialized."
+            raise ConfigurationError(error)
+
+        return self._config
