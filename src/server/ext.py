@@ -52,6 +52,9 @@ class JAIROCloudGroupsManager:
         setup_logger(app, self.config)
         register_cli_commands(app)
 
+        if app.debug or app.config.get("ENV") == "development":
+            self.dev_contrib(app)
+
         app.extensions["jairocloud-groups-manager"] = self
 
     def init_config(self, app: Flask) -> None:
@@ -77,6 +80,14 @@ class JAIROCloudGroupsManager:
         """
         db.init_app(app)
         load_models()
+
+    @staticmethod
+    def dev_contrib(app: Flask) -> None:
+        """Provide development contribution utilities."""
+        with app.app_context():
+            from contrib import messages  # noqa: PLC0415
+
+            messages.generate_type_stub()
 
     @property
     def config(self) -> RuntimeConfig:

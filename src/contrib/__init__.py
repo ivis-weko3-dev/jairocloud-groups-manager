@@ -9,6 +9,7 @@
 from flask import current_app
 
 from .dump import dump
+from .messages import generate_type_stub
 
 
 if current_app.config["ENV"] != "development" or not current_app.debug:

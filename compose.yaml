@@ -12,12 +12,6 @@ services:
       - "5050:5050"
     develop:
       watch:
-        - action: sync
-          path: .
-          target: /code
-          include:
-            - src/server
-            - certs
         - action: sync+restart
           path: .
           target: /code
@@ -29,6 +23,10 @@ services:
           path: uv.lock
         - action: rebuild
           path: Dockerfile
+    volumes:
+      - type: bind
+        source: ${LOCAL_WORKSPACE_FOLDER}/src/server/
+        target: /code/src/server
     networks:
       - jairocloud-groups-manager_default
 
