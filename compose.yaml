@@ -28,7 +28,7 @@ services:
         source: ${LOCAL_WORKSPACE_FOLDER}/src/server/
         target: /code/src/server
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   worker:
     restart: "always"
@@ -57,7 +57,7 @@ services:
         - action: rebuild
           path: Dockerfile
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   app:
     build:
@@ -91,7 +91,7 @@ services:
         source: ${LOCAL_WORKSPACE_FOLDER}/.nuxt
         target: /code/.nuxt
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   nginx:
     build:
@@ -107,7 +107,7 @@ services:
       - web
       - app
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   postgres:
     restart: "always"
@@ -121,7 +121,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   redis:
     restart: "always"
@@ -129,7 +129,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - jairocloud-groups-manager_default
+      - default
 
   rabbitmq:
     restart: "always"
@@ -141,5 +141,6 @@ volumes:
   pgdata:
 
 networks:
-  jairocloud-groups-manager_default:
+  default:
     external: true
+    name: jairocloud-groups-manager_default
