@@ -13,6 +13,7 @@ from .const import DEFAULT_CONFIG_PATH
 from .db.base import db
 from .db.utils import load_models
 from .exc import ConfigurationError
+from .logger import setup_logger
 
 if t.TYPE_CHECKING:
     from flask import Flask
@@ -48,6 +49,7 @@ class JAIROCloudGroupsManager:
         self.init_db_app(app)
 
         app.register_blueprint(create_api_blueprint(), url_prefix="/api")
+        setup_logger(app, self.config)
         register_cli_commands(app)
 
         app.extensions["jairocloud-groups-manager"] = self

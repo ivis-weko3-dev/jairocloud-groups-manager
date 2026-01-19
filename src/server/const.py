@@ -12,6 +12,19 @@ from typing import Final
 DEFAULT_CONFIG_PATH: Final = "configs/server.config.toml"
 """Default path to the server configuration TOML file."""
 
+DEFAULT_LOG_FORMAT: Final = (
+    "[%(asctime)s.%(msecs)03dZ] %(levelname)-8s %(message)s (%(addr)s - %(user)s)"
+)
+"""Default log format string for production environment."""
+
+DEFAULT_LOG_FORMAT_DEV: Final = (
+    "[%(asctime)s.%(msecs)03dZ] %(levelname)-8s %(message)s (%(pathname)s:%(lineno)d)"
+)
+"""Default log format string for development environment."""
+
+DEFAULT_LOG_DATEFMT: Final = "%Y-%m-%dT%H:%M:%S"
+"""Default date format string for log timestamps."""
+
 
 MAP_USER_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:User"
 """Schema URI for mAP User resources."""

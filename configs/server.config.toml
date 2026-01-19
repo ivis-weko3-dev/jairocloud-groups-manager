@@ -7,6 +7,20 @@ server_name = 'localhost'
 secret_key = 'CHANGE ME'
 
 
+[log]
+# Log level for the application standard output.
+# Possible values: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = "INFO"
+
+# Log format string for log messages.
+# If not set, the default format will be used.
+# format = "[%(asctime)s.%(msecs)03dZ] %(levelname)-8s %(message)s (%(addr)s - %(user)s)"
+
+# Date format string for log timestamps.
+# If not set, the default date format will be used.
+# datefmt = "%Y-%m-%dT%H:%M:%S"
+
+
 [sp]
 # Entity ID of the Service Provider.
 entity_id = "https://localhost/shibboleth-sp"

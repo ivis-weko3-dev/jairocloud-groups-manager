@@ -41,6 +41,9 @@ class RuntimeConfig(BaseSettings):
     SECRET_KEY: str = "CHANGE ME"
     """Secret key for cryptographic operations."""
 
+    LOG: LogConfig
+    """Logging configuration."""
+
     MAP_CORE: MapCoreConfig
     """mAP Core service configuration."""
 
@@ -104,6 +107,23 @@ class RuntimeConfig(BaseSettings):
         validate_by_name=True,
     )
     """Base model configuration."""
+
+
+class LogConfig(BaseModel):
+    """Schema for logging configuration."""
+
+    level: t.Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    """Log level for the application standard output."""
+
+    format: str | None = None
+    """Log format string for log messages.
+    If not provided, default formats will be used.
+    """
+
+    datefmt: str | None = None
+    """Date format string for log timestamps.
+    If not provided, the default format will be used.
+    """
 
 
 class SpConfig(BaseModel):
