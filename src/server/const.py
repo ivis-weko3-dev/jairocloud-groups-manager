@@ -49,6 +49,11 @@ MAP_ERROR_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0
 MAP_PATCH_SCHEMA: Final = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
 """Schema URI for PATCH request payloads."""
 
+MAP_BULK_REQUEST_SCHEMA: Final = "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
+"""Schema URI for Bulk request payloads."""
+
+MAP_BULK_RESPONSE_SCHEMA: Final = "urn:ietf:params:scim:api:messages:2.0:BulkResponse"
+"""Schema URI for Bulk response payloads."""
 
 MAP_OAUTH_ISSUE_ENDPOINT: Final = "/oauth/sslauth/issue.php"
 """Endpoint for issuing client credentials in mAP Core Authorization Server."""
@@ -75,6 +80,8 @@ MAP_SERVICES_ENDPOINT: Final = "/api/v2/Services"
 MAP_DEFAULT_SEARCH_COUNT: Final = 20
 """Default number of resources to return in search results from mAP Core API."""
 
+MAP_BULK_ENDPOINT: Final = "api/v2/Bulk"
+"""Endpoint for Bulk resources in mAP Core API."""
 
 MAP_NOT_FOUND_PATTERN: Final = r"'(.*)' Not Found"
 """Pattern to identify 'Not Found' errors from mAP Core API."""
