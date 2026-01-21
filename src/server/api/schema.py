@@ -20,3 +20,13 @@ class OAuthTokenQuery(BaseModel):
     """State parameter to prevent CSRF attacks."""
 
     model_config = ConfigDict(extra="ignore")
+
+
+class ErrorResponse(BaseModel):
+    """Schema for error paremeters."""
+
+    code: str
+    """Message code."""
+
+    message: str
+    """Error message."""
