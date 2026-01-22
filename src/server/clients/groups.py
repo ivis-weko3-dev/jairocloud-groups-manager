@@ -19,6 +19,7 @@ from server.entities.map_group import MapGroup
 from server.entities.patch_request import PatchOperation, PatchRequestPayload
 from server.entities.search_request import SearchRequestParameter, SearchResponse
 
+from .decoraters import cache_resource
 from .utils import compute_signature, get_time_stamp
 
 
@@ -92,6 +93,7 @@ def search(
     return adapter_search.validate_json(response.text, extra="ignore")
 
 
+@cache_resource
 def get_by_id(
     group_id: str,
     /,
@@ -271,7 +273,12 @@ def put_by_id(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    return adapter.validate_json(response.text)
+    resource = adapter.validate_json(response.text)
+
+    if isinstance(resource, MapGroup):
+        get_by_id.clear_cache(resource.id)  # pyright: ignore[reportFunctionMemberAccess]
+
+    return resource
 
 
 def patch_by_id(
@@ -335,7 +342,12 @@ def patch_by_id(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    return adapter.validate_json(response.text)
+    resource = adapter.validate_json(response.text)
+
+    if isinstance(resource, MapGroup):
+        get_by_id.clear_cache(resource.id)  # pyright: ignore[reportFunctionMemberAccess]
+
+    return resource
 
 
 def delete(
@@ -370,11 +382,13 @@ def delete(
         },
         timeout=config.MAP_CORE.timeout,
     )
-    if not response.text:
-        return None
 
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
+
+    if not response.text:
+        get_by_id.clear_cache(group_id)  # pyright: ignore[reportFunctionMemberAccess]
+        return None
 
     return MapError.model_validate_json(response.text)
 
