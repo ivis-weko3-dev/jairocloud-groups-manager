@@ -110,6 +110,10 @@ account_store = 1
 # Database number for Celery result backend.
 result_backend = 2
 
+# Database number for group informations cache.
+# refer to https://github.com/RCOSDP/weko-group-cache-db
+group_cache = 4
+
 # Configuration for single Redis server, when cache_type is "RedisCache".
 [redis.single]
 # URL of the Redis server.

@@ -37,7 +37,7 @@ class JAIROCloudGroupsManager:
 
         """
         self._config = config or DEFAULT_CONFIG_PATH
-        self.datastore: dict[int, Redis] = {}
+        self.datastore: dict[str, Redis] = {}
 
         if app is not None:
             self.init_app(app)

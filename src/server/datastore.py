@@ -19,7 +19,7 @@ if t.TYPE_CHECKING:
     from .config import RuntimeConfig
 
 
-def setup_datastore(app: Flask, config: RuntimeConfig) -> dict[int, Redis]:
+def setup_datastore(app: Flask, config: RuntimeConfig) -> dict[str, Redis]:
     """Setup Redis datastore connections for the application.
 
     Args:
@@ -30,11 +30,8 @@ def setup_datastore(app: Flask, config: RuntimeConfig) -> dict[int, Redis]:
         dict: Dictionary of Redis connections.
     """
     return {
-        db: connection(app, db=db, config=config)
-        for db in (
-            config.REDIS.database.app_cache,
-            config.REDIS.database.account_store,
-        )
+        name: connection(app, db=db, config=config)
+        for name, db in config.REDIS.database.__dict__.items()
     }
 
 
@@ -84,26 +81,16 @@ def connection(
     return store
 
 
-@LocalProxy
-def _get_datastore() -> Redis:
-    from server.config import config  # noqa: PLC0415
-
+def _stores(name: str) -> Redis:
     ext = current_app.extensions["jairocloud-groups-manager"]
-    return ext.datastore[config.REDIS.database.app_cache]
+    return ext.datastore[name]
 
 
-@LocalProxy
-def _get_account_store() -> Redis:
-    from server.config import config  # noqa: PLC0415
-
-    ext = current_app.extensions["jairocloud-groups-manager"]
-    return ext.datastore[config.REDIS.database.account_store]
-
-
-datastore = t.cast("Redis", _get_datastore)
+app_cache = t.cast("Redis", LocalProxy(lambda: _stores("app_cache")))
 """Redis datastore connection for application cache."""
 
-account_store = t.cast("Redis", _get_account_store)
+account_store = t.cast("Redis", LocalProxy(lambda: _stores("account_store")))
 """Redis datastore connection for storing account information."""
 
-del _get_datastore, _get_account_store
+group_cache = t.cast("Redis", LocalProxy(lambda: _stores("group_cache")))
+"""Redis datastore connection for group informations cache."""

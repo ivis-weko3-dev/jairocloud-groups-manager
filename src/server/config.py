@@ -280,6 +280,12 @@ class RedisDatabaseConfig(BaseModel):
     result_backend: int = 2
     """Database number for Celery result backend."""
 
+    group_cache: int = 4
+    """Database number for group informations cache.
+
+    refer to https://github.com/RCOSDP/weko-group-cache-db
+    """
+
 
 class RedisSingleConfig(BaseModel):
     """Schema for single Redis server configuration."""

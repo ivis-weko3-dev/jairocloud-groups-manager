@@ -15,7 +15,7 @@ from functools import wraps
 from pydantic import BaseModel, TypeAdapter
 
 from server.config import config
-from server.datastore import datastore
+from server.datastore import app_cache
 from server.entities.map_error import MapError
 
 
@@ -68,7 +68,7 @@ def cache_resource[T: t.Callable](
             prefix = config.REDIS.key_prefix
             cache_key = f"{prefix}:{import_name}:{identifier}:{args_hash}"
 
-            cached_data: str | None = datastore.get(cache_key)  # pyright: ignore[reportAssignmentType]
+            cached_data: str | None = app_cache.get(cache_key)  # pyright: ignore[reportAssignmentType]
             if cached_data and return_type:
                 adapter = TypeAdapter(return_type)
                 return adapter.validate_json(cached_data)
@@ -80,7 +80,7 @@ def cache_resource[T: t.Callable](
             if isinstance(result, MapError) or timeout is None:
                 timeout = 3
 
-            datastore.setex(cache_key, timeout, result.model_dump_json())
+            app_cache.setex(cache_key, timeout, result.model_dump_json())
             return result
 
         wrapper._import_name = import_name  # pyright: ignore[reportAttributeAccessIssue]
@@ -114,15 +114,15 @@ def clear_cache(func: t.Callable, *resource_id: str) -> None:
     for rid in resource_id:
         match = f"{prefix}:{import_name}:{rid}:*"
 
-        cursor = "0"
+        cursor: str | int = "0"
         while cursor != 0:
-            cursor, keys = datastore.scan(  # pyright: ignore[reportGeneralTypeIssues]
-                cursor=cursor,  # pyright: ignore[reportArgumentType]
+            cursor, keys = app_cache.scan(  # pyright: ignore[reportGeneralTypeIssues]
+                cursor=int(cursor),
                 match=match,
                 count=100,
             )
             if keys:
-                datastore.delete(*keys)
+                app_cache.delete(*keys)
 
 
 class ModelReturner(t.Protocol):
