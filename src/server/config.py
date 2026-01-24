@@ -141,6 +141,24 @@ class RuntimeConfig(BaseSettings):
         """Whether to refresh 'remember me' cookies on each request."""
         return self.SESSION.strategy == "sliding"
 
+    @property
+    def for_flask(self) -> dict[str, t.Any]:
+        """Configuration dictionary suitable for Flask app.config.
+
+        Returns:
+            dict: Configuration dictionary for Flask.
+        """
+        return self.model_dump(
+            include={
+                "SERVER_NAME",
+                "SECRET_KEY",
+                "CELERY",
+                "PERMANENT_SESSION_LIFETIME",
+                "REMEMBER_COOKIE_DURATION",
+                "REMEMBER_COOKIE_REFRESH_EACH_REQUEST",
+            }
+        ) | {"SQLALCHEMY_DATABASE_URI": self.SQLALCHEMY_DATABASE_URI}
+
     @t.override
     @classmethod
     def settings_customise_sources(

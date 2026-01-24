@@ -72,7 +72,7 @@ class JAIROCloudGroupsManager:
         """
         self._config = setup_config(self._config)
 
-        app.config.from_object(self.config)
+        app.config.from_mapping(self.config.for_flask)
         app.config.from_prefixed_env()
 
     def init_db_app(self, app: Flask) -> None:  # noqa: PLR6301
