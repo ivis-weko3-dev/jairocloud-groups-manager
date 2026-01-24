@@ -25,8 +25,9 @@ services:
           path: Dockerfile
     volumes:
       - type: bind
-        source: ${LOCAL_WORKSPACE_FOLDER}/src/server/
-        target: /code/src/server
+        source: ${LOCAL_WORKSPACE_FOLDER}/src/
+        target: /code/src
+      - /code/src/app
     networks:
       - default
 
