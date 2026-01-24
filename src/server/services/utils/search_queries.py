@@ -11,6 +11,7 @@ import typing as t
 
 from datetime import date, datetime, timedelta
 from functools import cache
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from flask import current_app
@@ -681,6 +682,9 @@ class Criteria(t.Protocol):
     q: str | None
     """Search term to filter results."""
 
+    i: list[str] | None
+    """Filter by IDs."""
+
     k: str | None
     """Attribute key to sort results."""
 
@@ -703,9 +707,6 @@ class RepositoriesCriteria(Criteria, t.Protocol):
 class GroupsCriteria(Criteria, t.Protocol):
     """Protocol for search criteria."""
 
-    i: list[str] | None
-    """Filter by IDs."""
-
     r: list[str] | None
     """Filter by affiliated repository IDs."""
 
@@ -722,9 +723,6 @@ class GroupsCriteria(Criteria, t.Protocol):
 @t.runtime_checkable
 class UsersCriteria(Criteria, t.Protocol):
     """Protocol for search criteria."""
-
-    i: list[str] | None
-    """Filter by IDs."""
 
     r: list[str] | None
     """Filter by affiliated repository IDs."""
@@ -744,3 +742,102 @@ class UsersCriteria(Criteria, t.Protocol):
 
     e: date | None
     """Filter by last modified date (to)."""
+
+
+@t.overload
+def make_criteria_object(
+    resource_type: t.Literal["repositories"],
+    q: str | None = None,
+    i: list[str] | None = None,
+    k: str | None = None,
+    d: t.Literal["asc", "desc"] | None = None,
+    p: int | None = None,
+    l: int | None = None,  # noqa: E741
+) -> RepositoriesCriteria: ...
+@t.overload
+def make_criteria_object(
+    resource_type: t.Literal["groups"],
+    q: str | None = None,
+    i: list[str] | None = None,
+    r: list[str] | None = None,
+    u: list[str] | None = None,
+    s: t.Literal[0, 1] | None = None,
+    v: t.Literal[0, 1, 2] | None = None,
+    k: str | None = None,
+    d: t.Literal["asc", "desc"] | None = None,
+    p: int | None = None,
+    l: int | None = None,  # noqa: E741
+) -> GroupsCriteria: ...
+@t.overload
+def make_criteria_object(
+    resource_type: t.Literal["users"],
+    q: str | None = None,
+    i: list[str] | None = None,
+    r: list[str] | None = None,
+    g: list[str] | None = None,
+    a: list[int] | None = None,
+    s: date | None = None,
+    e: date | None = None,
+    k: str | None = None,
+    d: t.Literal["asc", "desc"] | None = None,
+    p: int | None = None,
+    l: int | None = None,  # noqa: E741
+) -> UsersCriteria: ...
+
+
+def make_criteria_object(resource_type: str, **kwargs: t.Any) -> Criteria:  # pyright: ignore[reportInconsistentOverload]
+    """Create an instance of a criteria protocol with specified attributes.
+
+    Repositories query attributes:
+        - q: search term
+        - i: list of repository IDs
+
+    Groups query attributes:
+        - q: search term
+        - i: list of group IDs
+        - r: list of affiliated repository IDs
+        - u: list of affiliated user IDs
+        - s: public status (0: public, 1: private)
+        - v: member list visibility (0: public, 1: private, 2: hidden)
+
+    Users query attributes:
+        - q: search term
+        - i: list of user IDs
+        - r: list of affiliated repository IDs
+        - g: list of affiliated group IDs
+        - a: list of user roles (0: system admin, 1: repository admin, \
+            2: community admin, 3: contributor, 4: general user)
+        - s: last modified date (from)
+        - e: last modified date (to)
+
+    Common attributes:
+        - k: sort attribute key
+        - d: sort direction ("asc" or "desc")
+        - p: page number
+        - l: page size
+
+    Args:
+        resource_type (str): The type of resource ("users", "groups", "repositories").
+        **kwargs: Attribute values to set in the criteria instance.
+
+    Returns:
+        Criteria: The created criteria instance.
+    """
+    match resource_type:
+        case "users":
+            protocol_cls = UsersCriteria
+        case "groups":
+            protocol_cls = GroupsCriteria
+        case "repositories":
+            protocol_cls = RepositoriesCriteria
+        case _:
+            raise InvalidQueryError
+
+    hints = t.get_type_hints(protocol_cls)
+
+    attrs = dict.fromkeys(hints)
+    for key, value in kwargs.items():
+        if key in hints:
+            attrs[key] = value
+
+    return t.cast("Criteria", SimpleNamespace(**attrs))

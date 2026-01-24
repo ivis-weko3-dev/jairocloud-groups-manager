@@ -153,11 +153,8 @@ def has_permission(repositories: list[RepositorySummary] | None) -> bool:
         - True: logged-in user has permission
         - False: logged-in user does not have permission
     """
+    if is_current_user_system_admin():
+        return True
+
     permitted_repository_ids = get_permitted_repository_ids()
-
-    has_repository_permission = any(
-        repo.id in permitted_repository_ids for repo in repositories or []
-    )
-    is_system_admin = is_current_user_system_admin()
-
-    return is_system_admin or has_repository_permission
+    return any(repo.id in permitted_repository_ids for repo in repositories or [])

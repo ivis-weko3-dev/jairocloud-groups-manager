@@ -101,13 +101,11 @@ def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
     except InvalidQueryError, OAuthTokenError, CredentialsError:
         raise
 
-    user_summaries = [UserSummary.from_map_user(result) for result in results.resources]
-
     return SearchResult(
         total=results.total_results,
         page_size=results.items_per_page,
         offset=results.start_index,
-        resources=user_summaries,
+        resources=[UserSummary.from_map_user(result) for result in results.resources],
     )
 
 

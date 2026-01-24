@@ -54,6 +54,9 @@ class RepositoriesQuery(BaseModel):
     q: t.Annotated[str | None, "query"] = None
     """Search term to filter repositories."""
 
+    i: t.Annotated[list[str] | None, "ids"] = None
+    """Filter by repository IDs."""
+
     k: t.Annotated[str | None, "key"] = None
     """Attribute key to sort repositories."""
 

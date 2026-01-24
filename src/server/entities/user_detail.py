@@ -63,10 +63,13 @@ class UserDetail(BaseModel):
             UserDetail: The created UserDetail instance.
         """
         from server.services import groups, repositories  # noqa: PLC0415
-        from server.services.utils import detect_affiliations  # noqa: PLC0415
+        from server.services.utils import (  # noqa: PLC0415
+            detect_affiliations,
+            make_criteria_object,
+        )
 
-        resolved_groups: list[GroupSummary] = []
-        resolved_repos: list[RepositorySummary] = []
+        resolved_groups: list[GroupSummary] | None = None
+        resolved_repos: list[RepositorySummary] | None = None
         is_system_admin = False
 
         if user.groups:
@@ -80,15 +83,22 @@ class UserDetail(BaseModel):
                 is_system_admin = USER_ROLES.SYSTEM_ADMIN in repo_role_map[None]
                 del repo_role_map[None]
 
-            resolved_groups = groups.search(
-                ids=[grp.group_id for grp in detected_groups]
-            )
-            resolved_repos += [
-                repo.model_copy(update={"user_roles": repo_role_map.get(repo.id)})
-                for repo in repositories.search(
-                    ids=[r.repository_id for r in detected_repos]
+            if detected_groups:
+                group_query = make_criteria_object(
+                    "groups", i=[grp.group_id for grp in detected_groups]
                 )
-            ]
+                resolved_groups = groups.search(criteria=group_query).resources
+
+            if detected_repos:
+                repositories_query = make_criteria_object(
+                    "repositories", i=[r for r in repo_role_map if r]
+                )
+                resolved_repos = [
+                    repo.model_copy(update={"user_roles": repo_role_map.get(repo.id)})
+                    for repo in repositories.search(
+                        criteria=repositories_query
+                    ).resources
+                ]
 
         return cls(
             id=user.id,

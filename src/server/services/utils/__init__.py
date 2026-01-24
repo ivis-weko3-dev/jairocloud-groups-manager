@@ -12,4 +12,5 @@ from .search_queries import (
     RepositoriesCriteria,
     UsersCriteria,
     build_search_query,
+    make_criteria_object,
 )
