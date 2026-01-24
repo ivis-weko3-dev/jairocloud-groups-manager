@@ -13,6 +13,8 @@ from functools import cache
 from server.config import config
 from server.const import USER_ROLES
 
+from .roles import get_highest_role
+
 
 def detect_affiliations(group_ids: list[str]) -> Affiliations:
     """Detect affiliations for the given list of group IDs.
@@ -40,11 +42,11 @@ def detect_affiliations(group_ids: list[str]) -> Affiliations:
     aggregated: defaultdict[str | None, list[USER_ROLES]] = defaultdict(list)
     for detect in detect_affiliations:
         if detect.type == "role":
-            aggregated[detect.repository_id].extend(detect.roles)
+            aggregated[detect.repository_id].append(detect.role)
 
     return Affiliations(
         roles=[
-            _RoleGroup(repository_id=repo_id, roles=list(set(roles)))
+            _RoleGroup(repository_id=repo_id, role=get_highest_role(roles))
             for repo_id, roles in aggregated.items()
         ],
         groups=[aff for aff in detect_affiliations if aff.type == "group"],
@@ -91,7 +93,7 @@ def detect_affiliation(group_id: str) -> Affiliation | None:
         return _Group(group_id=group_id, **params)  # pyright: ignore[reportArgumentType]
 
     return _RoleGroup(
-        repository_id=params.get("repository_id"), roles=[USER_ROLES(matched_role)]
+        repository_id=params.get("repository_id"), role=USER_ROLES(matched_role)
     )
 
 
@@ -107,7 +109,7 @@ type Affiliation = _RoleGroup | _Group
 
 class _RoleGroup(t.NamedTuple):
     repository_id: str | None
-    roles: list[USER_ROLES]
+    role: USER_ROLES
     type: t.Literal["role"] = "role"
 
 

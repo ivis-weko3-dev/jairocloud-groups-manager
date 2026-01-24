@@ -32,5 +32,5 @@ def get_permitted_repository_ids() -> set[str]:
     return {
         aff.repository_id
         for aff in affiliations
-        if aff.repository_id and USER_ROLES.REPOSITORY_ADMIN in aff.roles
+        if aff.repository_id and aff.role == USER_ROLES.REPOSITORY_ADMIN
     }

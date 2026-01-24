@@ -27,12 +27,12 @@ class RepositorySummary(BaseModel):
     service_url: HttpUrl | None = None
     """The URL of the service. Alias for 'serviceUrl'."""
 
-    sp_connecter_id: str | None = None
-    """The SP Connecter ID of the repository. Alias to 'spConnecterId'."""
+    sp_connector_id: str | None = None
+    """The SP Connector ID of the repository. Alias to 'spConnectorId'."""
 
-    user_roles: list[str] | None = None
-    """The roles of the user in the repository if this is used in UserDetail.
-    Alias to 'userRoles'."""
+    user_role: USER_ROLES | None = None
+    """The role of the user in the repository if this is used in UserDetail.
+    Alias to 'userRole'."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
@@ -127,9 +127,7 @@ class UserSummary(BaseModel):
                 roles = [
                     role for role in roles if role.repository_id in permitted_repo_ids
                 ]
-            highest_role = get_highest_role([
-                role for repo in roles for role in repo.roles
-            ])
+            highest_role = get_highest_role([repo.role for repo in roles])
 
         return cls(
             id=user.id,

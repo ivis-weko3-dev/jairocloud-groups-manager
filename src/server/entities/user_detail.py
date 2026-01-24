@@ -77,7 +77,7 @@ class UserDetail(BaseModel):
                 group.value for group in user.groups
             ])
 
-            repo_role_map = {repo.repository_id: repo.roles for repo in detected_repos}
+            repo_role_map = {repo.repository_id: repo.role for repo in detected_repos}
             if None in repo_role_map:
                 # System Administrator did not affiliate with any repository
                 is_system_admin = USER_ROLES.SYSTEM_ADMIN in repo_role_map[None]
@@ -94,7 +94,7 @@ class UserDetail(BaseModel):
                     "repositories", i=[r for r in repo_role_map if r]
                 )
                 resolved_repos = [
-                    repo.model_copy(update={"user_roles": repo_role_map.get(repo.id)})
+                    repo.model_copy(update={"user_role": repo_role_map.get(repo.id)})
                     for repo in repositories.search(
                         criteria=repositories_query
                     ).resources
