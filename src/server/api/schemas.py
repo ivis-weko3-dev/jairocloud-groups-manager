@@ -13,6 +13,8 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
+from server.entities.common import camel_case_config
+
 
 ignore_extra_config = ConfigDict(
     extra="ignore",
@@ -167,3 +169,28 @@ class UsersQuery(BaseModel):
 
     model_config = ignore_extra_config
     """Configure to ignore extra fields."""
+
+
+class MemberPatchRequest(BaseModel):
+    """Schema for patching group members."""
+
+    add: set[str]
+    """Set of user IDs to add as members."""
+    remove: set[str]
+    """Set of user IDs to remove from members."""
+
+
+class DeleteGroupRequest(BaseModel):
+    """Schema for deleting multiple groups."""
+
+    group_ids: set[str]
+    """Set of group IDs to delete."""
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
+
+
+class HistoryPublic(BaseModel):
+    """History public status."""
+
+    public: bool
+    """Public status."""
