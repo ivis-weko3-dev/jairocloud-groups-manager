@@ -1,86 +1,34 @@
 <script setup lang="ts">
-import type { ButtonProps, DropdownMenuItem } from '@nuxt/ui'
+const {
+  query, updateQuery, criteria, creationButtons, emptyActions,
+  selectedCount, selectedUsersActions, columns, columnNames, columnVisibility,
+} = useUsersTable()
 
-const isEmpty = ref(false)
-const creationButtons = computed<ButtonProps[]>(() => [
-  {
-    icon: 'i-lucide-user-plus',
-    label: $t('button.create-new'),
-    to: '/users/new',
-    color: 'primary',
-    variant: 'solid',
-  },
-  {
-    icon: 'i-lucide-file-up',
-    label: $t('button.upload-users'),
-    to: '/upload',
-    color: 'primary',
-    variant: 'solid',
-  },
-])
-const emptyActions = computed<ButtonProps[]>(() => [
-  ...creationButtons.value,
-  {
-    icon: 'i-lucide-refresh-cw',
-    label: $t('button.reload'),
-    color: 'neutral',
-    variant: 'subtle',
-    onClick: () => {
-      // TODO: Placeholder for reload action
-    },
-  },
-])
+const { searchTerm, pageSize } = criteria
 
-const selectedUsers = ref<{ id: string, userName: string }[]>([])
+const table = useTemplateRef('table')
+const { table: { pageSize: { users: pageOptions } } } = useAppConfig()
 
-const selectedUsersActions = computed<DropdownMenuItem[]>(() => [
-  {
-    icon: 'i-lucide-download',
-    label: $t('users.button.selected-users-export'),
-    onSelect() {
-      // Export selected users
-    },
-  },
-  {
-    type: 'separator' as const,
-  },
-  {
-    icon: 'i-lucide-user-plus',
-    label: $t('users.button.selected-users-add-to-group'),
-    color: 'neutral',
-    onSelect() {
-      // Open add users modal
-    },
-  },
-  {
-    icon: 'i-lucide-user-minus',
-    label: $t('users.button.selected-users-remove-from-group'),
-    color: 'error',
-    onSelect() {
-      // Open remove users modal
-    },
-  },
-])
+const { data: result } = useFetch<UsersSearchResult>('/api/users', {
+  method: 'GET',
+  query,
+  lazy: true,
+  server: false,
+})
 
-const searchTerm = ref('')
+const offset = computed(() => (result.value?.offset ?? 1))
 </script>
 
 <template>
   <div>
     <UPageHeader
-      :title="$t('users.list.title')"
+      :title="$t('users.table.title')"
       :description="$t('users.description')"
       :ui="{ root: 'py-2', description: 'mt-2' }"
     />
   </div>
 
-  <UEmpty
-    v-if="isEmpty"
-    :title="$t('users.list.no-users-title')"
-    :description="$t('users.list.no-users-description')"
-    :actions="emptyActions"
-  />
-  <dev v-else>
+  <dev>
     <div class="flex justify-between items-center my-4">
       <div class="flex space-x-2">
         <UButton
@@ -97,24 +45,78 @@ const searchTerm = ref('')
           :label="$t('users.button.selected-users-actions')"
           color="warning" variant="subtle"
           :ui="{ base: 'gap-1' }"
-          :disabled="selectedUsers.length === 0"
+          :disabled="selectedCount === 0"
         />
       </UDropdownMenu>
     </div>
 
     <div class="flex justify-between mb-4">
-      <div>
-        <UInput
-          v-model="searchTerm" :placeholder="$t('users.list.search-placeholder')"
-          icon="i-lucide-search" :ui="{ base: 'w-sm' }"
-        >
-          <template #trailing>
+      <UInput
+        v-model="searchTerm" :placeholder="$t('users.table.search-placeholder')"
+        icon="i-lucide-search" :ui="{ base: 'w-sm', trailing: 'pe-1.5' }"
+        @keydown.enter="() => updateQuery({ q: searchTerm, p: 1 })"
+      >
+        <template #trailing>
+          <UButton
+            variant="ghost" color="neutral"
+            :ui="{ base: 'font-normal cursor-pointer p-1' }"
+            @click="() => updateQuery({ q: searchTerm, p: 1 })"
+          >
             <UKbd value="enter" />
-          </template>
-        </UInput>
+          </UButton>
+        </template>
+      </UInput>
+      <div class="flex justify-end items-center space-x-4">
+        <div class="flex items-center space-x-2">
+          <label class="text-sm text-gray-600">{{ $t('table.page-size-label') }}</label>
+          <USelect
+            v-model="pageSize" :items="pageOptions"
+            class="w-24"
+            @update:model-value="() => updateQuery(
+              { l: pageSize, p: Math.ceil(offset / pageSize!) },
+            )"
+          />
+        </div>
+
+        <UDropdownMenu
+          :items="
+            table?.tableApi
+              ?.getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => ({
+                label: columnNames[column.id as keyof typeof columnNames],
+                type: 'checkbox' as const,
+                checked: column.getIsVisible(),
+                onUpdateChecked(checked: boolean) {
+                  table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
+                },
+                onSelect(e: Event) {
+                  e.preventDefault()
+                },
+              }))
+          "
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            color="neutral" variant="outline"
+            trailing-icon="i-lucide-chevron-down" :label="$t('table.display-columns-label')"
+          />
+        </UDropdownMenu>
       </div>
     </div>
 
-    <UTable :data="[]" />
+    <UTable
+      ref="table"
+      v-model:column-visibility="columnVisibility"
+      :data="result?.resources" :columns="columns"
+    >
+      <template #empty>
+        <UEmpty
+          :title="$t('users.table.no-users-title')"
+          :description="$t('users.table.no-users-description')"
+          :actions="emptyActions"
+        />
+      </template>
+    </UTable>
   </dev>
 </template>

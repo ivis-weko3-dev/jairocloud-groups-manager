@@ -31,6 +31,21 @@
     "description": "You can check information about the repositories you manage.",
     "title": "Repositories"
   },
+  "table": {
+    "actions": {
+      "view-details": "View user details"
+    },
+    "actions-label": "Action",
+    "display-columns-label": "Columns",
+    "page-size-label": "Page size:"
+  },
+  "user": {
+    "actions": {
+      "copy-eppn": "Copy ePPN to clipboard",
+      "copy-id": "Copy ID to clipboard"
+    },
+    "title": "User Details"
+  },
   "users": {
     "button": {
       "selected-users-actions": "Actions for selected users",
@@ -40,13 +55,24 @@
     },
     "description": "You can manage users for your repositories.",
     "list": {
+    },
+    "roles": {
+      "community-admin": "Community Administrator",
+      "contributor": "Contributor",
+      "repository-admin": "Repository Administrator",
+      "system-admin": "System Administrator"
+    },
+    "table": {
+      "column": {
+        "emails": "Email",
+        "eppns": "ePPN",
+        "last-modified": "Last Modified",
+        "user-name": "UserName"
+      },
       "no-users-description": "Your repository does not have any users. Please create a user or upload a file first.",
       "no-users-title": "No users found",
       "search-placeholder": "Search...",
       "title": "Users List"
-    },
-    "roles": {
-      "system-admin": "System Administrator"
     },
     "title": "Users"
   }

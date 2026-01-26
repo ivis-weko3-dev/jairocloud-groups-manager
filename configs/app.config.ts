@@ -28,6 +28,17 @@ const header = {
   serviceAltName: 'JAIRO Cloud Groups Manager' as string,
 }
 
+const table = {
+  /**
+   * Options for page size selection in tables
+   */
+  pageSize: {
+    repositories: [20, 50, 100] as number[],
+    groups: [20, 50, 100] as number[],
+    users: [20, 50, 100] as number[],
+  },
+}
+
 const wayf = {
   /**
    * URL of the WAYF to use \
@@ -119,6 +130,8 @@ export default {
   baseURL,
   /** Header configuration */
   header,
+  /** Table configuration */
+  table,
   /** WAYF (Embedded DS) configuration */
   wayf,
 }
