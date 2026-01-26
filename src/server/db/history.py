@@ -36,7 +36,6 @@ class Files(db.Model):
     Attributes:
         id (UUID): id (primary key).
         file_path (str): file path.
-        location (str): file location.
         file_content (dict[str, t.Any]): file content mapped JSONB.
     """
 
@@ -187,7 +186,7 @@ class UploadHistory(db.Model):
         MutableDict.as_mutable(JSON().with_variant(postgresql.JSONB, "postgresql")),
         nullable=True,
     )
-    """import result data."""
+    """upload result data."""
 
     __table_args__ = (
         CheckConstraint(

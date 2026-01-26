@@ -19,21 +19,25 @@ from server.entities.bulk_request import BulkOperation
 from server.entities.group_detail import GroupDetail
 from server.entities.map_error import MapError
 from server.entities.map_group import Administrator, MemberUser, Service
+from server.entities.search_request import SearchResult
 from server.entities.summaries import GroupSummary
 from server.exc import (
     CredentialsError,
+    InvalidQueryError,
     OAuthTokenError,
     RequestConflict,
     ResourceInvalid,
     ResourceNotFound,
     UnexpectedResponseError,
 )
+from server.services.utils.search_queries import GroupsCriteria, build_search_query
 
 from .token import get_access_token, get_client_secret
 from .utils import build_patch_operations, build_update_member_operations
 
 
 if t.TYPE_CHECKING:
+    from server.clients.groups import GroupsSearchResponse
     from server.entities.map_group import MapGroup
     from server.entities.patch_request import PatchOperation
 

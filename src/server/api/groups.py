@@ -7,15 +7,15 @@
 from flask import Blueprint, url_for
 from flask_login import current_user, login_required
 from flask_pydantic import validate
-from server.api.helper import roles_required
-from server.api.schema import DeleteGroupRequest, ErrorResponse, MemberPatchRequest
 
+from server.api.helper import roles_required
+from server.api.schemas import DeleteGroupRequest, ErrorResponse, MemberPatchRequest
 from server.entities.group_detail import GroupDetail
 from server.exc import (
     ResourceInvalid,
     ResourceNotFound,
 )
-from server.services import groups, permission
+from server.services import groups, permissions
 
 
 bp = Blueprint("groups", __name__)
@@ -71,9 +71,11 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
 
     if result is None:
         return ErrorResponse(code="", message=f"'{group_id}' Not Found"), 404
-    if current_user.is_system_admin or permission.filter_permitted_group_ids(result.id):
+    if current_user.is_system_admin or permissions.filter_permitted_group_ids(
+        result.id
+    ):
         return result, 200
-    return ErrorResponse(), 403
+    return ErrorResponse(code="", message=""), 403
 
 
 @bp.put("/<string:group_id>")
@@ -95,7 +97,7 @@ def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
         - If coflicted group information, status code 409
     """
     if not (
-        current_user.is_system_admin or permission.filter_permitted_group_ids(body.id)
+        current_user.is_system_admin or permissions.filter_permitted_group_ids(body.id)
     ):
         return ErrorResponse(
             code="", message=f"Not have permission to edit {body.id}."
@@ -130,9 +132,9 @@ def id_patche(
         - If coflicted group member, status code 409
     """
     if not (
-        current_user.is_system_admin or permission.filter_permitted_group_ids(group_id)
+        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
     ):
-        return ErrorResponse(), 403
+        return ErrorResponse(code="", message=""), 403
     try:
         result = groups.update_member(group_id, body.add, body.remove)
     except ResourceInvalid as ex:
@@ -158,9 +160,9 @@ def id_delete(group_id: str) -> tuple[None, int] | tuple[ErrorResponse, int]:
         - If logged-in user does not have permission, status code 403
     """
     if not (
-        current_user.is_system_admin or permission.filter_permitted_group_ids(group_id)
+        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
     ):
-        return ErrorResponse(), 403
+        return ErrorResponse(code="", message=""), 403
     groups.delete_by_id(group_id)
     return None, 204
 
@@ -184,9 +186,10 @@ def delete_post(
     """
     group_id = body.group_ids
     if not (
-        current_user.is_system_admin or permission.filter_permitted_group_ids(*group_id)
+        current_user.is_system_admin
+        or permissions.filter_permitted_group_ids(*group_id)
     ):
-        return ErrorResponse(), 403
+        return ErrorResponse(code="", message=""), 403
     group_list = groups.delete(body.group_ids)
     if group_list:
         message = f"{group_list} is failde"

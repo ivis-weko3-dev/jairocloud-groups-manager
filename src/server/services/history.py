@@ -23,7 +23,8 @@ from server.entities.history_detail import (
 )
 from server.entities.summaries import GroupSummary, RepositorySummary, UserSummary
 from server.exc import DatabaseError
-from server.services import permission
+from server.services import permissions, repositories
+from server.services.utils import search_queries
 
 
 def get_upload_history_data(query: HistoryQuery) -> list[UploadHistoryData]:
@@ -38,10 +39,10 @@ def get_upload_history_data(query: HistoryQuery) -> list[UploadHistoryData]:
     """
     filters: list[t.Any] = []
 
-    if permission.is_current_user_system_admin():
+    if permissions.is_current_user_system_admin():
         target_repositories = query.r or []
     else:
-        permitted = permission.get_permitted_repository_ids()
+        permitted = permissions.get_permitted_repository_ids()
         target_repositories = (
             list(set(permitted) & set(query.r)) if query.r else permitted
         )
@@ -83,7 +84,7 @@ def get_upload_history_data(query: HistoryQuery) -> list[UploadHistoryData]:
     elif query.e and not query.s:
         filters.append(UploadHistory.timestamp <= query.e)
 
-    if not permission.is_current_user_system_admin():
+    if not permissions.is_current_user_system_admin():
         filters.append(UploadHistory.public.is_(True))
 
     stmt = (
@@ -195,10 +196,10 @@ def get_download_history_data(query: HistoryQuery) -> list[DownloadHistoryData]:
     """
     filters: list[t.Any] = []
 
-    if permission.is_current_user_system_admin():
+    if permissions.is_current_user_system_admin():
         target_repositories = query.r or []
     else:
-        permitted = permission.get_permitted_repository_ids()
+        permitted = permissions.get_permitted_repository_ids()
         target_repositories = (
             list(set(permitted) & set(query.r)) if query.r else permitted
         )
@@ -240,7 +241,7 @@ def get_download_history_data(query: HistoryQuery) -> list[DownloadHistoryData]:
     elif query.e and not query.s:
         filters.append(DownloadHistory.timestamp <= query.e)
 
-    if not permission.is_current_user_system_admin():
+    if not permissions.is_current_user_system_admin():
         filters.append(DownloadHistory.public.is_(True))
 
     if not query.i:
@@ -336,17 +337,23 @@ def get_filters(tub: t.Literal["download", "upload"]) -> HistoryDataFilter:
         history_data = get_download_history_data(HistoryQuery())
     else:
         history_data = get_upload_history_data(HistoryQuery())
+
     if history_data is None:
-        raise ValueError
-    operators = [h.operator for h in history_data]
-    target_repositories = [RepositorySummary(id="aaa")]  # repositories.search()
-    target_groups = [g for h in history_data for g in h.groups]
-    target_users = [u for h in history_data for u in h.users]
+        raise ValueError("History data not found")
+
+    operators = {h.operator.id: h.operator for h in history_data if h.operator}
+    repository_ids = permissions.get_permitted_repository_ids()
+    query = search_queries.make_criteria_object("repositories", i=list(repository_ids))
+    target_repositories = repositories.search(query).resources
+
+    unique_groups = {g.id: g for h in history_data for g in h.groups}
+    unique_users = {u.id: u for h in history_data for u in h.users}
+
     return HistoryDataFilter(
-        operators=operators,
+        operators=list(operators.values()),
         target_repositories=target_repositories,
-        target_groups=target_groups,
-        target_users=target_users,
+        target_groups=list(unique_groups.values()),
+        target_users=list(unique_users.values()),
     )
 
 
@@ -378,6 +385,17 @@ def update_public_status(
 
 
 def get_file_path(file_id: UUID) -> str:
+    """Get the file path for the given file ID.
+
+    Args:
+        file_id (UUID): The ID of the file.
+
+    Returns:
+        str: The file path.
+
+    Raises:
+        DatabaseError: If the file path could not be retrieved.
+    """
     file_path = db.session.query(Files.file_path).filter(Files.id == file_id).scalar()
     if not (file_path and isinstance(file_path, str)):
         raise DatabaseError

@@ -14,7 +14,7 @@ from flask_login import current_user, login_required
 from server.config import config
 from server.datastore import account_store
 from server.entities.login_user import LoginUser
-from server.services import permission
+from server.services import permissions
 
 
 P = t.ParamSpec("P")
@@ -53,7 +53,7 @@ def roles_required(*roles: str) -> t.Callable[[t.Callable[P, R]], t.Callable[P, 
             Returns:
                 R: The result of the decorated function.
             """
-            res = permission.get_login_user_roles()
+            res = permissions.get_login_user_roles()
             user_roles = res[0] if res else []
 
             if not any(role in user_roles for role in roles):

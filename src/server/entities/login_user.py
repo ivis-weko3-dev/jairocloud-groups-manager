@@ -11,7 +11,7 @@ from typing import override
 from flask_login import UserMixin
 from pydantic import BaseModel, Field, PrivateAttr
 
-from server.services import permission
+from server.services import permissions
 
 from .common import camel_case_config
 
@@ -38,7 +38,7 @@ class LoginUser(BaseModel, UserMixin):
     @cached_property
     def is_system_admin(self) -> bool:
         """If the logged-in user is a system administrator, then True."""
-        return permission.is_current_user_system_admin()
+        return permissions.is_current_user_system_admin()
 
     @override
     def get_id(self) -> str:

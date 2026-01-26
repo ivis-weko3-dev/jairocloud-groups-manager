@@ -26,7 +26,7 @@ from server.exc import (
     ResourceInvalid,
     ResourceNotFound,
 )
-from server.services import permission, users
+from server.services import permissions, users
 from server.services.utils.affiliations import detect_affiliations
 
 
@@ -63,20 +63,22 @@ def login() -> Response:
         return make_response(redirect("/?error=401"))
 
     try:
-        if not is_member_of:
-            groups = users.extract_groups_with_eppn(eppn)
+        if not is_member_of or not user_name:
+            user = users.get_by_eppn(eppn)
+            if not user:
+                return make_response(redirect("/?error=401"))
+            groups = [group.id for group in user.groups or []]
+            user_name = user.user_name or "Unknown User"
             is_member_of = ";".join(
                 f"https://cg.gakunin.jp/gr/{quote(g, safe='')}" for g in groups
             )
-        if not user_name:
-            user_name = users.get_user_name_from_eppn(eppn)
     except (
         ResourceInvalid,
         ResourceNotFound,
     ):
         current_app.logger.error(eppn)
         return make_response(redirect("/?error=401"))
-    groups = permission.extract_group_ids(is_member_of)
+    groups = permissions.extract_group_ids(is_member_of)
     user_roles, _ = detect_affiliations(groups)
     if not any(
         role in {USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN}
