@@ -39,9 +39,10 @@ class UserDetail(BaseModel):
     """Whether the user is a system administrator. Alias to 'isSystemAdmin'."""
 
     repositories: list[RepositorySummary] | None = None
+    """The affiliated repositories of the user."""
 
     groups: list[GroupSummary] | None = None
-    """The groups the user belongs to."""
+    """The affiliated user-defined groups of the user."""
 
     created: datetime | None = None
     """The creation timestamp of the user."""

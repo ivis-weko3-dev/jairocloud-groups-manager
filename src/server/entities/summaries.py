@@ -21,8 +21,8 @@ class RepositorySummary(BaseModel):
     id: str
     """The unique identifier for the repository."""
 
-    display_name: str | None = None
-    """The name of the repository. Alias to 'displayName'."""
+    service_name: str | None = None
+    """The name of the repository. Alias to 'serviceName'."""
 
     service_url: HttpUrl | None = None
     """The URL of the service. Alias for 'serviceUrl'."""

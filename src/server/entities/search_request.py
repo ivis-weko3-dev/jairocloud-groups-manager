@@ -7,6 +7,7 @@
 import typing as t
 
 from pydantic import BaseModel, Field
+from pydantic.alias_generators import to_camel
 
 from server.const import MAP_LIST_RESPONSE_SCHEMA
 
@@ -78,3 +79,28 @@ class SearchResult[T: BaseModel](BaseModel):
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
+
+
+class FilterOption[T: BaseModel](BaseModel):
+    """Model for filter option used in search requests."""
+
+    key: str
+    """The key of the filter option."""
+
+    description: str | None = None
+    """The description of the filter option."""
+
+    type: t.Literal["string", "number", "date"]
+    """The type of the filter option."""
+
+    multiple: bool
+    """Whether multiple selections are allowed for the filter option."""
+
+    items: dict[str, str] | None = None
+    """The items of the filter option as a dictionary of value-label pairs."""
+
+    _alias_generator: t.ClassVar[t.Callable[[str], str]] = to_camel
+    """Alias generator to convert item keys to camelCase."""
+
+    model_config = forbid_extra_config
+    """Configure to forbid extra fields."""

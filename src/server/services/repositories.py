@@ -93,9 +93,9 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
     repository_summaries = [
         RepositorySummary(
             id=resolve_repository_id(service_id=result.id),
-            display_name=result.service_name,
+            service_name=result.service_name,
             service_url=result.service_url,
-            sp_connecter_id=result.id,
+            sp_connector_id=result.id,
         )
         for result in results.resources
     ]
