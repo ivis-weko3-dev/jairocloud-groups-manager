@@ -17,6 +17,13 @@ interface UsersSearchQuery {
   l?: number
 }
 
+interface CacheGroupsSearchQuery {
+  q?: string
+  f?: string[]
+  p?: number
+  l?: number
+}
+
 type UsersSortableKeys = 'id' | 'userName' | 'emails' | 'eppns' | 'lastModified'
 
 type SortOrder = 'asc' | 'desc'
@@ -39,7 +46,7 @@ type GroupsSearchResult = SearchResult<GroupSummary>
 type UsersSearchResult = SearchResult<UserSummary>
 
 export type {
-  UsersSearchQuery, UsersSortableKeys,
+  UsersSearchQuery, CacheGroupsSearchQuery, UsersSortableKeys,
   SortOrder,
   SearchResult, UsersSearchResult, GroupsSearchResult, RepositoriesSearchResult,
 }

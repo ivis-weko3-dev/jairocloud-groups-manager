@@ -23,7 +23,9 @@ def create_api_blueprint() -> Blueprint:
         module = import_module(f"{__package__}.{module_name}")
         if hasattr(module, "bp") and isinstance(module.bp, Blueprint):
             bp_api.register_blueprint(
-                module.bp, url_prefix=f"/{module_name}", strict_slashes=False
+                module.bp,
+                url_prefix=f"/{module_name.replace('_', '-')}",
+                strict_slashes=False,
             )
 
     return bp_api

@@ -9,6 +9,10 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
   ],
 
+  imports: {
+    dirs: ['~/types'],
+  },
+
   devtools: {
     enabled: true,
   },

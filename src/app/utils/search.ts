@@ -37,4 +37,17 @@ const normalizeUsersQuery = (query: LocationQuery): UsersSearchQuery => {
   }
 }
 
-export { normalizeUsersQuery }
+/**
+ * Normalize location query to cache groups search query
+ */
+const normalizeCacheGroupsQuery = (query: LocationQuery): CacheGroupsSearchQuery => {
+  const { table: { pageSize } } = useAppConfig()
+  return {
+    q: query.q ? pickSingle(query.q) : undefined,
+    f: query.f ? toArray(query.f) : undefined,
+    p: Number(query.p) || 1,
+    l: Number(query.l) || pageSize.cacheGroups?.[0],
+  }
+}
+
+export { normalizeUsersQuery, normalizeCacheGroupsQuery }
