@@ -76,8 +76,9 @@ def refresh_session() -> None:
         return
 
     key = f"{config.REDIS.key_prefix}_login_{session_id}"
-    if config.REDIS.session_ttl >= 0:
-        account_store.expire(key, config.REDIS.session_ttl)
+    session_ttl: int = config.SESSION.sliding_lifetime
+    if session_ttl >= 0:
+        account_store.expire(key, session_ttl)
 
 
 def load_user(user_id: str) -> LoginUser | None:

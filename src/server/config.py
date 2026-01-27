@@ -341,9 +341,6 @@ class RedisConfig(BaseModel):
     sentinel: RedisSentinelCacheConfig
     """Configuration for Redis Sentinel, when cache_type is "RedisSentinelCache"."""
 
-    session_ttl: t.Annotated[int, "seconds"] = 36000
-    """Default login session cache duration (in seconds)."""
-
 
 class RedisDatabaseConfig(BaseModel):
     """Schema for Redis database configuration."""

@@ -97,7 +97,7 @@ def login() -> Response:
         key,
         mapping=user.model_dump(mode="json", by_alias=True),
     )
-    session_ttl: int = 100
+    session_ttl: int = config.SESSION.sliding_lifetime
     if session_ttl >= 0:
         account_store.expire(key, session_ttl)
     next_q = request.args.get("next")
