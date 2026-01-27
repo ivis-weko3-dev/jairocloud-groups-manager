@@ -2,7 +2,7 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""API router for managing user management endpoints."""
+"""API endpoints for user-related operations."""
 
 from flask import Blueprint, url_for
 from flask_pydantic import validate

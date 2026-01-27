@@ -14,14 +14,119 @@ from server.services.permissions import (
     is_current_user_system_admin,
 )
 from server.services.utils.search_queries import (
+    Criteria,
+    GroupsCriteria,
     UsersCriteria,
+    group_sortable_keys,
     make_criteria_object,
+    repository_sortable_keys,
     user_sortable_keys,
 )
 
 
 if t.TYPE_CHECKING:
-    from server.entities.summaries import UserSummary
+    from server.entities.summaries import GroupSummary, RepositorySummary, UserSummary
+
+
+def search_repositories_options() -> list[FilterOption[RepositorySummary]]:
+    """Provide filter options for searching repositories.
+
+    Returns:
+        list[FilterOption]: List of filter options for repository search.
+    """
+    alias = FilterOption._alias_generator  # noqa: SLF001
+
+    options = _initial_options()
+
+    options.extend((
+        # sort key
+        FilterOption(
+            key="k",
+            description=_get_description(Criteria, "k"),
+            type=_get_type(Criteria, "k"),
+            multiple=_allow_multiple(Criteria, "k"),
+            items=[{"value": alias(key)} for key in repository_sortable_keys],
+        ),
+    ))
+
+    options.extend(_common_options())
+
+    return options
+
+
+def search_groups_options() -> list[FilterOption[GroupSummary]]:
+    """Provide filter options for searching groups.
+
+    Returns:
+        list[FilterOption]: List of filter options for group search.
+    """
+    alias = FilterOption._alias_generator  # noqa: SLF001
+
+    options = _initial_options()
+
+    repos: list[dict[str, str]] = [
+        {"value": repo.id, "label": t.cast("str", repo.service_name)}
+        for repo in repositories.search(
+            make_criteria_object("repositories", l=-1)
+        ).resources
+    ]
+
+    if repos:
+        options.append(
+            # affiliated repositories
+            FilterOption(
+                key="r",
+                description=_get_description(GroupsCriteria, "r"),
+                type=_get_type(GroupsCriteria, "r"),
+                multiple=_allow_multiple(GroupsCriteria, "r"),
+                items=repos,
+            )
+        )
+
+    options.extend((
+        # affiliated users
+        FilterOption(
+            key="u",
+            description=_get_description(GroupsCriteria, "u"),
+            type=_get_type(GroupsCriteria, "u"),
+            multiple=_allow_multiple(GroupsCriteria, "u"),
+        ),
+        # public status
+        FilterOption(
+            key="s",
+            description=_get_description(GroupsCriteria, "s"),
+            type=_get_type(GroupsCriteria, "s"),
+            multiple=_allow_multiple(GroupsCriteria, "s"),
+            items=[
+                {"value": 0, "label": "public"},
+                {"value": 1, "label": "private"},
+            ],
+        ),
+        # member list visibility
+        FilterOption(
+            key="v",
+            description=_get_description(GroupsCriteria, "v"),
+            type=_get_type(GroupsCriteria, "v"),
+            multiple=_allow_multiple(GroupsCriteria, "v"),
+            items=[
+                {"value": 0, "label": "Public"},
+                {"value": 1, "label": "Private"},
+                {"value": 2, "label": "Hidden"},
+            ],
+        ),
+        # sort key
+        FilterOption(
+            key="k",
+            description=_get_description(Criteria, "k"),
+            type=_get_type(Criteria, "k"),
+            multiple=_allow_multiple(Criteria, "k"),
+            items=[{"value": alias(key)} for key in group_sortable_keys],
+        ),
+    ))
+
+    options.extend(_common_options())
+
+    return options
 
 
 def search_users_options() -> list[FilterOption[UserSummary]]:
@@ -33,22 +138,7 @@ def search_users_options() -> list[FilterOption[UserSummary]]:
     alias = FilterOption._alias_generator  # noqa: SLF001
     is_system_admin = is_current_user_system_admin()
 
-    options: list[FilterOption] = [
-        # search term
-        FilterOption(
-            key="q",
-            description=_get_description(UsersCriteria, "q"),
-            type=_get_type(UsersCriteria, "q"),
-            multiple=_allow_multiple(UsersCriteria, "q"),
-        ),
-        # IDs
-        FilterOption(
-            key="i",
-            description=_get_description(UsersCriteria, "i"),
-            type=_get_type(UsersCriteria, "i"),
-            multiple=_allow_multiple(UsersCriteria, "i"),
-        ),
-    ]
+    options = _initial_options()
 
     repos: list[dict[str, str]] = [
         {"value": repo.id, "label": t.cast("str", repo.service_name)}
@@ -120,17 +210,46 @@ def search_users_options() -> list[FilterOption[UserSummary]]:
         # sort key
         FilterOption(
             key="k",
-            description=_get_description(UsersCriteria, "k"),
-            type=_get_type(UsersCriteria, "k"),
-            multiple=_allow_multiple(UsersCriteria, "k"),
+            description=_get_description(Criteria, "k"),
+            type=_get_type(Criteria, "k"),
+            multiple=_allow_multiple(Criteria, "k"),
             items=[{"value": alias(key)} for key in user_sortable_keys],
         ),
+    ))
+
+    options.extend(_common_options())
+
+    return options
+
+
+def _initial_options() -> list[FilterOption]:
+    return [
+        # search term
+        FilterOption(
+            key="q",
+            description=_get_description(Criteria, "q"),
+            type=_get_type(Criteria, "q"),
+            multiple=_allow_multiple(Criteria, "q"),
+        ),
+        # IDs
+        FilterOption(
+            key="i",
+            description=_get_description(Criteria, "i"),
+            type=_get_type(Criteria, "i"),
+            multiple=_allow_multiple(Criteria, "i"),
+        ),
+    ]
+
+
+def _common_options() -> list[FilterOption]:
+
+    return [
         # sort order
         FilterOption(
             key="d",
-            description=_get_description(UsersCriteria, "d"),
-            type=_get_type(UsersCriteria, "d"),
-            multiple=_allow_multiple(UsersCriteria, "d"),
+            description=_get_description(Criteria, "d"),
+            type=_get_type(Criteria, "d"),
+            multiple=_allow_multiple(Criteria, "d"),
             items=[
                 {"value": "asc", "label": "Ascending"},
                 {"value": "desc", "label": "Descending"},
@@ -139,20 +258,18 @@ def search_users_options() -> list[FilterOption[UserSummary]]:
         # page number
         FilterOption(
             key="p",
-            description=_get_description(UsersCriteria, "p"),
-            type=_get_type(UsersCriteria, "p"),
-            multiple=_allow_multiple(UsersCriteria, "p"),
+            description=_get_description(Criteria, "p"),
+            type=_get_type(Criteria, "p"),
+            multiple=_allow_multiple(Criteria, "p"),
         ),
         # page size
         FilterOption(
             key="l",
-            description=_get_description(UsersCriteria, "l"),
-            type=_get_type(UsersCriteria, "l"),
-            multiple=_allow_multiple(UsersCriteria, "l"),
+            description=_get_description(Criteria, "l"),
+            type=_get_type(Criteria, "l"),
+            multiple=_allow_multiple(Criteria, "l"),
         ),
-    ))
-
-    return options
+    ]
 
 
 type OptionType = t.Literal["string", "number", "date"]

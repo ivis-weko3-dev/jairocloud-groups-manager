@@ -2,7 +2,7 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""API router for managing repository management endpoints."""
+"""API endpoints for repository-related operations."""
 
 from flask import Blueprint
 from flask_pydantic import validate
@@ -20,13 +20,14 @@ bp = Blueprint("repositories", __name__)
 @bp.get("/")
 @validate(response_by_alias=True)
 def get(query: RepositoriesQuery) -> tuple[SearchResult, int]:
-    """Get a list of users based on query parameters.
+    """Get a list of repositories based on query parameters.
 
     Args:
-        query (UsersQuery): Query parameters for filtering users.
+        query (RepositoriesQuery): Query parameters for filtering repositories.
 
     Returns:
-        tuple[dict, int]: A tuple containing the list of users and the HTTP status code.
+        tuple[dict, int]:
+            A tuple containing the list of repositories and the HTTP status code.
     """
     results = repositories.search(query)
     return results, 200

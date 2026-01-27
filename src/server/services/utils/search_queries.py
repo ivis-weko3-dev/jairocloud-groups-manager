@@ -603,12 +603,10 @@ def _curculate_options(
     def _a(ks: set[str]) -> set[str]:
         return ks | {path_generator(k) for k in ks}
 
-    if criteria.k in _a({"emails"}):
-        sort_by = path_generator("emails.value")
+    if criteria.k in _a({"emails", "entity_ids"}):
+        sort_by = path_generator(f"{criteria.k}.value")
     elif criteria.k in _a({"eppns", "edu_person_principal_names"}):
         sort_by = path_generator("edu_person_principal_names.value")
-    elif criteria.k in _a({"sp_connector_id"}):
-        sort_by = path_generator("id")
     elif criteria.k in _a(
         repository_sortable_keys | group_sortable_keys | user_sortable_keys
     ):
@@ -741,7 +739,7 @@ class UsersCriteria(Criteria, t.Protocol):
 
 
 type RepositoriesSortableKeys = t.Literal[
-    "id", "service_name", "service_url", "sp_connector_id"
+    "id", "service_name", "service_url", "entity_ids"
 ]
 repository_sortable_keys: set[str] = set(t.get_args(RepositoriesSortableKeys.__value__))
 

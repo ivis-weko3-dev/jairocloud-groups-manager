@@ -96,6 +96,7 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
             service_name=result.service_name,
             service_url=result.service_url,
             sp_connector_id=result.id,
+            entity_ids=[eid.value for eid in result.entity_ids or []],
         )
         for result in results.resources
     ]
