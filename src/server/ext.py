@@ -6,6 +6,7 @@
 
 import typing as t
 
+from weko_group_cache_db.config import setup_config as setup_weko_group_cache_db_config
 from .api.router import create_api_blueprint
 from .cli.base import register_cli_commands
 from .config import RuntimeConfig, setup_config
@@ -74,6 +75,7 @@ class JAIROCloudGroupsManager:
 
         app.config.from_mapping(self.config.for_flask)
         app.config.from_prefixed_env()
+        setup_weko_group_cache_db_config(self.config.CACHE_DB)
 
     def init_db_app(self, app: Flask) -> None:  # noqa: PLR6301
         """Initialize the database for the this extension.

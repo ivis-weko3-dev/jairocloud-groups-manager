@@ -36,6 +36,7 @@ const table = {
     repositories: [20, 50, 100] as number[],
     groups: [20, 50, 100] as number[],
     users: [20, 50, 100] as number[],
+    cacheGroups: [20, 50, 100] as number[],
   },
 }
 
@@ -123,6 +124,13 @@ const wayf = {
   ] as { name: string, entityID: string }[],
 }
 
+const groupCache = {
+  /**
+   * Time (in milliseconds) to wait before showing loading indicator when updating cache
+   */
+  loadingWaitTime: 3000 as number,
+}
+
 export default {
   /** Server hostname of this application */
   serverName,
@@ -134,4 +142,6 @@ export default {
   table,
   /** WAYF (Embedded DS) configuration */
   wayf,
+  /** Group cache configuration */
+  groupCache,
 }
