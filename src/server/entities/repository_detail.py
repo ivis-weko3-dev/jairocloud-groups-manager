@@ -6,13 +6,19 @@
 
 import typing as t
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field, HttpUrl, PrivateAttr
 
 from server.config import config
 
 from .common import camel_case_config, forbid_extra_config
-from .map_service import MapService, ServiceEntityID
-from .summaries import UserSummary
+from .map_service import (
+    Administrator,
+    Group as MapServiceGroup,
+    MapService,
+    ServiceEntityID,
+)
 
 
 class RepositoryDetail(BaseModel):
@@ -24,35 +30,43 @@ class RepositoryDetail(BaseModel):
     id: str
     """The unique identifier for the repository."""
 
-    display_name: str
-    """The name of the repository. Alias to 'displayName'."""
+    service_name: str
+    """The name of the repository. Alias to 'serviceName'."""
 
     service_url: HttpUrl | None = None
     """The URL of the service. Alias for 'serviceUrl'."""
 
-    suspended: bool | None = None
-    """Whether the service is suspended."""
+    active: bool | None = None
+    """Whether the service is active."""
 
     service_id: t.Annotated[
-        str | None,
+        str,
         Field(
-            validation_alias="spConnecterId",
-            serialization_alias="spConnecterId",
+            validation_alias="spConnectorId",
+            serialization_alias="spConnectorId",
         ),
-    ] = None
-    """The ID of the corresponding resource. Alias to 'spConnecterId'."""
-
+    ]
+    """The ID of the corresponding resource. Alias to 'spConnectorId'."""
     entity_ids: list[str] | None = None
-    """The entity IDs associated with the repository. Alias to 'entityID'."""
+    """The entity IDs associated with the repository. Alias to 'entityIds'."""
 
-    _users: list[UserSummary] | None = PrivateAttr(None)
-    """The users in the repository."""
+    created: datetime | None = None
+    """The creation timestamp of sp connector."""
 
     users_count: int | None = None
     """The number of users in the group. Alias to 'usersCount'."""
 
     groups_count: int | None = None
-    """The number of groups in the repository. Alias to 'groupsCount'."""
+    """The number of user-defined groups in the repository. Alias to 'groupsCount'."""
+
+    _groups: list[str] | None = PrivateAttr(None)
+    """The user-defined groups in the repository."""
+
+    _rolegroups: list[str] | None = PrivateAttr(None)
+    """The role-type groups in the repository."""
+
+    _admins: list[str] | None = PrivateAttr(None)
+    """The administrators of the group."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
@@ -67,16 +81,57 @@ class RepositoryDetail(BaseModel):
         Returns:
             RepositoryDetail: The created RepositoryDetail instance.
         """
-        return cls(
-            id=resolve_repository_id(service_id=service.id),
-            display_name=service.service_name or "",
-            service_url=service.service_url,
-            suspended=service.suspended,
-            service_id=service.id,
-            entity_ids=[eid.value for eid in service.entity_ids]
-            if service.entity_ids
-            else [],
+        from server.services import users  # noqa: PLC0415
+        from server.services.utils import (  # noqa: PLC0415
+            detect_affiliation,
+            make_criteria_object,
         )
+
+        service_id = resolve_repository_id(service_id=service.id)
+
+        detected_groups: list[str] | None = None
+        detected_rolegroups: list[str] | None = None
+        groups_count = None
+        users_count = None
+        if service.groups:
+            valid_groups = [
+                (g.value, detected)
+                for g in service.groups
+                if (detected := detect_affiliation(g.value)) is not None
+            ]
+            detected_rolegroups = [i for i, g in valid_groups if g.type == "role"]
+            detected_groups = [i for i, g in valid_groups if g.type == "group"]
+
+            groups_count = len(detected_groups)
+            users_count = len(
+                users.search(make_criteria_object("users", g=detected_groups)).resources
+            )
+
+        entity_ids: list[str] | None = None
+        if service.entity_ids:
+            entity_ids = [eid.value for eid in service.entity_ids]
+        active = service.suspended is False if service.suspended is not None else None
+
+        repository_detail = cls(
+            id=service_id,
+            service_name=service.service_name or "",
+            service_url=service.service_url,
+            active=active,
+            service_id=service.id,
+            entity_ids=entity_ids,
+            groups_count=groups_count,
+            users_count=users_count,
+            created=service.meta.created if service.meta else None,
+        )
+        repository_detail._groups = detected_groups
+        repository_detail._rolegroups = detected_rolegroups
+        repository_detail._admins = (
+            [admin.value for admin in service.administrators]
+            if service.administrators
+            else None
+        )
+
+        return repository_detail
 
     def to_map_service(self) -> MapService:
         """Convert RepositoryDetail to MapService instance.
@@ -84,13 +139,22 @@ class RepositoryDetail(BaseModel):
         Returns:
             MapService: The converted MapService instance.
         """
-        service = MapService(id=resolve_service_id(repository_id=self.id))
-        service.service_name = self.display_name
+        service = MapService(
+            id=self.service_id or resolve_service_id(repository_id=self.id)
+        )
+        service.service_name = self.service_name
         service.service_url = self.service_url
-        if self.suspended is not None:
-            service.suspended = self.suspended
+        if self.active is not None:
+            service.suspended = self.active is False
         if self.entity_ids:
             service.entity_ids = [ServiceEntityID(value=eid) for eid in self.entity_ids]
+        if self._groups or self._rolegroups:
+            service.groups = [MapServiceGroup(value=gid) for gid in self._groups or []]
+            service.groups.extend([
+                MapServiceGroup(value=gid) for gid in self._rolegroups or []
+            ])
+        if self._admins:
+            service.administrators = [Administrator(value=uid) for uid in self._admins]
         return service
 
 

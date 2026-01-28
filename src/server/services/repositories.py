@@ -95,7 +95,7 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
             id=resolve_repository_id(service_id=result.id),
             service_name=result.service_name,
             service_url=result.service_url,
-            sp_connector_id=result.id,
+            service_id=result.id,
             entity_ids=[eid.value for eid in result.entity_ids or []],
         )
         for result in results.resources
@@ -234,9 +234,9 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:
         ResourceNotFound: If the Repository resource does not exist.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
-    current = get_by_id(repository.id)
+    current = get_by_id(repository.service_id)
     if current is None:
-        error = f"'{repository.id}' Not Found"
+        error = f"'{repository.service_id}' Not Found"
         raise ResourceNotFound(error)
 
     operations: list[PatchOperation[MapService]] = build_patch_operations(

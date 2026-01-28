@@ -8,17 +8,30 @@ interface RepositorySummary {
   serviceName: string
   serviceUrl: string
   spConnectorId?: string
-  entityIds?: string[]
+  entityIds?: [string, ...string[]]
 }
 
 /** Repository detailed information */
 interface RepositoryDetail extends RepositorySummary {
-  suspended?: boolean
-  serviceId?: string
-  created?: Date
-  lastModified?: Date
+  active?: boolean
+  created?: string
   usersCount?: number
   groupsCount?: number
 }
 
-export type { RepositorySummary, RepositoryDetail }
+type RepositoryForm = Required<Omit<RepositoryDetail, 'usersCount' | 'groupsCount'>>
+
+type RepositoryUpdatePayload = Omit<RepositoryForm, 'spConnectorId' | 'created'>
+
+type RepositoryCreateForm = Omit<RepositoryForm, 'id' | 'spConnectorId' | 'created'>
+
+type RepositoryCreatePayload = RepositoryCreateForm
+
+export type {
+  RepositorySummary,
+  RepositoryDetail,
+  RepositoryForm,
+  RepositoryUpdatePayload,
+  RepositoryCreateForm,
+  RepositoryCreatePayload,
+}

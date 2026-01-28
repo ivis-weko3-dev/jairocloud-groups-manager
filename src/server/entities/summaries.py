@@ -27,8 +27,11 @@ class RepositorySummary(BaseModel):
     service_url: HttpUrl | None = None
     """The URL of the service. Alias for 'serviceUrl'."""
 
-    sp_connector_id: str | None = None
-    """The SP Connector ID of the repository. Alias to 'spConnectorId'."""
+    service_id: str | None = None
+    """The service ID of the repository. Alias to 'serviceId'."""
+
+    entity_ids: list[str] | None = None
+    """The entity IDs of the repository. Alias to 'entityIds'."""
 
     user_role: USER_ROLES | None = None
     """The role of the user in the repository if this is used in UserDetail.

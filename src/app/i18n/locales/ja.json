@@ -1,12 +1,31 @@
 {
   "button": {
+    "add": "追加",
+    "cancel": "取り消し",
     "create-new": "新規作成",
+    "delete": "削除",
     "reload": "再読み込み",
+    "save": "保存",
+    "update": "更新",
     "upload-users": "アップロード"
   },
   "cache-groups": {
     "description": "WEKO3が利用するグループ情報のキャッシュ状況を管理できます。",
     "title": "グループキャッシュ"
+  },
+  "error": {
+    "server": {
+      "description": "サーバーで予期せぬエラーが発生しました。",
+      "title": "サーバーエラー"
+    },
+    "unexpected": {
+      "description": "予期しないエラーが発生しました。",
+      "title": "エラー"
+    },
+    "validation": {
+      "description": "入力内容が不正です。入力欄のメッセージを確認してください。",
+      "title": "バリデーションエラー"
+    }
   },
   "footer": {
     "privacy-policy": "プライバシーポリシー",
@@ -62,6 +81,7 @@
     },
     "description": "あなたが管理しているリポジトリの情報を確認できます。",
     "entity-id-label": "Entity ID：",
+    "new-description": "リポジトリの SP コネクタを作成できます。",
     "table": {
       "column": {
         "entity-ids": "Entity ID",
@@ -80,6 +100,64 @@
     "actions": {
       "copy-url": "URL をコピー",
       "copy-url-success": "クリップボードにリポジトリの URL がコピーされました。"
+    },
+    "created": "作成日時",
+    "details-basic-section": "基本情報",
+    "details-sp-connector-section": "SP コネクタ情報",
+    "details-title": "リポジトリ詳細",
+    "entity-ids": "EntityID",
+    "entity-ids-description": "リポジトリに紐づけられている SP の EntityID です。",
+    "error": {
+      "conflict-description": "入力内容に競合がありました。",
+      "conflict-title": "競合エラー",
+      "forbidden": "リポジトリを作成する権限がありません。",
+      "not-found": "リポジトリが見つかりません。"
+    },
+    "new-title": "リポジトリの作成",
+    "number-of-groups": "グループ数",
+    "number-of-users": "ユーザー数",
+    "placeholders": {
+      "entity-ids": "例：https://jairo.repo.nii.ac.jp/shibboleth-sp",
+      "service-name": "例：ジャイロ大学リポジトリ",
+      "service-url": "例：https://jairo.repo.nii.ac.jp"
+    },
+    "service-name": "リポジトリ名",
+    "service-name-description": "このリポジトリの表示名です。実際のサービス名とは連動しません。",
+    "service-url": "URL",
+    "service-url-description": "リポジトリの URL です。",
+    "sp-connector": "SP コネクタ ID",
+    "sp-connector-description": "リポジトリに紐づく SP コネクタの識別子です。",
+    "suspended": "稼働状態",
+    "suspended-active": "稼働",
+    "suspended-description": "SP コネクタの稼働状態です。",
+    "suspended-inactive": "休止",
+    "validation": {
+      "entityIds": {
+        "at-least-one": "EntityID は 1 つ以上必須な項目です。",
+        "required": "Entity ID は必須項目です。"
+      },
+      "id": {
+        "required": "ID は必須項目です。"
+      },
+      "serviceName": {
+        "required": "リポジトリ名は必須項目です。"
+      },
+      "serviceUrl": {
+        "invalid": "URL が不正です。",
+        "required": "URL は必須項目です。"
+      }
+    }
+  },
+  "success": {
+    "creation": {
+      "title": "作成成功"
+    },
+    "repository": {
+      "created-description": "リポジトリの SP コネクタの作成に成功しました。",
+      "updated-description": "リポジトリ情報の更新に成功しました。"
+    },
+    "updated": {
+      "title": "更新成功"
     }
   },
   "table": {
