@@ -80,6 +80,20 @@ class UnexpectedResponseError(ApiClientError):
     """
 
 
+class ApiRequestError(JAIROCloudGroupsManagerError):
+    """Exception for the server application API errors.
+
+    Errors caused by API request issues.
+    """
+
+
+class RequestConflict(ApiRequestError):  # noqa: N818
+    """Exception for the request conflict errors.
+
+    Errors caused by conflicts in the request content.
+    """
+
+
 class InvalidQueryError(JAIROCloudGroupsManagerError):
     """Exception for unexpected query construction errors.
 
