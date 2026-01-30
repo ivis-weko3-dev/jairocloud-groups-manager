@@ -1,6 +1,11 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
 import { computed, ref } from 'vue'
 
+import { useI18n } from '#imports'
+
+import type { DownloadHistoryData } from '~/types/history'
+
+const { t } = useI18n()
 interface Properties<T> {
   data: T[]
   currentPage: number
@@ -12,14 +17,14 @@ interface Properties<T> {
     enableExpand?: boolean
     showStatus?: boolean
   }
-  ttlCheck?: (iso: string) => boolean
+  fileAvailabilityCheck?: (data: DownloadHistoryData) => boolean
 }
 
-const properties = withDefaults(defineProps<Properties<T>>(), {
-  emptyMessage: 'データがありません',
+const properties = computed(() => withDefaults(defineProps<Properties<T>>(), {
+  emptyMessage: t('history.empty-data'),
   columns: () => [],
   tableConfig: () => ({ enableExpand: true, showStatus: false }),
-})
+}))
 
 const emit = defineEmits<{
   'update:currentPage': [page: number]
@@ -27,14 +32,6 @@ const emit = defineEmits<{
   'action': [action: string, row: T]
   'sortChange': [payload?: any]
   'loadMoreChildren': [parentId: string, currentShown: number]
-}>()
-
-const slots = defineSlots<{
-  table?: (properties_: {
-    data: T[]
-    expandedRows: Set<string>
-    toggleExpand: (id: string) => void
-  }) => any
 }>()
 
 const expandedRows = ref<Set<string>>(new Set())
@@ -48,28 +45,28 @@ function toggleExpand(id: string) {
 }
 
 const columns = computed(() => {
-  if (properties.columns && properties.columns.length > 0) {
-    return properties.columns
+  if (properties.value.columns && properties.value.columns.length > 0) {
+    return properties.value.columns
   }
 
   const base = [
     {
       id: 'timestamp',
       key: 'timestamp',
-      label: $t('history.operation-date'),
+      label: t('history.operation-date'),
       sortable: true,
     },
     {
       id: 'operator',
       key: 'operator',
-      label: $t('history.operator'),
+      label: t('history.operator'),
     },
-    { id: 'users', key: 'users', label: $t('history.user-count') },
-    { id: 'groups', key: 'groups', label: $t('history.group-count') },
+    { id: 'users', key: 'users', label: t('history.user-count') },
+    { id: 'groups', key: 'groups', label: t('history.group-count') },
   ]
 
-  if (properties.tableConfig.enableExpand) {
-    base.push({ id: 'redownload', key: 'redownload', label: $t('history.re-download') })
+  if (properties.value.tableConfig.enableExpand) {
+    base.push({ id: 'redownload', key: 'redownload', label: t('history.re-download') })
   }
 
   base.push({ id: 'actions', key: 'actions', label: '' })
@@ -77,50 +74,50 @@ const columns = computed(() => {
 })
 
 const tableRows = computed(() => {
-  const first = (properties.data as any[])[0]
+  const first = (properties.value.data as any[])[0]
   const looksLikeGroup = first && typeof first === 'object'
     && 'parent' in first && 'children' in first
 
   if (looksLikeGroup) {
-    return (properties.data as any[]).map((item: any) => {
+    return (properties.value.data as any[]).map((item: any) => {
       const base = {
         ...item.parent,
         _children: item.children ?? [],
-        _hasMore: !!item.has_more_children,
+        _hasMore: !!item.hasMoreChildren,
         childrenCount: item.parent?.children_count ?? (item.children?.length ?? 0),
       }
       return {
         ...base,
-        isDisabled: typeof properties.ttlCheck === 'function'
-          ? !properties.ttlCheck(base.timestamp)
+        isDisabled: typeof properties.value.fileAvailabilityCheck === 'function'
+          ? !properties.value.fileAvailabilityCheck(base)
           : false,
       }
     })
   }
-  return (properties.data as any[]).map((r: any) => ({
+  return (properties.value.data as any[]).map((r: any) => ({
     ...r,
-    isDisabled: typeof properties.ttlCheck === 'function'
-      ? !properties.ttlCheck(r.timestamp)
+    isDisabled: typeof properties.value.fileAvailabilityCheck === 'function'
+      ? !properties.value.fileAvailabilityCheck(r)
       : false,
   }))
 })
 
-const pageStart = computed(() => properties.totalItems === 0
+const pageStart = computed(() => properties.value.totalItems === 0
   ? 0
-  : (properties.currentPage - 1) * properties.itemsPerPage + 1)
+  : (properties.value.currentPage - 1) * properties.value.itemsPerPage + 1)
 
 const pageEnd = computed(() => Math.min(
-  properties.currentPage * properties.itemsPerPage,
-  properties.totalItems,
+  properties.value.currentPage * properties.value.itemsPerPage,
+  properties.value.totalItems,
 ))
 
 const itemsPerPageOptions = [10, 25, 50, 100].map(v => ({ label: String(v), value: v }))
 
-const statusConfig: Record<string, { label: string, color: 'success' | 'error' | 'warning' }> = {
-  S: { label: $t('history.succes'), color: 'success' },
-  F: { label: $t('history.failed'), color: 'error' },
-  P: { label: $t('history.progress'), color: 'warning' },
-}
+const statusConfig = computed(() => ({
+  S: { label: t('history.succes'), color: 'success' as const },
+  F: { label: t('history.failed'), color: 'error' as const },
+  P: { label: t('history.progress'), color: 'warning' as const },
+}))
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('ja-JP', {
@@ -149,16 +146,8 @@ const formatDate = (dateString: string) => {
         </div>
       </div>
     </template>
-    <slot
-      v-if="slots.table"
-      name="table"
-      :data="properties.data"
-      :expanded-rows="expandedRows"
-      :toggle-expand="toggleExpand"
-    />
 
     <UTable
-      v-else
       :key="`ut-${properties.tableConfig.enableExpand?'d':'u'}-${properties.currentPage}
       -${properties.itemsPerPage}`"
       :rows="[...tableRows]"
@@ -251,8 +240,8 @@ const formatDate = (dateString: string) => {
       <template #actions-data="{ row }">
         <UDropdownMenu
           :items="[[{
-            label: '公開切替',
-            icon: 'i-lucide-eye',
+            label: row.public ? $t('history.public') : $t('history.private'),
+            icon: row.public ? 'i-lucide-eye':'i-lucide-eye-off',
             click: () => $emit('action', 'toggle-public', row),
           }]]"
         >
@@ -273,7 +262,7 @@ const formatDate = (dateString: string) => {
           </div>
           <UButton
             v-if="row._hasMore"
-            label="さらに表示"
+            :label="$t('history.more')"
             variant="soft"
             size="xs"
             class="mt-2"
