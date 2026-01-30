@@ -10,17 +10,18 @@ from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy import desc, func, or_, select
+from sqlalchemy.exc import OperationalError
 
 from server.db.history import DownloadHistory, Files, UploadHistory
 from server.db.utils import db
 from server.entities.history_detail import (
     DownloadHistoryData,
-    HistoryDataFilter,
     HistoryQuery,
     HistorySummary,
     Results,
     UploadHistoryData,
 )
+from server.entities.search_request import FilterOption
 from server.entities.summaries import GroupSummary, RepositorySummary, UserSummary
 from server.exc import DatabaseError
 from server.services import permissions, repositories
@@ -75,7 +76,7 @@ def get_upload_history_data(query: HistoryQuery) -> list[UploadHistoryData]:
     if query.s and query.e:
         filters.append(UploadHistory.timestamp.between(query.s, query.e))
     elif query.s and not query.e:
-        start = query.s.replace(hour=0, minute=0, second=0, microsecond=0)
+        start = query.s
         end = start + timedelta(days=1)
         filters.extend((
             UploadHistory.timestamp >= start,
@@ -232,7 +233,7 @@ def get_download_history_data(query: HistoryQuery) -> list[DownloadHistoryData]:
     if query.s and query.e:
         filters.append(DownloadHistory.timestamp.between(query.s, query.e))
     elif query.s and not query.e:
-        start = query.s.replace(hour=0, minute=0, second=0, microsecond=0)
+        start = query.s
         end = start + timedelta(days=1)
         filters.extend((
             DownloadHistory.timestamp >= start,
@@ -321,7 +322,7 @@ def get_download_history_data(query: HistoryQuery) -> list[DownloadHistoryData]:
     return data
 
 
-def get_filters(tub: t.Literal["download", "upload"]) -> HistoryDataFilter:
+def get_filters(tub: t.Literal["download", "upload"]) -> list[FilterOption]:
     """Get available filters for download/upload history.
 
     Args:
@@ -345,16 +346,57 @@ def get_filters(tub: t.Literal["download", "upload"]) -> HistoryDataFilter:
     repository_ids = permissions.get_permitted_repository_ids()
     query = search_queries.make_criteria_object("repositories", i=list(repository_ids))
     target_repositories = repositories.search(query).resources
-
     unique_groups = {g.id: g for h in history_data for g in h.groups}
     unique_users = {u.id: u for h in history_data for u in h.users}
 
-    return HistoryDataFilter(
-        operators=list(operators.values()),
-        target_repositories=target_repositories,
-        target_groups=list(unique_groups.values()),
-        target_users=list(unique_users.values()),
-    )
+    operator_items: list[t.Mapping[str, str]] = [
+        {op.id: op.user_name or ""} for op in operators.values()
+    ]
+
+    repository_items: list[t.Mapping[str, str]] = [
+        {r.id: r.display_name or ""} for r in target_repositories
+    ]
+
+    group_items: list[t.Mapping[str, str]] = [
+        {g.id: g.display_name or ""} for g in unique_groups.values()
+    ]
+
+    user_items: list[t.Mapping[str, str]] = [
+        {u.id: u.user_name or ""} for u in unique_users.values()
+    ]
+
+    filters: list[FilterOption] = [
+        FilterOption(
+            key="o",
+            description="operator",
+            type="string",
+            multiple=True,
+            items=operator_items,
+        ),
+        FilterOption(
+            key="r",
+            description="repositories",
+            type="string",
+            multiple=True,
+            items=repository_items,
+        ),
+        FilterOption(
+            key="g",
+            description="groups",
+            type="string",
+            multiple=True,
+            items=group_items,
+        ),
+        FilterOption(
+            key="u",
+            description="users",
+            type="string",
+            multiple=True,
+            items=user_items,
+        ),
+    ]
+
+    return filters
 
 
 def update_public_status(
@@ -372,14 +414,20 @@ def update_public_status(
 
     Raises:
         ValueError: If the record is not found.
+        DatabaseError: If a database operation fails.
     """
-    table = DownloadHistory if tub == "download" else UploadHistory
+    try:
+        table = DownloadHistory if tub == "download" else UploadHistory
 
-    record = db.session.get(table, history_id)
-    if record is None:
-        raise ValueError(history_id)
+        record = db.session.get(table, history_id)
+        if record is None:
+            error = f"{history_id} is not found"
+            raise ValueError(error)
 
-    record.public = public
+        record.public = public
+    except OperationalError as exc:
+        error = "Failed to update the public status due to a database error."
+        raise DatabaseError(error) from exc
     db.session.commit()
     return record.public
 
@@ -398,5 +446,6 @@ def get_file_path(file_id: UUID) -> str:
     """
     file_path = db.session.query(Files.file_path).filter(Files.id == file_id).scalar()
     if not (file_path and isinstance(file_path, str)):
-        raise DatabaseError
+        error = "Failed to get the file path due to a database error."
+        raise DatabaseError(error)
     return file_path

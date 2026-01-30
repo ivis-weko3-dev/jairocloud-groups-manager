@@ -9,7 +9,8 @@ from flask_login import current_user, login_required
 from flask_pydantic import validate
 
 from server.api.helper import roles_required
-from server.api.schemas import DeleteGroupRequest, ErrorResponse, MemberPatchRequest
+from server.api.schemas import DeleteGroupsRequest, ErrorResponse, MemberPatchRequest
+from server.const import USER_ROLES
 from server.entities.group_detail import GroupDetail
 from server.exc import (
     ResourceInvalid,
@@ -23,7 +24,7 @@ bp = Blueprint("groups", __name__)
 
 @bp.post("/")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def post(
     body: GroupDetail,
@@ -54,7 +55,7 @@ def post(
 
 @bp.get("/<string:group_id>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
     """Get information of group endpoint.
@@ -67,20 +68,20 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
         - If logged-in user does not have permission, status code 403
         - If group not found, status code 404
     """
+    if not (
+        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
+    ):
+        return ErrorResponse(code="", message=""), 403
     result = groups.get_by_id(group_id)
 
     if result is None:
         return ErrorResponse(code="", message=f"'{group_id}' Not Found"), 404
-    if current_user.is_system_admin or permissions.filter_permitted_group_ids(
-        result.id
-    ):
-        return result, 200
-    return ErrorResponse(code="", message=""), 403
+    return result, 200
 
 
 @bp.put("/<string:group_id>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
     """Update group information endpoint.
@@ -113,9 +114,9 @@ def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
 
 @bp.patch("/<string:group_id>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
-def id_patche(
+def id_patch(
     group_id: str, body: MemberPatchRequest
 ) -> tuple[GroupDetail | ErrorResponse, int]:
     """Update group member endpoint.
@@ -146,7 +147,7 @@ def id_patche(
 
 @bp.delete("/<string:group_id>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def id_delete(group_id: str) -> tuple[None, int] | tuple[ErrorResponse, int]:
     """Single group deletion endpoint.
@@ -169,15 +170,15 @@ def id_delete(group_id: str) -> tuple[None, int] | tuple[ErrorResponse, int]:
 
 @bp.post("/delete")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def delete_post(
-    body: DeleteGroupRequest,
+    body: DeleteGroupsRequest,
 ) -> tuple[None, int] | tuple[ErrorResponse, int]:
     """The multiple group deletion endpoint.
 
     Args:
-        body(DeleteGroupRequest): Group id for delte
+        body(DeleteGroupsRequest): Group id for delte
 
     Returns:
         - If succeeded in delete group ,
@@ -192,6 +193,6 @@ def delete_post(
         return ErrorResponse(code="", message=""), 403
     group_list = groups.delete(body.group_ids)
     if group_list:
-        message = f"{group_list} is failde"
+        message = f"{group_list} is failed"
         return ErrorResponse(code="", message=message), 500
     return None, 204

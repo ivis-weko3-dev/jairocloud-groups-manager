@@ -6,6 +6,7 @@
 
 import typing as t
 
+from datetime import UTC, datetime
 from functools import wraps
 
 from flask import abort, session
@@ -75,7 +76,15 @@ def refresh_session() -> None:
     if not session_id:
         return
 
-    key = f"{config.REDIS.key_prefix}_login_{session_id}"
+    key = build_account_store_key(session_id)
+    login_date_raw = account_store.hget(key, "loginDate")
+    if not isinstance(login_date_raw, str):
+        return
+    login_date = datetime.fromisoformat(login_date_raw)
+    login_time = datetime.now(UTC) - login_date
+    if login_time.total_seconds() > config.SESSION.absolute_lifetime:
+        account_store.delete(key)
+        return
     session_ttl: int = config.SESSION.sliding_lifetime
     if session_ttl >= 0:
         account_store.expire(key, session_ttl)
@@ -97,8 +106,9 @@ def load_user(user_id: str) -> LoginUser | None:
     if not session_id:
         return None
 
-    key = f"{config.REDIS.key_prefix}_login_{session_id}"
-    data = account_store.hgetall(key)
+    key = build_account_store_key(session_id)
+    raw = account_store.hgetall(key)
+    data = {k.decode("utf-8"): v.decode("utf-8") for k, v in raw.items()}  # pyright: ignore[reportAttributeAccessIssue]
     if not isinstance(data, dict):
         return None
 
@@ -113,3 +123,15 @@ def load_user(user_id: str) -> LoginUser | None:
     )
     user._session_id = session_id  # noqa: SLF001
     return user
+
+
+def build_account_store_key(session_id: str) -> str:
+    """Build the account_store key.
+
+    Args:
+        session_id(str):Logged-in user's session ID
+
+    Returns:
+        str:Session information key for account_store
+    """
+    return f"{config.REDIS.key_prefix}_login_{session_id}"

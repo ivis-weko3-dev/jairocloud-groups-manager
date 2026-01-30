@@ -6,6 +6,7 @@
 
 import typing as t
 
+from pathlib import Path
 from uuid import UUID
 
 from flask import Blueprint, Response, send_file
@@ -14,12 +15,14 @@ from flask_pydantic import validate
 
 from server.api.helper import roles_required
 from server.api.schemas import ErrorResponse, HistoryPublic
+from server.const import USER_ROLES
 from server.entities.history_detail import (
     DownloadHistory,
-    HistoryDataFilter,
     HistoryQuery,
     UploadHistory,
 )
+from server.entities.search_request import FilterOption
+from server.exc import DatabaseError
 from server.services import history
 
 
@@ -28,11 +31,11 @@ bp = Blueprint("history", __name__)
 
 @bp.get("/<tub>/filter-options")
 @login_required
-@roles_required("system_admin", "repository_admin")
-@validate()
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
+@validate(response_many=True)
 def filter_options(
     tub: t.Literal["download", "upload"],
-) -> tuple[HistoryDataFilter, int] | tuple[ErrorResponse, int]:
+) -> tuple[list[FilterOption], int] | tuple[ErrorResponse, int]:
     """Get filter options for history data.
 
     Args:
@@ -44,15 +47,15 @@ def filter_options(
     """
     try:
         history_filter = history.get_filters(tub)
-    except ValueError:
-        return ErrorResponse(code="", message=""), 500
+    except ValueError as ex:
+        return ErrorResponse(code="", message=str(ex)), 500
 
     return history_filter, 200
 
 
 @bp.get("/<string:tub>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def get(
     query: HistoryQuery, tub: t.Literal["download", "upload"]
@@ -74,18 +77,19 @@ def get(
         else:
             history_data = history.get_upload_history_data(query)
             result = UploadHistory(upload_history_data=history_data)
-    except ConnectionError:
-        return ErrorResponse(code="", message=""), 503
+    except DatabaseError:
+        error = f"{tub} table connection error"
+        return ErrorResponse(code="", message=error), 503
     return result, 200
 
 
 @bp.put("/<tub>/<history_id>/public-status")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN)
 @validate()
 def public_status(
     tub: t.Literal["download", "upload"], history_id: UUID, body: HistoryPublic
-) -> tuple[bool, int]:
+) -> tuple[bool | ErrorResponse, int]:
     """Update the public status of a history item.
 
     Args:
@@ -97,18 +101,20 @@ def public_status(
         bool: True if the update was successful, False otherwise
         int: HTTP status code
     """
-    result: bool = history.update_public_status(
-        tub=tub, history_id=history_id, public=body.public
-    )
-
+    try:
+        result: bool = history.update_public_status(
+            tub=tub, history_id=history_id, public=body.public
+        )
+    except DatabaseError as ex:
+        return ErrorResponse(code="", message=str(ex)), 404
     return result, 200
 
 
 @bp.get("/files/<file_id>")
 @login_required
-@roles_required("system_admin", "repository_admin")
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
-def files(file_id: UUID) -> Response:
+def files(file_id: UUID) -> Response | tuple[ErrorResponse, int]:
     """Download a file associated with a history item.
 
     Args:
@@ -117,6 +123,33 @@ def files(file_id: UUID) -> Response:
     Returns:
         Response: Flask response object to send the file
     """
-    file_path = history.get_file_path(file_id)
-
+    try:
+        file_path = Path(history.get_file_path(file_id))
+    except DatabaseError as ex:
+        return ErrorResponse(code="", message=str(ex)), 503
+    if not Path(file_path).exists():
+        error = f"{file_id} not found"
+        return ErrorResponse(code="", message=error), 404
     return send_file(path_or_file=file_path)
+
+
+@bp.get("/files/<file_id>/exists")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
+@validate()
+def is_exist_files(file_id: UUID) -> tuple[bool | ErrorResponse, int]:
+    """Check if the file exists.
+
+    Args:
+        file_id (UUID): Unique identifier of the file
+
+    Returns:
+        bool:Whether to check if the file exists
+    """
+    try:
+        file_path = Path(history.get_file_path(file_id))
+    except DatabaseError as ex:
+        return ErrorResponse(code="", message=str(ex)), 503
+    if not Path(file_path).exists():
+        return False, 200
+    return True, 200

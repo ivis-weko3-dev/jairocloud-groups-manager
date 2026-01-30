@@ -306,7 +306,7 @@ def delete(group_ids: set[str]) -> set[str] | None:
         group_ids (list[str]): ID of the Group resource.
 
     Returns:
-        list[str]: group id list of faild.
+        list[str]: group id list of failed.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
@@ -509,11 +509,15 @@ def update_put(body: GroupDetail) -> GroupDetail:
         access_token = get_access_token()
         client_secret = get_client_secret()
         request_group = body.to_map_group()
+        system_admins = get_system_admin()
+        if not system_admins:
+            error = "Failed to get system admin user id from mAP Core API."
+            raise UnexpectedResponseError(error)
+        request_group.members = [
+            MemberUser(type="User", value=admin_id) for admin_id in system_admins
+        ]
         request_group.administrators = [
-            Administrator(
-                display="nobuyoshi.kosaka",
-                value="5520cb7a-0d5e-4389-8644-68859becae82",
-            ),
+            Administrator(value=admin_id) for admin_id in system_admins
         ]
         request_group.services = [
             Service(
@@ -605,7 +609,7 @@ def get_system_admin() -> set[str] | None:
         return None
 
     return (
-        {user.value for user in result.members if isinstance(user, MemberUser)}
+        {members.value for members in result.members if members.type == "User"}
         if result.members
         else None
     )

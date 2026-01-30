@@ -9,7 +9,6 @@ from urllib.parse import quote
 from flask import (
     Blueprint,
     Response,
-    current_app,
     make_response,
     redirect,
     request,
@@ -18,14 +17,11 @@ from flask import (
 from flask_login import login_user, logout_user
 from flask_pydantic import validate
 
+from server.api.helper import build_account_store_key
 from server.config import config
 from server.const import USER_ROLES
 from server.datastore import account_store
 from server.entities.login_user import LoginUser
-from server.exc import (
-    ResourceInvalid,
-    ResourceNotFound,
-)
 from server.services import permissions, users
 from server.services.utils.affiliations import detect_affiliations
 
@@ -62,22 +58,15 @@ def login() -> Response:
     if not eppn:
         return make_response(redirect("/?error=401"))
 
-    try:
-        if not is_member_of or not user_name:
-            user = users.get_by_eppn(eppn)
-            if not user:
-                return make_response(redirect("/?error=401"))
-            groups = [group.id for group in user.groups or []]
-            user_name = user.user_name or "Unknown User"
-            is_member_of = ";".join(
-                f"https://cg.gakunin.jp/gr/{quote(g, safe='')}" for g in groups
-            )
-    except (
-        ResourceInvalid,
-        ResourceNotFound,
-    ):
-        current_app.logger.error(eppn)
-        return make_response(redirect("/?error=401"))
+    if not is_member_of or not user_name:
+        user = users.get_by_eppn(eppn)
+        if not user:
+            return make_response(redirect("/?error=401"))
+        groups = [group.id for group in user.groups or []]
+        user_name = user.user_name or "Unknown User"
+        is_member_of = ";".join(
+            f"https://cg.gakunin.jp/gr/{quote(g, safe='')}" for g in groups
+        )
     groups = permissions.extract_group_ids(is_member_of)
     user_roles, _ = detect_affiliations(groups)
     if not any(
@@ -92,7 +81,7 @@ def login() -> Response:
     login_user(user)
     session_id: str = session.get("_id")  # pyright: ignore[reportAssignmentType]
     user._session_id = session_id  # noqa: SLF001
-    key = f"{config.REDIS.key_prefix}_login_{session_id}"
+    key = build_account_store_key(session_id)
     account_store.hset(
         key,
         mapping=user.model_dump(mode="json", by_alias=True),
@@ -114,7 +103,7 @@ def logout() -> Response:
     """
     session_id: str = session.get("_id")  # pyright: ignore[reportAssignmentType]
     if session_id:
-        key = f"{config.REDIS.key_prefix}_login_{session_id}"
+        key = build_account_store_key(session_id)
         account_store.delete(key)
     logout_user()
 

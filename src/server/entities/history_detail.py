@@ -6,12 +6,20 @@
 
 import typing as t
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from server.entities.summaries import GroupSummary, RepositorySummary, UserSummary
+
+from .common import camel_case_config
+
+
+ignore_extra_config = ConfigDict(
+    extra="ignore",
+    validate_assignment=True,
+)
 
 
 class DownloadHistory(BaseModel):
@@ -36,6 +44,9 @@ class DownloadHistory(BaseModel):
         return self.sum_download - self.first_download
 
     download_history_data: list[DownloadHistoryData]
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
 
 class UploadHistory(BaseModel):
@@ -66,6 +77,9 @@ class UploadHistory(BaseModel):
         return sum(1 for item in self.upload_history_data if item.status == "P")
 
     upload_history_data: list[UploadHistoryData]
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
 
 class DownloadHistoryData(BaseModel):
@@ -100,6 +114,9 @@ class DownloadHistoryData(BaseModel):
 
     children_count: int = 0
     """Number of related child elements."""
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
 
 class UploadHistoryData(BaseModel):
@@ -141,22 +158,36 @@ class UploadHistoryData(BaseModel):
     users: list[UserSummary]
     """List of user IDs involved in the upload."""
 
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
+
 
 class Results(BaseModel):
     """Result of the upload operation."""
 
     user_id: str
     """User ID."""
-    eppn: str
-    """EPPN."""
+
+    eppn: list[str]
+    """User EPPN."""
+
+    emails: list[str]
+    """ User emails"""
+
     user_name: str
     """User name."""
+
     group: list[str]
     """Group list."""
+
     status: t.Literal["C", "U", "S", "D", "E"]
     """Status of the upload operation."""
+
     code: str | None
     """Error code if the upload failed."""
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
 
 class HistorySummary(BaseModel):
@@ -164,12 +195,16 @@ class HistorySummary(BaseModel):
 
     create: int
     """Number of created items."""
+
     update: int
     """Number of updated items."""
+
     delete: int
     """Number of deleted items."""
+
     skip: int
     """Number of skipped items."""
+
     error: int
     """Number of error items."""
 
@@ -177,28 +212,26 @@ class HistorySummary(BaseModel):
 class HistoryQuery(BaseModel):
     """Query parameters for searching history data."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    s: t.Annotated[date | None, "start"] = None
+    """Filter by last modified date (from)."""
 
-    s: datetime | None = Field(default=None, description="start_date")
-    """Start date for filtering history records."""
+    e: t.Annotated[date | None, "end"] = None
+    """Filter by last modified date (to)."""
 
-    e: datetime | None = Field(default=None, description="end_date")
-    """End date for filtering history records."""
+    u: t.Annotated[list[str] | None, "users"] = None
+    """Filter by affiliated user IDs."""
 
-    u: list[str] | None = Field(default=None, description="user_id")
-    """List of user IDs to filter history records."""
+    r: t.Annotated[list[str] | None, "repositories"] = None
+    """Filter by affiliated repository IDs."""
 
-    r: list[str] | None = Field(default=None, description="repository_id")
-    """List of repository IDs to filter history records."""
+    g: t.Annotated[list[str] | None, "groups"] = None
+    """Filter by affiliated group IDs."""
 
-    g: list[str] | None = Field(default=None, description="group_id")
-    """List of group IDs to filter history records."""
+    o: t.Annotated[list[str] | None, "operator"] = None
+    """Filter by operator IDs"""
 
-    o: list[str] | None = Field(default=None, description="operator")
-    """List of operators to filter history records."""
-
-    i: list[str] | None = Field(default=None, description="id")
-    """List of Parent ID to retrieve child elements """
+    i: t.Annotated[list[str] | None, "ids"] = None
+    """Filter by Parent ID to retrieve child elements """
 
     d: t.Annotated[
         t.Literal["asc", "desc"] | None,
@@ -207,10 +240,13 @@ class HistoryQuery(BaseModel):
     """Sort order: 'asc' (ascending) or 'desc' (descending)."""
 
     p: t.Annotated[int | None, "page"] = None
-    """Page number for pagination."""
+    """Page number to retrieve."""
 
     l: t.Annotated[int | None, "length"] = None  # noqa: E741
-    """Number of users per page for pagination."""
+    """Page size (number of items per page)."""
+
+    model_config = ignore_extra_config
+    """Configure to ignore extra fields."""
 
 
 class HistoryDataFilter(BaseModel):

@@ -180,7 +180,7 @@ class MemberPatchRequest(BaseModel):
     """Set of user IDs to remove from members."""
 
 
-class DeleteGroupRequest(BaseModel):
+class DeleteGroupsRequest(BaseModel):
     """Schema for deleting multiple groups."""
 
     group_ids: set[str]
