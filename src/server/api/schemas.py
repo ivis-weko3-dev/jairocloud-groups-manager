@@ -171,13 +171,15 @@ class UsersQuery(BaseModel):
     """Configure to ignore extra fields."""
 
 
-class MemberPatchRequest(BaseModel):
+class GroupPatchRequest(BaseModel):
     """Schema for patching group members."""
 
-    add: set[str]
-    """Set of user IDs to add as members."""
-    remove: set[str]
-    """Set of user IDs to remove from members."""
+    op: t.Literal["add", "remove"]
+    """The patch operation to perform."""
+    path: str
+    """The target path of the patch operation."""
+    value: list[str]
+    """Value to be changed."""
 
 
 class DeleteGroupsRequest(BaseModel):

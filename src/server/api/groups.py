@@ -9,7 +9,11 @@ from flask_login import current_user, login_required
 from flask_pydantic import validate
 
 from server.api.helper import roles_required
-from server.api.schemas import DeleteGroupsRequest, ErrorResponse, MemberPatchRequest
+from server.api.schemas import (
+    DeleteGroupsRequest,
+    ErrorResponse,
+    GroupPatchRequest,
+)
 from server.const import USER_ROLES
 from server.entities.group_detail import GroupDetail
 from server.exc import (
@@ -117,13 +121,13 @@ def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate()
 def id_patch(
-    group_id: str, body: MemberPatchRequest
+    group_id: str, body: GroupPatchRequest
 ) -> tuple[GroupDetail | ErrorResponse, int]:
     """Update group member endpoint.
 
     Args:
         group_id(str): Group id
-        body(MemberPatchRequest): Group member information
+        body(GroupPatchRequest): Group member information
 
     Returns:
         - If succeeded in updating group member,
@@ -137,7 +141,13 @@ def id_patch(
     ):
         return ErrorResponse(code="", message=""), 403
     try:
-        result = groups.update_member(group_id, body.add, body.remove)
+        if body.path == "member":
+            add_users = set(body.value) if body.op == "add" else set()
+            remove_users = set(body.value) if body.op == "remove" else set()
+            result = groups.update_member(group_id, add=add_users, remove=remove_users)
+        else:
+            error = "Changes cannot be made by non-members."
+            return ErrorResponse(code="", message=error), 400
     except ResourceInvalid as ex:
         return ErrorResponse(code="", message=str(ex)), 409
     except ResourceNotFound as ex:
