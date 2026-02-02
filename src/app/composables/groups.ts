@@ -51,24 +51,24 @@ const useGroupsTable = () => {
   }
 
   /** Column names with translations */
-  const columnNames: Record<keyof GroupSummary, string> = {
+  const columnNames = computed<Record<keyof GroupSummary, string>>(() => ({
     id: '#',
     displayName: $t('groups.table.column.display-name'),
     public: $t('groups.table.column.public'),
     memberListVisibility: $t('groups.table.column.member-list-visibility'),
     usersCount: $t('groups.table.column.users-count'),
-  }
+  }))
 
-  const publicStatus = {
+  const publicStatus = computed(() => ({
     true: $t('groups.table.cell.public.public'),
     false: $t('groups.table.cell.public.private'),
-  }
+  }))
 
-  const visibilityStatus = {
+  const visibilityStatus = computed(() => ({
     Public: $t('groups.table.cell.visibility.public'),
     Private: $t('groups.table.cell.visibility.private'),
     Hidden: $t('groups.table.cell.visibility.hidden'),
-  } as Record<Visibility, string>
+  }))
 
   /** Returns action buttons for a group entity */
   const creationButtons = computed<ButtonProps[]>(() => [
@@ -145,19 +145,21 @@ const useGroupsTable = () => {
       accessorKey: 'public',
       header: () => sortableHeader('public'),
       cell: ({ row }) => (
-        publicStatus[`${row.original.public}`]
+        publicStatus.value[`${row.original.public}`]
       ),
     },
     {
       accessorKey: 'memberListVisibility',
       header: () => sortableHeader('memberListVisibility'),
       cell: ({ row }) => (
-        visibilityStatus[row.original.memberListVisibility]
+        visibilityStatus.value[row.original.memberListVisibility]
       ),
     },
     {
       accessorKey: 'usersCount',
-      header: () => columnNames.usersCount,
+      header: () => h(
+        'span', { class: 'text-xs text-default font-medium' }, columnNames.value.usersCount,
+      ),
       cell: ({ row }) => row.original.usersCount,
     },
     {
@@ -192,7 +194,7 @@ const useGroupsTable = () => {
   )
 
   function sortableHeader(key: GroupsSortableKeys) {
-    const label = columnNames[key]
+    const label = columnNames.value[key]
     const sortDirection = sortKey?.value === key ? sortOrder?.value : undefined
     const iconSet = {
       asc: 'i-lucide-arrow-down-a-z',
@@ -277,7 +279,7 @@ const useGroupsTable = () => {
         icon: '',
         items: options.value.s.items?.map(item => ({
           value: item.value,
-          label: publicStatus[(item.value as 0 | 1 | undefined) === 0 ? 'true' : 'false'],
+          label: publicStatus.value[(item.value as 0 | 1 | undefined) === 0 ? 'true' : 'false'],
         })) ?? [],
         multiple: options.value.s.multiple ?? false,
         searchInput: false,
@@ -296,7 +298,7 @@ const useGroupsTable = () => {
 
           return {
             value: item.value,
-            label: visibilityStatus[v] }
+            label: visibilityStatus.value[v] }
         }) ?? [],
         multiple: options.value.v.multiple ?? false,
         searchInput: false,

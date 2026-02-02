@@ -60,14 +60,14 @@ const useUsersTable = () => {
   }
 
   /** Column names with translations */
-  const columnNames: Record<keyof UserSummary, string> = {
+  const columnNames = computed<Record<keyof UserSummary, string>>(() => ({
     id: '#',
     userName: $t('users.table.column.user-name'),
     role: $t('users.table.column.role'),
     emails: $t('users.table.column.emails'),
     eppns: $t('users.table.column.eppns'),
     lastModified: $t('users.table.column.last-modified'),
-  }
+  }))
 
   /** Returns action buttons for a user entry */
   const creationButtons = computed<ButtonProps[]>(() => [
@@ -192,7 +192,7 @@ const useUsersTable = () => {
             to: (`/users/${row.original.id}`),
             class: 'font-bold inline-flex items-center group text-neutral',
           },
-          [
+          () => [
             h('span', { class: 'group-hover:underline' }, name),
             isBadge(role) && h(UTooltip, {
               text: labelMap[role].label,
@@ -254,7 +254,7 @@ const useUsersTable = () => {
   ])
 
   function sortableHeader(key: UsersSortableKeys) {
-    const label = columnNames[key]
+    const label = columnNames.value[key]
     const sortDirection = sortKey?.value === key ? sortOrder?.value : undefined
     const iconSet = {
       asc: 'i-lucide-arrow-down-a-z',
@@ -289,7 +289,8 @@ const useUsersTable = () => {
           copy(row.original.id)
 
           toast.add({
-            title: $t('user.actions.copy-id-success'),
+            title: $t('toast.success-title'),
+            description: $t('user.actions.copy-id-success'),
             color: 'success',
             icon: 'i-lucide-circle-check',
           })

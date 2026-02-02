@@ -33,13 +33,13 @@ const useRepositoriesTable = () => {
   const pageSize = ref(query.value.l)
 
   /** Column names with translations */
-  const columnNames: Record<keyof RepositorySummary, string> = {
+  const columnNames = computed<Record<RepositoriesSortableKeys, string>>(() => ({
     id: '#',
     serviceName: $t('repositories.table.column.service-name'),
     serviceUrl: $t('repositories.table.column.service-url'),
     spConnectorId: $t('repositories.table.column.sp-connector-id'),
     entityIds: $t('repositories.table.column.entity-ids'),
-  }
+  }))
 
   /** Returns action buttons for a repository entry */
   const creationButtons = computed<ButtonProps[]>(() => [
@@ -78,7 +78,7 @@ const useRepositoriesTable = () => {
         return h(ULink, {
           to: `/repositories/${row.original.id}`,
           class: 'font-bold hover:underline inline-flex items-center',
-        }, [
+        }, () => [
           h('span', name),
         ])
       },
@@ -94,7 +94,7 @@ const useRepositoriesTable = () => {
               to: url,
               target: '_blank',
               class: 'hover:underline inline-flex items-center gap-1',
-            }, [
+            }, () => [
               h('span', url),
               h(UIcon, { name: 'i-lucide-external-link', class: 'size-3 shrink-0' }),
             ])
@@ -137,7 +137,7 @@ const useRepositoriesTable = () => {
   ])
 
   function sortableHeader(key: RepositoriesSortableKeys) {
-    const label = columnNames[key]
+    const label = columnNames.value[key]
     const sortDirection = sortKey?.value === key ? sortOrder?.value : undefined
     const iconSet = {
       asc: 'i-lucide-arrow-down-a-z',
