@@ -12,7 +12,7 @@ from celery import Celery, Task
 from flask import Flask
 from flask_login import LoginManager
 
-from src.server.api.helper import load_user
+from server.api.helper import load_user
 
 from .ext import JAIROCloudGroupsManager
 

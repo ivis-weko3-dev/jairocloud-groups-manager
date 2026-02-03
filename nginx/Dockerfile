@@ -29,7 +29,8 @@ RUN wget https://github.com/openresty/headers-more-nginx-module/archive/v${HEADE
     tar xzf v${HEADERS_MORE_VERSION}.tar.gz
 
 WORKDIR /usr/src/nginx-${NGINX_VERSION}
-RUN ./configure --with-compat --add-dynamic-module=../nginx-http-shibboleth-${SHIB_MOD_VERSION} \
+RUN ./configure --with-compat \
+      --add-dynamic-module=../nginx-http-shibboleth-${SHIB_MOD_VERSION} \
       --add-dynamic-module=../headers-more-nginx-module-${HEADERS_MORE_VERSION} && \
     make modules
 
@@ -115,6 +116,11 @@ FROM base AS dev
 RUN sed -i \
     '/# Application resources requests/,/# replace this for dev server/ \
     s|app[.]inc|app.dev.inc|' \
+    /etc/nginx/conf.d/default.conf
+
+RUN sed -i \
+    '/# Application api requests/,/# replace this for dev server/ \
+    s|api[.]inc|api.dev.inc|' \
     /etc/nginx/conf.d/default.conf
 
 EXPOSE 80 443

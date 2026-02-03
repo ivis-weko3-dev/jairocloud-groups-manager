@@ -9,7 +9,7 @@ location /secure {
 
     more_clear_input_headers 'EPPN' 'DisplayName' 'JaDisplayName' 'IsMemberOf';
 
-    uwsgi_pass unix:/run/uwsgi/app.sock;
+    uwsgi_pass api_server;
     include uwsgi_params;
 
     uwsgi_param Host              $host;
@@ -25,3 +25,17 @@ location /secure {
     uwsgi_param HTTP_DisplayName   $http_displayname;
     uwsgi_param HTTP_JaDisplayName $http_jadisplayname;
 }
+
+location /api/ {
+    uwsgi_pass api_server;
+    include uwsgi_params;
+
+    uwsgi_param SCRIPT_NAME "";
+
+    uwsgi_param Host $host;
+    uwsgi_param X-Real-IP $remote_addr;
+    uwsgi_param X-Forwarded-For $proxy_add_x_forwarded_for;
+    uwsgi_param X-Forwarded-Proto $scheme;
+
+}
+
