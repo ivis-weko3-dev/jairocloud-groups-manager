@@ -22,7 +22,7 @@ from server.entities.history_detail import (
     UploadHistory,
 )
 from server.entities.search_request import FilterOption
-from server.exc import DatabaseError
+from server.exc import DatabaseError, RecordNotFound
 from server.services import history
 
 
@@ -105,7 +105,7 @@ def public_status(
         result: bool = history.update_public_status(
             tub=tub, history_id=history_id, public=body.public
         )
-    except DatabaseError as ex:
+    except RecordNotFound as ex:
         return ErrorResponse(code="", message=str(ex)), 404
     return result, 200
 
@@ -124,12 +124,10 @@ def files(file_id: UUID) -> Response | tuple[ErrorResponse, int]:
         Response: Flask response object to send the file
     """
     try:
-        file_path = Path(history.get_file_path(file_id))
-    except DatabaseError as ex:
-        return ErrorResponse(code="", message=str(ex)), 503
-    if not Path(file_path).exists():
-        error = f"{file_id} not found"
-        return ErrorResponse(code="", message=error), 404
+        path_str = history.get_file_path(file_id)
+        file_path = Path(path_str)
+    except RecordNotFound as ex:
+        return ErrorResponse(code="", message=str(ex)), 404
     return send_file(path_or_file=file_path)
 
 
@@ -148,8 +146,8 @@ def is_exist_files(file_id: UUID) -> tuple[bool | ErrorResponse, int]:
     """
     try:
         file_path = Path(history.get_file_path(file_id))
-    except DatabaseError as ex:
-        return ErrorResponse(code="", message=str(ex)), 503
+    except RecordNotFound as ex:
+        return ErrorResponse(code="", message=str(ex)), 404
     if not Path(file_path).exists():
         return False, 200
     return True, 200

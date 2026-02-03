@@ -10,7 +10,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy import desc, func, or_, select
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from server.db.history import DownloadHistory, Files, UploadHistory
 from server.db.utils import db
@@ -23,7 +23,7 @@ from server.entities.history_detail import (
 )
 from server.entities.search_request import FilterOption
 from server.entities.summaries import GroupSummary, RepositorySummary, UserSummary
-from server.exc import DatabaseError
+from server.exc import DatabaseError, RecordNotFound
 from server.services import permissions, repositories
 from server.services.utils import search_queries
 
@@ -332,7 +332,7 @@ def get_filters(tub: t.Literal["download", "upload"]) -> list[FilterOption]:
         dict[str, list[str]]: The available filters.
 
     Raises:
-        ValueError: If the record is not found.
+        RecordNotFound: If the record is not found.
     """
     if tub == "download":
         history_data = get_download_history_data(HistoryQuery())
@@ -340,7 +340,8 @@ def get_filters(tub: t.Literal["download", "upload"]) -> list[FilterOption]:
         history_data = get_upload_history_data(HistoryQuery())
 
     if history_data is None:
-        raise ValueError("History data not found")
+        error = f"{tub} history data is not found"
+        raise RecordNotFound(error)
 
     operators = {h.operator.id: h.operator for h in history_data if h.operator}
     repository_ids = permissions.get_permitted_repository_ids()
@@ -413,7 +414,7 @@ def update_public_status(
         bool: public status of a download/upload history record
 
     Raises:
-        ValueError: If the record is not found.
+        RecordNotFound: If the record is not found.
         DatabaseError: If a database operation fails.
     """
     try:
@@ -422,10 +423,10 @@ def update_public_status(
         record = db.session.get(table, history_id)
         if record is None:
             error = f"{history_id} is not found"
-            raise ValueError(error)
+            raise RecordNotFound(error)
 
         record.public = public
-    except OperationalError as exc:
+    except SQLAlchemyError as exc:
         error = "Failed to update the public status due to a database error."
         raise DatabaseError(error) from exc
     db.session.commit()
@@ -443,9 +444,16 @@ def get_file_path(file_id: UUID) -> str:
 
     Raises:
         DatabaseError: If the file path could not be retrieved.
+        RecordNotFound: If the file is not found.
     """
-    file_path = db.session.query(Files.file_path).filter(Files.id == file_id).scalar()
-    if not (file_path and isinstance(file_path, str)):
-        error = "Failed to get the file path due to a database error."
-        raise DatabaseError(error)
-    return file_path
+    try:
+        file = db.session.query(Files).filter(Files.id == file_id).first()
+    except SQLAlchemyError as exc:
+        error = "Failed to retrieve the file path due to a database error."
+        raise DatabaseError(error) from exc
+
+    if not file:
+        error = f"File with ID {file_id} not found."
+        raise RecordNotFound(error)
+
+    return file.file_path

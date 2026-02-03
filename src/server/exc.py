@@ -45,6 +45,13 @@ class DatabaseError(JAIROCloudGroupsManagerError):
     """
 
 
+class RecordNotFound(DatabaseError):  # noqa: N818
+    """Exception for record not found errors.
+
+    Errors caused by requests for non-existing records.
+    """
+
+
 class DatastoreError(JAIROCloudGroupsManagerError):
     """Exception for datastore errors.
 

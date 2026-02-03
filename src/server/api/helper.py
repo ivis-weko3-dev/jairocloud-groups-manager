@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from functools import wraps
 
 from flask import abort, session
-from flask_login import current_user, login_required
+from flask_login import current_user
 
 from server.config import config
 from server.datastore import account_store
@@ -43,7 +43,6 @@ def roles_required(*roles: str) -> t.Callable[[t.Callable[P, R]], t.Callable[P, 
         """
 
         @wraps(func)
-        @login_required
         def decorated_view(*args: P.args, **kwargs: P.kwargs) -> R:
             """The actual view function that performs the role check.
 
