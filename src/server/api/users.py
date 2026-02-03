@@ -2,12 +2,12 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""API router for managing user management endpoints."""
+"""API endpoints for user-related operations."""
 
 from flask import Blueprint, url_for
 from flask_pydantic import validate
 
-from server.entities.search_request import SearchResult
+from server.entities.search_request import FilterOption, SearchResult
 from server.entities.summaries import RepositorySummary
 from server.entities.user_detail import UserDetail
 from server.exc import (
@@ -15,6 +15,7 @@ from server.exc import (
     ResourceNotFound,
 )
 from server.services import users
+from server.services.filter_options import search_users_options
 from server.services.permissions import (
     get_permitted_repository_ids,
     is_current_user_system_admin,
@@ -158,3 +159,14 @@ def has_permission(repositories: list[RepositorySummary] | None) -> bool:
 
     permitted_repository_ids = get_permitted_repository_ids()
     return any(repo.id in permitted_repository_ids for repo in repositories or [])
+
+
+@bp.get("/filter-options")
+@validate(response_many=True)
+def filter_options() -> list[FilterOption]:
+    """Get filter options for searching users.
+
+    Returns:
+        list[FilterOption]: List of filter options for user search.
+    """
+    return search_users_options()

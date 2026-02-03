@@ -24,7 +24,7 @@ class MapUser(BaseModel):
     schemas: t.Annotated[t.Sequence[str], Field(frozen=True)] = [MAP_USER_SCHEMA]
     """Schema URIs that define the attributes present in the user resource."""
 
-    id: str
+    id: str | None = None
     """Unique identifier for the user."""
 
     external_id: str | None = None

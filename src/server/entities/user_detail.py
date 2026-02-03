@@ -8,19 +8,21 @@ import typing as t
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+from pydantic.alias_generators import to_snake
 
 from server.const import USER_ROLES
 
 from .common import camel_case_config, forbid_extra_config
 from .map_user import EPPN, Email, Group, MapUser
-from .summaries import GroupSummary, RepositorySummary
+from .repository_detail import resolve_service_id
+from .summaries import GroupSummary
 
 
 class UserDetail(BaseModel):
     """Model for detailed User information in mAP Core API."""
 
-    id: str
+    id: str | None = None
     """The unique identifier for the user."""
 
     eppns: list[str] | None = None
@@ -38,10 +40,11 @@ class UserDetail(BaseModel):
     is_system_admin: bool | None = None
     """Whether the user is a system administrator. Alias to 'isSystemAdmin'."""
 
-    repositories: list[RepositorySummary] | None = None
+    repository_roles: list[RepositoryRole] | None = None
+    """The affiliated repositories of the user."""
 
     groups: list[GroupSummary] | None = None
-    """The groups the user belongs to."""
+    """The affiliated user-defined groups of the user."""
 
     created: datetime | None = None
     """The creation timestamp of the user."""
@@ -69,7 +72,7 @@ class UserDetail(BaseModel):
         )
 
         resolved_groups: list[GroupSummary] | None = None
-        resolved_repos: list[RepositorySummary] | None = None
+        resolved_repos: list[RepositoryRole] | None = None
         is_system_admin = False
 
         if user.groups:
@@ -77,11 +80,10 @@ class UserDetail(BaseModel):
                 group.value for group in user.groups
             ])
 
-            repo_role_map = {repo.repository_id: repo.roles for repo in detected_repos}
-            if None in repo_role_map:
+            user_role_map = {repo.repository_id: repo.role for repo in detected_repos}
+            if None in user_role_map:
                 # System Administrator did not affiliate with any repository
-                is_system_admin = USER_ROLES.SYSTEM_ADMIN in repo_role_map[None]
-                del repo_role_map[None]
+                is_system_admin = user_role_map[None] == USER_ROLES.SYSTEM_ADMIN
 
             if detected_groups:
                 group_query = make_criteria_object(
@@ -91,10 +93,14 @@ class UserDetail(BaseModel):
 
             if detected_repos:
                 repositories_query = make_criteria_object(
-                    "repositories", i=[r for r in repo_role_map if r]
+                    "repositories", i=[r for r in user_role_map if r]
                 )
                 resolved_repos = [
-                    repo.model_copy(update={"user_roles": repo_role_map.get(repo.id)})
+                    RepositoryRole(
+                        id=repo.id,
+                        service_name=repo.service_name,
+                        user_role=user_role_map[repo.id],
+                    )
                     for repo in repositories.search(
                         criteria=repositories_query
                     ).resources
@@ -107,7 +113,7 @@ class UserDetail(BaseModel):
             emails=[email.value for email in user.emails or []],
             preferred_language=user.preferred_language,
             is_system_admin=is_system_admin,
-            repositories=resolved_repos,
+            repository_roles=resolved_repos,
             groups=resolved_groups,
             created=user.meta.created if user.meta else None,
             last_modified=user.meta.last_modified if user.meta else None,
@@ -119,7 +125,8 @@ class UserDetail(BaseModel):
         Returns:
             MapUser: The created MapUser instance.
         """
-        user = MapUser(id=self.id)
+        user = MapUser()
+        user.id = self.id
         user.user_name = self.user_name
         if self.preferred_language:
             user.preferred_language = self.preferred_language
@@ -130,3 +137,34 @@ class UserDetail(BaseModel):
         if self.groups:
             user.groups = [Group(value=group.id) for group in self.groups]
         return user
+
+
+class RepositoryRole(BaseModel):
+    """Model for summary Repository information in mAP Core API."""
+
+    id: str
+    """The unique identifier for the repository."""
+
+    service_name: str | None = None
+    """The name of the repository. Alias to 'serviceName'."""
+
+    user_role: USER_ROLES | None = None
+    """The role of the user in the repository. Alias to 'userRole'."""
+
+    @field_validator("user_role", mode="before")
+    @classmethod
+    def transform_user_role(cls, v: t.Any) -> t.Any:  # noqa: ANN401
+        """Transform the user_role field to USER_ROLES enum.
+
+        Args:
+            v (Any): The value to transform.
+
+        Returns:
+            Any: The transformed value.
+        """
+        if isinstance(v, str):
+            return to_snake(v)
+        return v
+
+    model_config = camel_case_config | forbid_extra_config
+    """Configure to use camelCase aliasing and forbid extra fields."""

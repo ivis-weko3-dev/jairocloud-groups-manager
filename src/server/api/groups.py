@@ -2,28 +2,49 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""API router for group endpoints."""
+"""API endpoints for group-related operations."""
 
 from flask import Blueprint, url_for
 from flask_login import current_user, login_required
 from flask_pydantic import validate
 
 from server.api.helper import roles_required
-from server.api.schemas import (
-    DeleteGroupsRequest,
-    ErrorResponse,
-    GroupPatchRequest,
-)
 from server.const import USER_ROLES
 from server.entities.group_detail import GroupDetail
+from server.entities.search_request import FilterOption, SearchResult
 from server.exc import (
     ResourceInvalid,
     ResourceNotFound,
 )
 from server.services import groups, permissions
+from server.services.filter_options import search_groups_options
+
+from .schemas import (
+    DeleteGroupsRequest,
+    ErrorResponse,
+    GroupPatchRequest,
+    GroupsQuery,
+)
 
 
 bp = Blueprint("groups", __name__)
+
+
+@bp.get("")
+@bp.get("/")
+@validate(response_by_alias=True)
+def get(query: GroupsQuery) -> tuple[SearchResult, int]:
+    """Get a list of groups based on query parameters.
+
+    Args:
+        query (GroupsQuery): Query parameters for filtering groups.
+
+    Returns:
+        tuple[dict, int]:
+            A tuple containing the list of groups and the HTTP status code.
+    """
+    results = groups.search(query)
+    return results, 200
 
 
 @bp.post("/")
@@ -68,7 +89,8 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
         group_id(str): Group id
 
     Returns:
-        - If succeeded in getting group information, group information and status code 200
+        - If succeeded in getting group information,
+          group information and status code 200
         - If logged-in user does not have permission, status code 403
         - If group not found, status code 404
     """
@@ -206,3 +228,14 @@ def delete_post(
         message = f"{group_list} is failed"
         return ErrorResponse(code="", message=message), 500
     return None, 204
+
+
+@bp.get("/filter-options")
+@validate(response_many=True)
+def filter_options() -> list[FilterOption]:
+    """Get filter options for groups search.
+
+    Returns:
+        list[FilterOption]: List of filter options for group search.
+    """
+    return search_groups_options()

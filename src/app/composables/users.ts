@@ -1,0 +1,447 @@
+/**
+ * Composable for user-related operations
+ */
+
+import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
+
+import { UButton, UCheckbox, UDropdownMenu, UIcon, ULink, UTooltip } from '#components'
+
+import type { CalendarDate } from '@internationalized/date'
+import type { Row } from '@tanstack/table-core'
+import type { ButtonProps, DropdownMenuItem, TableColumn, TableRow } from '@nuxt/ui'
+
+const useUsersTable = () => {
+  const route = useRoute()
+
+  const toast = useToast()
+  const { t: $t } = useI18n()
+  const { copy } = useClipboard()
+
+  /** Reactive query object */
+  const query = computed<UsersSearchQuery>(() => normalizeUsersQuery(route.query))
+  /** Update query parameters and push to router */
+  const updateQuery = async (newQuery: Partial<UsersSearchQuery>) => {
+    await navigateTo({
+      query: {
+        ...route.query,
+        ...newQuery,
+      },
+    })
+  }
+
+  const searchTerm = ref(query.value.q)
+  const specifiedIds = ref(query.value.i)
+  const specifiedRepos = ref(query.value.r)
+  const specifiedGroups = ref(query.value.g)
+  const specifiedRoles = ref(query.value.a)
+  const startDate = ref(query.value.s)
+  const endDate = ref(query.value.e)
+  const sortKey = computed(() => query.value.k)
+  const sortOrder = computed(() => query.value.d)
+  const pageNumber = ref(query.value.p)
+  const pageSize = ref(query.value.l)
+
+  const searchIdentityKey = computed(() => {
+    const { k, d, p, l, ...filters } = query.value
+    return JSON.stringify(filters)
+  })
+
+  const selectedMap = useState<Record<string, boolean>>(
+    `selection-users:${searchIdentityKey.value}`, () => ({}),
+  )
+
+  /** Number of selected users */
+  const selectedCount = computed(() => {
+    return Object.values(selectedMap.value).filter(value => value === true).length
+  })
+  const toggleSelection = (event: Event | undefined, row: Row<UserSummary>) => {
+    selectedMap.value[row.id] = !selectedMap.value[row.id]
+    row.toggleSelected(selectedMap.value[row.id])
+  }
+
+  /** Column names with translations */
+  const columnNames = computed<Record<keyof UserSummary, string>>(() => ({
+    id: '#',
+    userName: $t('users.table.column.user-name'),
+    role: $t('users.table.column.role'),
+    emails: $t('users.table.column.emails'),
+    eppns: $t('users.table.column.eppns'),
+    lastModified: $t('users.table.column.last-modified'),
+  }))
+
+  /** Returns action buttons for a user entry */
+  const creationButtons = computed<ButtonProps[]>(() => [
+    {
+      icon: 'i-lucide-user-plus',
+      label: $t('button.create-new'),
+      to: '/users/new',
+      color: 'primary',
+      variant: 'solid',
+    },
+    {
+      icon: 'i-lucide-file-up',
+      label: $t('button.upload-users'),
+      to: '/upload',
+      color: 'primary',
+      variant: 'solid',
+    },
+  ])
+
+  /** Actions to display when the list is empty */
+  const emptyActions = computed<ButtonProps[]>(() => [
+    {
+      icon: 'i-lucide-refresh-cw',
+      label: $t('button.reload'),
+      color: 'neutral',
+      variant: 'subtle',
+      onClick: () => {}, // Placeholder for reload action
+    },
+  ])
+
+  /** Actions for selected users */
+  const selectedUsersActions = computed<DropdownMenuItem[]>(() => [
+    {
+      icon: 'i-lucide-download',
+      label: $t('users.button.selected-users-export'),
+      onSelect() {
+      // TODO: Export selected users
+      },
+    },
+    {
+      type: 'separator' as const,
+    },
+    {
+      icon: 'i-lucide-user-plus',
+      label: $t('users.button.selected-users-add-to-group'),
+      color: 'neutral',
+      onSelect() {
+      // TODO: Open add users modal
+      },
+    },
+    {
+      icon: 'i-lucide-user-minus',
+      label: $t('users.button.selected-users-remove-from-group'),
+      color: 'error',
+      onSelect() {
+      // TODO: Open remove users modal
+      },
+    },
+  ])
+
+  type badgableRoles = 'systemAdmin' | 'repositoryAdmin' | 'communityAdmin' | 'contributor'
+  const isBadge = (role: UserRole | undefined): role is badgableRoles => {
+    const roles = new Set(['systemAdmin', 'repositoryAdmin', 'communityAdmin', 'contributor'])
+    return role ? roles.has(role) : false
+  }
+
+  type UserTableColumn = TableColumn<UserSummary>
+  const columns = computed<UserTableColumn[]>(() => [
+    {
+      id: 'select',
+      header: ({ table }) =>
+        h(UCheckbox, {
+          'modelValue': table.getIsSomePageRowsSelected()
+            ? 'indeterminate'
+            : table.getIsAllPageRowsSelected(),
+          'onUpdate:modelValue': value => table.toggleAllPageRowsSelected(!!value),
+          'aria-label': 'Select all',
+        }),
+      cell: ({ row }) =>
+        h(UCheckbox, {
+          'modelValue': row.getIsSelected(),
+          'onUpdate:modelValue': () => toggleSelection(undefined, row),
+          'aria-label': 'Select row',
+        }),
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'id',
+      header: () => sortableHeader('id'),
+    },
+    {
+      accessorKey: 'userName',
+      header: () => sortableHeader('userName'),
+      cell: ({ row }) => {
+        const name = row.original.userName
+        const role = row.original.role
+        const labelMap: Record<badgableRoles, { label: string, icon: string, color: string }> = {
+          systemAdmin: {
+            label: $t('users.roles.system-admin'),
+            icon: 'i-lucide-shield-check',
+            color: 'error',
+          },
+          repositoryAdmin: {
+            label: $t('users.roles.repository-admin'),
+            icon: 'i-lucide-shield-check',
+            color: 'secondary',
+          },
+          communityAdmin: {
+            label: $t('users.roles.community-admin'),
+            icon: 'i-lucide-badge-check',
+            color: 'warning',
+          },
+          contributor: {
+            label: $t('users.roles.contributor'),
+            icon: 'i-lucide-user-check',
+            color: 'neutral',
+          },
+        }
+
+        return h(ULink,
+          {
+            to: (`/users/${row.original.id}`),
+            class: 'font-bold inline-flex items-center group text-neutral',
+          },
+          () => [
+            h('span', { class: 'group-hover:underline' }, name),
+            isBadge(role) && h(UTooltip, {
+              text: labelMap[role].label,
+              class: 'ml-2',
+              arrow: true,
+            }, () => h(
+              UIcon, {
+                name: labelMap[role].icon,
+                class: ['size-4.5', 'shrink-0', `text-${labelMap[role].color}`],
+              },
+            )),
+          ].filter(Boolean),
+        )
+      },
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'emails',
+      header: () => sortableHeader('emails'),
+      cell: ({ row }) => row.original.emails?.[0] ?? '',
+    },
+    {
+      accessorKey: 'eppns',
+      header: () => sortableHeader('eppns'),
+      cell: ({ row }) => row.original.eppns?.[0] ?? '',
+    },
+    {
+      accessorKey: 'lastModified',
+      header: () => sortableHeader('lastModified'),
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) =>
+        h(
+          'div',
+          { class: 'text-right' },
+          h(
+          // @ts-expect-error: props type mismatch
+            UDropdownMenu,
+            {
+              'content': { align: 'end' },
+              'items': getActionItems(row),
+              'aria-label': 'Actions dropdown',
+            },
+            () =>
+              h(UButton, {
+                'icon': 'i-lucide-ellipsis-vertical',
+                'color': 'neutral',
+                'variant': 'ghost',
+                'size': 'sm',
+                'class': 'ml-auto',
+                'aria-label': 'Actions dropdown',
+              }),
+          ),
+        ),
+      enableHiding: false,
+    },
+  ])
+
+  function sortableHeader(key: UsersSortableKeys) {
+    const label = columnNames.value[key]
+    const sortDirection = sortKey?.value === key ? sortOrder?.value : undefined
+    const iconSet = {
+      asc: 'i-lucide-arrow-down-a-z',
+      desc: 'i-lucide-arrow-up-a-z',
+      none: 'i-lucide-arrow-up-down',
+    } as const
+
+    return h(UButton, {
+      color: sortDirection ? 'primary' : 'neutral',
+      variant: 'ghost',
+      size: 'xs',
+      label,
+      icon: sortDirection ? iconSet[sortDirection] : iconSet.none,
+      class: 'font-medium cursor-pointer',
+      onClick() {
+        if (sortDirection === 'asc') updateQuery({ k: key, d: 'desc' }) // to desc
+        else if (sortDirection === 'desc') updateQuery({ k: undefined, d: undefined }) // to default
+        else updateQuery({ k: key, d: 'asc' }) // to asc
+      },
+    })
+  }
+
+  function getActionItems(row: TableRow<UserSummary>): DropdownMenuItem[] {
+    return [
+      {
+        type: 'label',
+        label: $t('table.actions-label'),
+      },
+      {
+        label: $t('user.actions.copy-id'),
+        onSelect() {
+          copy(row.original.id)
+
+          toast.add({
+            title: $t('toast.success-title'),
+            description: $t('user.actions.copy-id-success'),
+            color: 'success',
+            icon: 'i-lucide-circle-check',
+          })
+        },
+        icon: 'i-lucide-clipboard-copy',
+      },
+      {
+        label: $t('user.actions.copy-eppn'),
+        onSelect() {
+          copy(row.original.eppns?.[0] || '')
+
+          toast.add({
+            title: $t('user.actions.copy-eppn-success'),
+            color: 'success',
+            icon: 'i-lucide-circle-check',
+          })
+        },
+        icon: 'i-lucide-clipboard-copy',
+      },
+      {
+        type: 'separator',
+      },
+      {
+        label: $t('table.actions.view-details'),
+        to: `/users/${row.original.id}`,
+        icon: 'i-lucide-eye',
+      },
+    ]
+  }
+
+  const columnVisibility = ref({ id: false })
+
+  const UserRoleNames = computed(() => ({
+    systemAdmin: $t('users.roles.system-admin'),
+    repositoryAdmin: $t('users.roles.repository-admin'),
+    communityAdmin: $t('users.roles.community-admin'),
+    contributor: $t('users.roles.contributor'),
+    generalUser: $t('users.roles.general-user'),
+  }))
+
+  const makeAttributeFilters = (data: Ref<FilterOption[] | undefined>) => {
+    const options = computed(() => (
+      Object.fromEntries(data.value?.map(option => [option.key, option]) ?? [],
+      ) as Record<keyof UsersSearchQuery, FilterOption>
+    ))
+
+    const filters = computed(() => [
+      {
+        key: 'r',
+        placeholder: $t('repositories.title'),
+        icon: 'i-lucide-folder',
+        items: options.value.r.items ?? [],
+        multiple: options.value.r.multiple ?? false,
+        searchInput: true,
+        onUpdated: (values: unknown) => {
+          updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
+        },
+      },
+      {
+        key: 'a',
+        placeholder: $t('user.roles-title'),
+        icon: 'i-lucide-shield-check',
+        items: options.value.a.items?.map(item => ({
+          value: item.value,
+          label: UserRoleNames.value[item.label as UserRole],
+        })) ?? [],
+        multiple: options.value.a.multiple ?? false,
+        searchInput: false,
+        onUpdated: (values: unknown) => {
+          updateQuery({ a: (values as { value: UserRoleValue }[]).map(v => v.value), p: 1 })
+        },
+      },
+      {
+        key: 'g',
+        placeholder: $t('groups.title'),
+        icon: 'i-lucide-users',
+        items: options.value.g.items ?? [],
+        multiple: options.value.g.multiple ?? false,
+        searchInput: true,
+        onUpdated: (values: unknown) => {
+          updateQuery({ g: (values as { value: string }[]).map(v => v.value), p: 1 })
+        },
+      },
+    ])
+
+    return filters
+  }
+
+  const dateRange = shallowRef<{ start: CalendarDate | undefined, end: CalendarDate | undefined }>({
+    start: startDate.value ? parseDate(startDate.value) : undefined,
+    end: endDate.value ? parseDate(endDate.value) : undefined,
+  })
+  const df = new DateFormatter('ja-JP', {
+    dateStyle: 'medium',
+  })
+  const formattedDateRange = computed(() => {
+    if (!dateRange.value.start) return $t('users.table.column.last-modified')
+
+    const from = df.format(dateRange.value.start.toDate(getLocalTimeZone()))
+    const to = dateRange.value.end
+      ? df.format(dateRange.value.end.toDate(getLocalTimeZone()))
+      : undefined
+
+    return to ? `${from} - ${to}` : from
+  })
+
+  const makePageInfo = (result: Ref<UsersSearchResult | undefined>) => {
+    return computed(() => {
+      const start = result.value?.offset ?? 1
+      const total = result.value?.total ?? 0
+      const end = Math.min(start + pageSize.value!, total)
+      const count = selectedCount.value
+
+      if (count > 0)
+        return `${start} - ${end} / ${total} (${$t('table.selected')} ${count})`
+      return `${start} - ${end} / ${total}`
+    })
+  }
+
+  return {
+    query,
+    updateQuery,
+    criteria: {
+      searchTerm,
+      specifiedIds,
+      specifiedRepos,
+      specifiedGroups,
+      specifiedRoles,
+      startDate,
+      endDate,
+      sortKey,
+      sortOrder,
+      pageNumber,
+      pageSize,
+    },
+    creationButtons,
+    emptyActions,
+    selectedCount,
+    toggleSelection,
+    selectedUsersActions,
+    columns,
+    columnNames,
+    columnVisibility,
+    UserRoleNames,
+    makeAttributeFilters,
+    dateFilter: {
+      dateRange,
+      formattedDateRange,
+    },
+    makePageInfo,
+  }
+}
+
+export { useUsersTable }

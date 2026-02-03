@@ -129,7 +129,7 @@ def get_by_id(
     attributes_params: dict[str, str] = {}
     if include:
         attributes_params[alias_generator("attributes")] = ",".join([
-            alias_generator(name) for name in include
+            alias_generator(name) for name in include | {"id"}
         ])
     if exclude:
         attributes_params[alias_generator("excluded_attributes")] = ",".join([

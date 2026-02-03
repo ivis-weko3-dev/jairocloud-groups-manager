@@ -40,7 +40,7 @@ class MapService(BaseModel):
     """Metadata about the service."""
 
     entity_ids: list[ServiceEntityID] | None = None
-    """The entity IDs associated with the service. Alias for 'entityIDs'."""
+    """The entity IDs associated with the service. Alias for 'entityIds'."""
 
     administrators: list[Administrator] | None = None
     """The administrators of the service."""

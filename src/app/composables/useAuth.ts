@@ -4,16 +4,12 @@
 
 import type { RouteLocationNormalizedGeneric } from 'vue-router'
 
-/** Public routes that do not require authentication */
-const publicRoutes = new Set(['/login'])
-/** Path to redirect after successful login */
-const loggedinRedirectPath = '/repositories'
-
 /**
  * Composable for managing authentication state and actions
  */
 export function useAuth() {
   const router = useRouter()
+  const { publicRoutes, loginRoute, loggedinRedirectRoute } = useAppConfig()
 
   const authStore = useAuthStore()
   const { isAuthenticated, authChecked, currentUser } = useAuthStore()
@@ -34,7 +30,7 @@ export function useAuth() {
       return
     }
 
-    if (!authChecked.value || fromPath === '/login') {
+    if (!authChecked.value || fromPath === loginRoute) {
       try {
         const user = await $fetch<LoginUser>('/api/auth/check', { method: 'GET' })
         authStore.setUser(user)
@@ -57,21 +53,21 @@ export function useAuth() {
       }
 
       if (!toPath) {
-        router.push(loggedinRedirectPath)
+        router.push(loggedinRedirectRoute)
         return
       }
 
       return
     }
 
-    router.push({ path: '/login', query: next ? { next } : {} })
+    router.push({ path: loginRoute, query: next ? { next } : {} })
   }
 
   const checkout = () => {
     const route = useRoute()
     authStore.unsetUser()
     const next = encodeURIComponent(route.fullPath.replace(/\/$/, ''))
-    router.push({ path: '/login', query: next ? { next } : {} })
+    router.push({ path: loginRoute, query: next ? { next } : {} })
   }
 
   const logout = async () => {

@@ -7,7 +7,13 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/i18n',
     '@nuxt/test-utils',
+    '@vueuse/nuxt',
   ],
+
+  imports: {
+    dirs: ['~/types'],
+    scan: true,
+  },
 
   devtools: {
     enabled: true,

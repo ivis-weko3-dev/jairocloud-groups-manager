@@ -1,120 +1,203 @@
 <script setup lang="ts">
-import type { ButtonProps, DropdownMenuItem } from '@nuxt/ui'
+const {
+  query, updateQuery, criteria, creationButtons, emptyActions,
+  toggleSelection, selectedCount, selectedUsersActions, columns, columnNames, columnVisibility,
+  makeAttributeFilters, dateFilter: { dateRange, formattedDateRange }, makePageInfo,
+} = useUsersTable()
 
-const isEmpty = ref(false)
-const creationButtons = computed<ButtonProps[]>(() => [
-  {
-    icon: 'i-lucide-user-plus',
-    label: $t('button.create-new'),
-    to: '/users/new',
-    color: 'primary',
-    variant: 'solid',
-  },
-  {
-    icon: 'i-lucide-file-up',
-    label: $t('button.upload-users'),
-    to: '/upload',
-    color: 'primary',
-    variant: 'solid',
-  },
-])
-const emptyActions = computed<ButtonProps[]>(() => [
-  ...creationButtons.value,
-  {
-    icon: 'i-lucide-refresh-cw',
-    label: $t('button.reload'),
-    color: 'neutral',
-    variant: 'subtle',
-    onClick: () => {
-      // TODO: Placeholder for reload action
-    },
-  },
-])
+const { searchTerm, pageNumber, pageSize } = criteria
 
-const selectedUsers = ref<{ id: string, userName: string }[]>([])
+const table = useTemplateRef('table')
+const { table: { pageSize: { users: pageOptions } } } = useAppConfig()
 
-const selectedUsersActions = computed<DropdownMenuItem[]>(() => [
-  {
-    icon: 'i-lucide-download',
-    label: $t('users.button.selected-users-export'),
-    onSelect() {
-      // Export selected users
-    },
-  },
-  {
-    type: 'separator' as const,
-  },
-  {
-    icon: 'i-lucide-user-plus',
-    label: $t('users.button.selected-users-add-to-group'),
-    color: 'neutral',
-    onSelect() {
-      // Open add users modal
-    },
-  },
-  {
-    icon: 'i-lucide-user-minus',
-    label: $t('users.button.selected-users-remove-from-group'),
-    color: 'error',
-    onSelect() {
-      // Open remove users modal
-    },
-  },
-])
+const { data: searchResult, status, refresh } = useFetch<UsersSearchResult>('/api/users', {
+  method: 'GET',
+  query,
+  lazy: true,
+  server: false,
+})
+const offset = computed(() => (searchResult.value?.offset ?? 1))
+emptyActions.value[0]!.onClick = () => refresh()
 
-const searchTerm = ref('')
+const {
+  data: filterOptions, status: filterOptionsStatus,
+} = useFetch<FilterOption[]>('/api/users/filter-options', {
+  method: 'GET',
+  lazy: true,
+  server: false,
+})
+
+const isFilterOpen = ref(false)
+const filterSelects = makeAttributeFilters(filterOptions)
+const pageInfo = makePageInfo(searchResult)
 </script>
 
 <template>
-  <div>
-    <UPageHeader
-      :title="$t('users.list.title')"
-      :description="$t('users.description')"
-      :ui="{ root: 'py-2', description: 'mt-2' }"
-    />
+  <UPageHeader
+    :title="$t('users.table.title')"
+    :description="$t('users.description')"
+    :ui="{ root: 'py-2 mb-6', description: 'mt-4' }"
+  />
+
+  <div class="flex justify-between items-center my-4">
+    <div class="flex space-x-2">
+      <UButton
+        v-for="(button, index) in creationButtons"
+        :key="index"
+        :icon="button.icon" :label="button.label"
+        :to="button.to" :color="button.color" :variant="button.variant"
+        :ui="{ base: 'gap-1' }"
+      />
+    </div>
+
+    <UDropdownMenu :items="selectedUsersActions">
+      <UButton
+        :label="$t('users.button.selected-users-actions')"
+        color="warning" variant="subtle"
+        :ui="{ base: 'gap-1' }"
+        :disabled="selectedCount === 0"
+      />
+    </UDropdownMenu>
   </div>
 
-  <UEmpty
-    v-if="isEmpty"
-    :title="$t('users.list.no-users-title')"
-    :description="$t('users.list.no-users-description')"
-    :actions="emptyActions"
-  />
-  <dev v-else>
-    <div class="flex justify-between items-center my-4">
-      <div class="flex space-x-2">
+  <div class="grid grid-cols-3 gap-4 my-4 h-8">
+    <UInput
+      v-model="searchTerm" :placeholder="$t('users.table.search-placeholder')"
+      icon="i-lucide-search" :ui="{ trailing: 'pe-1.5' }"
+      @keydown.enter="() => updateQuery({ q: searchTerm, p: 1 })"
+    >
+      <template #trailing>
         <UButton
-          v-for="(button, index) in creationButtons"
-          :key="index"
-          :icon="button.icon" :label="button.label"
-          :to="button.to" :color="button.color" :variant="button.variant"
-          :ui="{ base: 'gap-1' }"
-        />
+          variant="ghost" color="neutral"
+          :ui="{ base: 'font-normal cursor-pointer p-1' }"
+          @click="() => updateQuery({ q: searchTerm, p: 1 })"
+        >
+          <UKbd value="enter" />
+        </UButton>
+      </template>
+    </UInput>
+
+    <div class="col-span-2 flex gap-4">
+      <UButton
+        :label="$t('table.filter-button-label')"
+        color="neutral" variant="outline" icon="i-lucide-filter"
+        :trailing-icon="isFilterOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+        :loading="filterOptionsStatus === 'pending'"
+        @click="isFilterOpen = !isFilterOpen"
+      />
+
+      <div class="flex flex-1 justify-end items-center space-x-4">
+        <div class="flex items-center">
+          <label class="text-sm text-gray-600">{{ $t('table.page-size-label') }}</label>
+          <USelect
+            v-model="pageSize" :items="pageOptions"
+            class="w-24"
+            @update:model-value="() => updateQuery(
+              { l: pageSize, p: Math.ceil(offset / pageSize!) },
+            )"
+          />
+        </div>
+
+        <UDropdownMenu
+          :items="
+            table?.tableApi
+              ?.getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => ({
+                label: columnNames[column.id as keyof typeof columnNames],
+                type: 'checkbox' as const,
+                checked: column.getIsVisible(),
+                onUpdateChecked(checked: boolean) {
+                  table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
+                },
+                onSelect(e: Event) {
+                  e.preventDefault()
+                },
+              }))
+          "
+        >
+          <UButton
+            color="neutral" variant="outline"
+            trailing-icon="i-lucide-chevron-down" :label="$t('table.display-columns-label')"
+          />
+        </UDropdownMenu>
       </div>
-
-      <UDropdownMenu :items="selectedUsersActions">
-        <UButton
-          :label="$t('users.button.selected-users-actions')"
-          color="warning" variant="subtle"
-          :ui="{ base: 'gap-1' }"
-          :disabled="selectedUsers.length === 0"
-        />
-      </UDropdownMenu>
     </div>
+  </div>
 
-    <div class="flex justify-between mb-4">
-      <div>
+  <UCollapsible
+    v-model:open="isFilterOpen"
+    :ui="{ root: 'mb-4', content: 'grid grid-cols-3 gap-4' }"
+  >
+    <template #content>
+      <USelectMenu
+        v-for="filter in filterSelects"
+        :key="filter.key" :placeholder="filter.placeholder" :icon="filter.icon"
+        :items="filter.items" :multiple="filter.multiple"
+        :loading="filterOptionsStatus === 'pending'" :search-input="filter.searchInput"
+        @update:model-value="filter.onUpdated"
+      />
+
+      <UPopover>
         <UInput
-          v-model="searchTerm" :placeholder="$t('users.list.search-placeholder')"
-          icon="i-lucide-search" :ui="{ base: 'w-sm' }"
+          icon="i-lucide-calendar"
+          :placeholder="$t('users.table.column.last-modified')"
+          :model-value="formattedDateRange"
+          :ui="{ base: `text-left ${dateRange.start ? '' : 'text-dimmed'}` }" readonly
         >
           <template #trailing>
-            <UKbd value="enter" />
+            <UButton
+              v-if="dateRange.start" variant="ghost"
+              color="neutral" icon="i-lucide-x"
+              :ui="{ base: 'text-dimmed p-0' }"
+              @click="() => {
+                dateRange = { start: undefined, end: undefined }
+                updateQuery({ s: undefined, e: undefined, p: 1 })
+              }"
+            />
+            <div v-else />
           </template>
         </UInput>
-      </div>
-    </div>
+        <template #content>
+          <UCalendar
+            v-model="dateRange" :number-of-months="2" class="p-2" range
+            @update:valid-model-value="() => updateQuery(
+              { s: dateRange.start?.toString(), e: dateRange.end?.toString(), p: 1 },
+            )"
+          />
+        </template>
+      </UPopover>
+    </template>
+  </UCollapsible>
 
-    <UTable :data="[]" />
-  </dev>
+  <UTable
+    ref="table"
+    v-model:column-visibility="columnVisibility"
+    :loading="status === 'pending'"
+    :data="searchResult?.resources" :columns="columns" :ui="{ root: 'mb-8' }"
+    @select="toggleSelection"
+  >
+    <template #empty>
+      <UEmpty
+        :title="$t('users.table.no-users-title')"
+        :description="$t('users.table.no-users-description')"
+        :actions="emptyActions"
+      />
+    </template>
+  </UTable>
+
+  <div class="flex justify-center mt-4">
+    <div class="flex-1 text-gray-500 text-sm">
+      {{ pageInfo }}
+    </div>
+    <div class="flex-2 flex justify-center">
+      <UPagination
+        v-model:page="pageNumber"
+        :items-per-page="pageSize"
+        :total="searchResult?.total"
+        @update:page="(value) => updateQuery({ p: value })"
+      />
+    </div>
+    <div class="flex-1" />
+  </div>
 </template>

@@ -1,7 +1,12 @@
 {
   "button": {
+    "add": "Add",
+    "cancel": "Cancel",
     "create-new": "Create new",
+    "delete": "Delete",
     "reload": "Reload",
+    "save": "Save",
+    "update": "Update",
     "upload-users": "Upload"
   },
   "cache-groups": {
@@ -11,12 +16,104 @@
   "common": {
     "loading": "Loading..."
   },
+  "error": {
+    "conflict": {
+      "description": "There was a conflict in the input content.",
+      "title": "Conflict error"
+    },
+    "server": {
+      "description": "An unexpected error occurred on the server.",
+      "title": "Internal Server Error"
+    },
+    "unexpected": {
+      "description": "An unexpected error has occurred.",
+      "title": "Error"
+    },
+    "validation": {
+      "description": "The input content is invalid. Please check the message in the input field.",
+      "title": "Validation Error"
+    }
+  },
   "footer": {
     "privacy-policy": "Privacy policy",
     "terms-of-use": "Terms of Use"
   },
+  "group": {
+    "description": "Description",
+    "description-description": "Describe the group freely.",
+    "details-basic-section": "Basic Information",
+    "details-title": "Group Details",
+    "display-name": "Display Name",
+    "display-name-description": "Display name of the group. It is not linked to the group name in the actual repository.",
+    "error": {
+      "not-found": "Group not found."
+    },
+    "id": "Group ID",
+    "member-list-visibility": {
+      "hidden": "Hidden",
+      "private": "Visible only to members",
+      "public": "Public"
+    },
+    "new-description": "You can create groups to collectively manage users.",
+    "new-title": "Create new group",
+    "number-of-users": "Users",
+    "placeholder": {
+      "display-name": "GAIRO Research Department",
+      "id": "ID of the group. Used in the actual repository.",
+      "repository": "Select a repository."
+    },
+    "placeholders": {
+    },
+    "public-status": {
+      "private": "Private",
+      "public": "Public"
+    },
+    "repository": "@:repositories.title",
+    "repository-description": "Select repository to create group",
+    "validation": {
+      "displayName": {
+        "required": "Display name is required field."
+      },
+      "memberListVisibility": {
+        "invalid": "Select the member's visibility status from the dropdown list."
+      },
+      "repository": {
+        "id": {
+          "required": "Repository selection is required"
+        }
+      }
+    }
+  },
   "groups": {
+    "actions": {
+      "copy-id": "Copy ID to clipboard",
+      "copy-id-success": "The group ID has been copied to the clipboard."
+    },
+    "button": {
+      "selected-groups-actions": "Actions for selected users"
+    },
+    "delete-selected-button": "Delete groups",
     "description": "You can manage groups in your repository.",
+    "table": {
+      "cell": {
+        "public": {
+          "private": "@:group.public-status.private",
+          "public": "@:group.public-status.public"
+        },
+        "visibility": {
+          "hidden": "@:group.member-list-visibility.hidden",
+          "private": "@:group.member-list-visibility.private",
+          "public": "@:group.member-list-visibility.public"
+        }
+      },
+      "column": {
+        "display-name": "Display Name",
+        "member-list-visibility": "Member Visibility",
+        "public": "Public Status",
+        "users-count": "Users"
+      },
+      "search-placeholder": "Seach..."
+    },
     "title": "Groups"
   },
   "header": {
@@ -62,8 +159,187 @@
     "other": "Other"
   },
   "repositories": {
+    "actions": {
+      "copy-sp-connector-id": "Copy SP Connecter ID to clipboard\t",
+      "copy-sp-connector-id-success": "The selected repository's URL has been copied to the clipboard."
+    },
     "description": "You can check information about the repositories you manage.",
-    "title": "Repositories"
+    "entity-id-label": "Entity ID: ",
+    "table": {
+      "column": {
+        "entity-ids": "Entity ID",
+        "service-name": "Repository Name",
+        "service-url": "URL",
+        "sp-connector-id": "SP Connecter"
+      },
+      "no-repositories-description": "you have no repositories to manage",
+      "no-repositories-title": "No repositories found",
+      "title": "Repositories List"
+    },
+    "title": "Repositories",
+    "url-label": "URL: "
+  },
+  "repository": {
+    "actions": {
+      "copy-url": "Copy URL to clipboard",
+      "copy-url-success": "The selected repository's URL has been copied to the clipboard."
+    },
+    "created": "Created at",
+    "details-basic-section": "Basic Information",
+    "details-sp-connector-section": "SP connector information",
+    "details-title": "Repository Details",
+    "entity-ids": "EntityID",
+    "entity-ids-description": "EntityID of the SP linked to the repository",
+    "error": {
+      "conflict": {
+      },
+      "forbidden": "You do not have permission to create a repository.",
+      "not-found": "Repository not found."
+    },
+    "new-description": "You can create an SP connector for your repository.",
+    "new-title": "Create new repository",
+    "number-of-groups": "Groups",
+    "number-of-users": "Users",
+    "placeholders": {
+      "entity-ids": "https://jairo.repo.nii.ac.jp/shibboleth-sp",
+      "service-name": "GAIRO University Repository",
+      "service-url": "jairo.repo.nii.ac.jp"
+    },
+    "service-name": "Repository Name",
+    "service-name-description": "Display name for this repository. It is not linked to the actual service name.",
+    "service-url": "URL",
+    "service-url-description": "URL of the repository.",
+    "sp-connector": "SP connector ID",
+    "sp-connector-description": "Identifier of the SP connector associated with the repository",
+    "suspended": "Operating condition",
+    "suspended-active": "Active",
+    "suspended-description": "Grant the system administrator role to the user. This requires that the user does not belong to any repository.",
+    "suspended-inactive": "Suspended",
+    "validation": {
+      "entityIds": {
+        "at-least-one": "At least one EntityID is required.",
+        "required": "Entity ID is a required field."
+      },
+      "id": {
+        "required": "ID is a required field."
+      },
+      "serviceName": {
+        "required": "Repository name is a required field."
+      },
+      "serviceUrl": {
+        "invalid": "URL is invalid.",
+        "max-length": "The URL must contain {max} characters.",
+        "required": "URL is a required field."
+      }
+    }
+  },
+  "success": {
+    "creation": {
+      "title": "Create successful"
+    },
+    "group": {
+      "created-description": "Successfully created group.",
+      "updated-description": "Successfully updated group information."
+    },
+    "repository": {
+      "created-description": "Successfully created SP connector for repository.",
+      "updated-description": "Successfully updated repository information."
+    },
+    "updated": {
+      "title": "Update successful"
+    },
+    "user": {
+      "created-description": "Successfully created user."
+    }
+  },
+  "table": {
+    "actions": {
+      "delete": "Delete it",
+      "view-details": "View details"
+    },
+    "actions-label": "Action",
+    "display-columns-label": "Columns",
+    "filter-button-label": "Filter",
+    "page-size-label": "Page size:",
+    "selected": "selected",
+    "switch-to-card-view": "Switch to card view",
+    "switch-to-table-view": "Switch to table view"
+  },
+  "toast": {
+    "success-title": "Success"
+  },
+  "user": {
+    "actions": {
+      "copy-eppn": "Copy ePPN to clipboard",
+      "copy-eppn-success": "The selected user's ePPN has been copied to the clipboard.",
+      "copy-id": "Copy ID to clipboard",
+      "copy-id-success": "The user ID has been copied to the clipboard."
+    },
+    "affiliated-repositories": "Affiliated Repositories",
+    "affiliated-repositories-description": "Specify the repository and role to assign to the user.",
+    "created": "Created",
+    "details-affiliation-authority-section": "Affiliation / Authority",
+    "details-basic-section": "Basic Information",
+    "details-title": "User Details",
+    "emails": "Email",
+    "emails-description": "User's email.",
+    "eppns": "ePPN",
+    "eppns-description": "A unique, persistent identifier assigned to a user by an IdP.",
+    "error": {
+      "conflict-description": "There was a conflict in the input content.",
+      "conflict-title": "Conflict error",
+      "not-found": "User not found."
+    },
+    "groups": "Affiliated Groups",
+    "groups-description": "Select the group to which the user belongs.",
+    "id": "User ID",
+    "last-modified": "Last Modified",
+    "new-description": "You can create new users in your repository.",
+    "new-title": "Create new user",
+    "placeholder": {
+      "emails": "information.taro{'@'}university.ac.jp",
+      "eppns": "information.taro{'@'}idp.university.ac.jp",
+      "group-name": "Select a group.",
+      "preferred-language": "Select a language.",
+      "repository-name": "Select a repository.",
+      "role": "Select a user role.",
+      "userName": "Information Taro"
+    },
+    "preferred-language": "Preferred Language",
+    "preferred-language-en": "English",
+    "preferred-language-ja": "Japanese",
+    "privileged": "Privileged",
+    "roles-title": "Roles",
+    "title": "User Details",
+    "userName-description": "Display name for this user. It is not linked to the actual user's account name.",
+    "username": "Username",
+    "validation": {
+      "emails": {
+        "at-least-one": "At least one Email is required.",
+        "invalid": "Email is invalid.",
+        "required": "Email is a required field."
+      },
+      "eppns": {
+        "at-least-one": "At least one ePPN is required.",
+        "required": "ePPN is a required field"
+      },
+      "preferredLanguage": {
+        "invalid": "Select the preferred language from the dropdown list."
+      },
+      "repositoryRoles": {
+        "at-least-one": "Users must belong to at least one repository.",
+        "id": {
+          "required": "Affiliated repository is a required field."
+        },
+        "must-be-empty-for-system-admin": "System administrators must not belong to any repositories.",
+        "userRole": {
+          "required": "The user's role must be selected from the drop-down list."
+        }
+      },
+      "userName": {
+        "required": "Username is a required field."
+      }
+    }
   },
   "users": {
     "button": {
@@ -74,13 +350,26 @@
     },
     "description": "You can manage users for your repositories.",
     "list": {
+    },
+    "roles": {
+      "community-admin": "Community Administrator",
+      "contributor": "Contributor",
+      "general-user": "General User",
+      "repository-admin": "Repository Administrator",
+      "system-admin": "System Administrator"
+    },
+    "table": {
+      "column": {
+        "emails": "Email",
+        "eppns": "ePPN",
+        "last-modified": "Last Modified",
+        "role": "Role",
+        "user-name": "UserName"
+      },
       "no-users-description": "Your repository does not have any users. Please create a user or upload a file first.",
       "no-users-title": "No users found",
       "search-placeholder": "Search...",
       "title": "Users List"
-    },
-    "roles": {
-      "system-admin": "System Administrator"
     },
     "title": "Users"
   }

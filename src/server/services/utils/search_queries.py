@@ -97,19 +97,29 @@ def build_repositories_search_query(
             ])
         )
 
+    # all repositories must have system admin group
+    system_admin_group = config.GROUPS.id_patterns.system_admin
+    filter_expr.append(f'{path("groups.value")} eq "{system_admin_group}"')
+
+    specified = set(criteria.i or [])
     if is_current_user_system_admin():
         pass  # no additional filter for system admin
     elif permitted := get_permitted_repository_ids():
         # force filter by logged-in user's permitted repository IDs
+        specified = permitted.intersection(specified) if specified else permitted
+        if not specified:
+            filter_expr.append(_empty_filter(path("id")))
+    else:
+        # no permitted repositories for non-admin user
+        filter_expr.append(_empty_filter(path("id")))
+
+    if specified:
         filter_expr.append(
             " or ".join([
                 f'{path("id")} eq "{resolve_service_id(repository_id=repo_id)}"'
-                for repo_id in permitted
+                for repo_id in specified
             ])
         )
-    else:
-        # no permitted repositories for non-system admin user
-        filter_expr.append(_empty_filter(path("id")))
 
     filter_str = _combine_filter_exprs(filter_expr)
 
@@ -327,9 +337,13 @@ def _user_groups_filter(criteria: UsersCriteria, path: str) -> str:
     if not permitted:
         return _empty_filter(path)
 
-    return _repository_admin_user_groups_filter(
-        criteria, path, permitted, specified_roles
-    )
+    filter_expr = [
+        _repository_admin_user_groups_filter(
+            criteria, path, permitted, specified_roles
+        ),
+        f'{path} ne "{config.GROUPS.id_patterns.system_admin}"',
+    ]
+    return t.cast("str", _combine_filter_exprs(filter_expr))
 
 
 def _system_admin_user_groups_filter(  # noqa: PLR0911
@@ -537,7 +551,7 @@ def _get_prefix_patterns() -> set[str]:
     return {
         match.group(1)
         for group_types in id_patterns.model_fields_set
-        if (match := re.match(pattern, getattr(id_patterns, group_types))) and match
+        if (match := re.match(pattern, getattr(id_patterns, group_types)))
     }
 
 
@@ -603,20 +617,14 @@ def _curculate_options(
     def _a(ks: set[str]) -> set[str]:
         return ks | {path_generator(k) for k in ks}
 
-    if criteria.k in _a({
-        "id",
-        "service_name",
-        "service_url",
-        "display_name",
-        "user_name",
-        "public",
-        "member_list_visibility",
-    }):
-        sort_by = path_generator(criteria.k)
-    elif criteria.k in _a({"emails"}):
-        sort_by = f"{path_generator('emails.value')}"
+    if criteria.k in _a({"emails", "entity_ids"}):
+        sort_by = path_generator(f"{criteria.k}.value")
     elif criteria.k in _a({"eppns", "edu_person_principal_names"}):
-        sort_by = f"{path_generator('edu_person_principal_names.value')}"
+        sort_by = path_generator("edu_person_principal_names.value")
+    elif criteria.k in _a(
+        repository_sortable_keys | group_sortable_keys | user_sortable_keys
+    ):
+        sort_by = path_generator(criteria.k)
     else:
         sort_by = None
 
@@ -679,22 +687,22 @@ def jst_date_to_utc_datetime(d: date) -> datetime:
 class Criteria(t.Protocol):
     """Protocol for search criteria."""
 
-    q: str | None
+    q: t.Annotated[str | None, "search term"]
     """Search term to filter results."""
 
-    i: list[str] | None
+    i: t.Annotated[list[str] | None, "resource IDs"]
     """Filter by IDs."""
 
-    k: str | None
+    k: t.Annotated[str | None, "sort attribute key"]
     """Attribute key to sort results."""
 
-    d: t.Literal["asc", "desc"] | None
+    d: t.Annotated[t.Literal["asc", "desc"] | None, "sort order"]
     """Sort order: 'asc' (ascending) or 'desc' (descending)."""
 
-    p: int | None
+    p: t.Annotated[int | None, "page number"]
     """Page number to retrieve."""
 
-    l: int | None  # noqa: E741
+    l: t.Annotated[int | None, "page size"]  # noqa: E741
     """Page size (number of items per page)."""
 
 
@@ -724,24 +732,40 @@ class GroupsCriteria(Criteria, t.Protocol):
 class UsersCriteria(Criteria, t.Protocol):
     """Protocol for search criteria."""
 
-    r: list[str] | None
+    r: t.Annotated[list[str] | None, "affiliated repository IDs"]
     """Filter by affiliated repository IDs."""
 
-    g: list[str] | None
+    g: t.Annotated[list[str] | None, "affiliated group IDs"]
     """Filter by affiliated group IDs."""
 
-    a: list[int] | None
+    a: t.Annotated[list[int] | None, "user roles"]
     """Filter by user roles:
 
     0 (system admin), 1 (repository admin), 2 (community admin),
     3 (contributor), 4 (general user).
     """
 
-    s: date | None
+    s: t.Annotated[date | None, "last modified date (from)"]
     """Filter by last modified date (from)."""
 
-    e: date | None
+    e: t.Annotated[date | None, "last modified date (to)"]
     """Filter by last modified date (to)."""
+
+
+type RepositoriesSortableKeys = t.Literal[
+    "id", "service_name", "service_url", "entity_ids"
+]
+repository_sortable_keys: set[str] = set(t.get_args(RepositoriesSortableKeys.__value__))
+
+type GroupsSortableKeys = t.Literal[
+    "id", "display_name", "public", "member_list_visibility"
+]
+group_sortable_keys: set[str] = set(t.get_args(GroupsSortableKeys.__value__))
+
+type UsersSortableKeys = t.Literal[
+    "id", "user_name", "emails", "eppns", "last_modified"
+]
+user_sortable_keys: set[str] = set(t.get_args(UsersSortableKeys.__value__))
 
 
 @t.overload
@@ -749,7 +773,7 @@ def make_criteria_object(
     resource_type: t.Literal["repositories"],
     q: str | None = None,
     i: list[str] | None = None,
-    k: str | None = None,
+    k: RepositoriesSortableKeys | None = None,
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
@@ -763,7 +787,7 @@ def make_criteria_object(
     u: list[str] | None = None,
     s: t.Literal[0, 1] | None = None,
     v: t.Literal[0, 1, 2] | None = None,
-    k: str | None = None,
+    k: GroupsSortableKeys | None = None,
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
@@ -778,7 +802,7 @@ def make_criteria_object(
     a: list[int] | None = None,
     s: date | None = None,
     e: date | None = None,
-    k: str | None = None,
+    k: UsersSortableKeys | None = None,
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
