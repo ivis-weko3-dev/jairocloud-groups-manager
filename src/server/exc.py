@@ -45,6 +45,13 @@ class DatabaseError(JAIROCloudGroupsManagerError):
     """
 
 
+class RecordNotFound(DatabaseError):  # noqa: N818
+    """Exception for record not found errors.
+
+    Errors caused by requests for non-existing records.
+    """
+
+
 class DatastoreError(JAIROCloudGroupsManagerError):
     """Exception for datastore errors.
 
@@ -77,6 +84,20 @@ class UnexpectedResponseError(ApiClientError):
     """Exception for unexpected responses from mAP Core API server.
 
     Errors caused by unexpected response structure or data from mAP Core API server.
+    """
+
+
+class ApiRequestError(JAIROCloudGroupsManagerError):
+    """Exception for the server application API errors.
+
+    Errors caused by API request issues.
+    """
+
+
+class RequestConflict(ApiRequestError):  # noqa: N818
+    """Exception for the request conflict errors.
+
+    Errors caused by conflicts in the request content.
     """
 
 
