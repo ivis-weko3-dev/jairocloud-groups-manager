@@ -72,8 +72,8 @@ def post(
             if user is not None:
                 return ErrorResponse(code="", message="eppn already exist"), 409
 
-    if not has_permission(body.repositories):
-        return ErrorResponse(code="", message="not has permmision"), 403
+    if not has_permission(body.repository_roles):
+        return ErrorResponse(code="", message="not has permission"), 403
 
     created = users.create(body)
     header = {
@@ -100,7 +100,7 @@ def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
     if user is None:
         return ErrorResponse(code="", message="user not found"), 404
 
-    if not has_permission(user.repositories):
+    if not has_permission(user.repository_roles):
         return ErrorResponse(code="", message="not has permmision"), 403
 
     return user, 200
@@ -127,7 +127,7 @@ def id_put(user_id: str, body: UserDetail) -> tuple[UserDetail | ErrorResponse, 
     if user_id != body.id:
         return ErrorResponse(code="", message="user id mismatch"), 409
 
-    if not has_permission(body.repositories):
+    if not has_permission(body.repository_roles):
         return ErrorResponse(code="", message="not has permmision"), 403
 
     try:
@@ -140,14 +140,14 @@ def id_put(user_id: str, body: UserDetail) -> tuple[UserDetail | ErrorResponse, 
     return updated, 200
 
 
-def has_permission(repositories: list[RepositorySummary] | None) -> bool:
+def has_permission(roles: list[RepositoryRole] | None) -> bool:
     """Check user controll permmision.
 
     If the logged-in user is a system administrator or
     an administrator of the target repository, that user has permission.
 
     Args:
-       repositories (list | None): Repositories list of request body
+       roles (list | None): Roles of the target user in each repository.
 
     Returns:
         bool:
@@ -158,7 +158,7 @@ def has_permission(repositories: list[RepositorySummary] | None) -> bool:
         return True
 
     permitted_repository_ids = get_permitted_repository_ids()
-    return any(repo.id in permitted_repository_ids for repo in repositories or [])
+    return any(repo.id in permitted_repository_ids for repo in roles or [])
 
 
 @bp.get("/filter-options")
