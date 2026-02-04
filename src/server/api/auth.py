@@ -5,8 +5,7 @@
 """API router for authentication endpoints."""
 
 import typing as t
-
-from urllib.parse import quote
+import urllib.parse as urlparse
 
 from flask import (
     Blueprint,
@@ -21,7 +20,7 @@ from flask_pydantic import validate
 
 from server.auth import build_account_store_key
 from server.config import config
-from server.const import USER_ROLES
+from server.const import SHIB_HEADERS, USER_ROLES
 from server.datastore import account_store
 from server.entities.login_user import LoginUser
 from server.services import permissions, users
@@ -50,9 +49,10 @@ def login() -> Response:
     Returns:
         Response: if successful login, redirect to the top page.
     """
-    eppn = request.headers.get("eppn")
-    is_member_of = request.headers.get("IsMemberOf")
-    user_name = request.headers.get("DisplayName")
+    eppn = request.headers.get(SHIB_HEADERS.EPPN)
+    is_member_of = request.headers.get(SHIB_HEADERS.IS_MEMBER_OF)
+    user_name = request.headers.get(SHIB_HEADERS.DISPLAY_NAME)
+
     if not eppn:
         return make_response(redirect("/?error=401"))
 
@@ -60,11 +60,17 @@ def login() -> Response:
         user = users.get_by_eppn(eppn)
         if not user:
             return make_response(redirect("/?error=401"))
-        groups = [group.id for group in user.groups or []]
-        user_name = user.user_name or "Unknown User"
-        is_member_of = ";".join(
-            f"https://cg.gakunin.jp/gr/{quote(g, safe='')}" for g in groups
+
+        user_name = user.user_name if user_name is None else user_name
+        is_member_of = (
+            ";".join(
+                f"https://cg.gakunin.jp/gr/{urlparse.quote(g.id, safe='')}"
+                for g in user.groups or []
+            )
+            if is_member_of is None
+            else is_member_of
         )
+
     groups = permissions.extract_group_ids(is_member_of)
     user_roles, _ = detect_affiliations(groups)
     if not any(
@@ -76,15 +82,18 @@ def login() -> Response:
     user = LoginUser(
         eppn=eppn, is_member_of=is_member_of, user_name=user_name, session_id=""
     )
+    alias: t.Callable[[str], str] = LoginUser.model_config.get(
+        "alias_generator", lambda x: x
+    )  # pyright: ignore[reportAssignmentType]
 
     login_user(user)
     user.session_id = session_id = session["_id"]
 
     key = build_account_store_key(session_id)
-    account_store.hset(
-        key,
-        mapping=user.model_dump(mode="json", by_alias=True),
-    )
+    account_data = user.model_dump(mode="json", by_alias=True) | {
+        alias("is_system_admin"): str(user.is_system_admin)
+    }
+    account_store.hset(key, mapping=account_data)
     session_ttl: int = config.SESSION.sliding_lifetime
     if session_ttl >= 0:
         account_store.expire(key, session_ttl)

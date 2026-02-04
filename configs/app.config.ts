@@ -90,7 +90,7 @@ const wayf = {
    * Examples: "https://econf.switch.ch/aai/home", "https://olat.uzh.ch/my/courses" \
    * [Mandatory]
    */
-  returnURL: `${baseURL}/Shibboleth.sso/Session` as string,
+  returnURL: `${baseURL}/secure` as string,
 
   /**
    * Most used Identity Providers will be shown as top category in the drop down \
@@ -152,6 +152,8 @@ export default {
   table,
   /** Repository configuration */
   repositories,
+  /** Group configuration */
+  groups,
   /** WAYF (Embedded DS) configuration */
   wayf,
 }

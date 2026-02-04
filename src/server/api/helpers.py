@@ -15,16 +15,18 @@ from pydantic import BaseModel, ValidationError
 from werkzeug.datastructures import FileStorage
 
 from server.config import config
+from server.const import USER_ROLES
 from server.services import permissions
+from server.services.utils import get_highest_role
 
 
 def roles_required[**P, R](
-    *roles: str,
+    *required: USER_ROLES,
 ) -> t.Callable[[t.Callable[P, R]], t.Callable[P, R]]:
     """Verify that the user has the requested role.
 
     Args:
-        *roles: List of role names to grant access to.
+        *required: List of role names to grant access to.
 
     Returns:
         Callable: A decorator that returns a decorated function.
@@ -51,10 +53,10 @@ def roles_required[**P, R](
             Returns:
                 R: The result of the decorated function.
             """
-            res = permissions.get_login_user_roles()
-            user_roles = res[0] if res else []
+            user_roles, _ = permissions.get_login_user_roles()
+            highest = get_highest_role([repository.role for repository in user_roles])
 
-            if not any(role in user_roles for role in roles):
+            if highest not in required:
                 abort(403)
 
             return func(*args, **kwargs)

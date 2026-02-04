@@ -60,22 +60,19 @@ def load_user(user_id: str) -> LoginUser | None:
         return None
 
     key = build_account_store_key(session_id)
-    raw = account_store.hgetall(key)
-    data = {k.decode("utf-8"): v.decode("utf-8") for k, v in raw.items()}  # pyright: ignore[reportAttributeAccessIssue]
-    if not isinstance(data, dict):
+    raw = account_store.hgetall(key)  # pyright: ignore[reportAssignmentType]
+    if not raw:
         return None
 
-    if not data["eppn"] or data["eppn"] != user_id:
+    data = {
+        k.decode("utf-8"): v.decode("utf-8")
+        for k, v in t.cast("dict[bytes, bytes]", raw).items()
+    }
+
+    if data["id"] != user_id:
         return None
 
-    user = LoginUser(
-        eppn=data["eppn"],
-        login_date=data["login_date"],
-        user_name=data["user_name"],
-        is_member_of=data["is_member_of"],
-        session_id=session_id,
-    )
-    return user
+    return LoginUser.model_validate(data | {"session_id": session_id})
 
 
 def build_account_store_key(session_id: str) -> str:

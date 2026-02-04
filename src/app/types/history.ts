@@ -1,17 +1,15 @@
 // types/history.ts
-import type { DateRange as InternationalizedDateRange } from '@internationalized/date'
-
-export type UserSummary = {
+type UserSummary = {
   id: string
   user_name?: string | null
 }
 
-export type RepositorySummary = {
+type RepositorySummary = {
   id: string
   display_name?: string | null
 }
 
-export type GroupSummary = {
+type GroupSummary = {
   id: string
   display_name?: string | null
 }
@@ -111,8 +109,6 @@ export interface FilterQuery {
   u: string[]
 }
 
-export type DateRange = InternationalizedDateRange
-
 export interface TableColumn {
   id: string
   key: string
@@ -123,14 +119,6 @@ export interface TableColumn {
 export interface TableConfig {
   enableExpand?: boolean
   showStatus?: boolean
-}
-
-export interface FilterOption {
-  key: string
-  description?: string | null
-  type: 'string' | 'number' | 'date'
-  multiple: boolean
-  items?: Array<Record<string, string | number>> | null
 }
 
 export interface FilterOptionsResponse {
@@ -161,9 +149,3 @@ export interface HistoryStats {
 export interface PublicStatusUpdateRequest {
   public: boolean
 }
-
-export interface HistoryFilterProperties {
-  target: 'download' | 'upload'
-}
-
-export type UseHistoryReturn = ReturnType<typeof useHistory>

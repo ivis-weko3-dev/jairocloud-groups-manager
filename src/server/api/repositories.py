@@ -5,8 +5,10 @@
 """API endpoints for repository-related operations."""
 
 from flask import Blueprint, url_for
+from flask_login import login_required
 from flask_pydantic import validate
 
+from server.const import USER_ROLES
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResult
 from server.exc import InvalidQueryError, ResourceInvalid, ResourceNotFound
@@ -16,6 +18,7 @@ from server.services.permissions import (
     is_current_user_system_admin,
 )
 
+from .helpers import roles_required
 from .schemas import ErrorResponse, RepositoriesQuery
 
 
@@ -24,6 +27,8 @@ bp = Blueprint("repositories", __name__)
 
 @bp.get("")
 @bp.get("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def get(
     query: RepositoriesQuery,
@@ -47,6 +52,8 @@ def get(
 
 @bp.post("")
 @bp.post("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN)
 @validate(response_by_alias=True)
 def post(
     body: RepositoryDetail,
@@ -73,6 +80,8 @@ def post(
 
 @bp.get("/<string:repository_id>")
 @validate(response_by_alias=True)
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
     """Get information of repository endpoint.
 
@@ -98,6 +107,8 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
 
 @bp.put("/<string:repository_id>")
 @validate(response_by_alias=True)
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 def id_put(
     repository_id: str, body: RepositoryDetail
 ) -> tuple[RepositoryDetail | ErrorResponse, int]:

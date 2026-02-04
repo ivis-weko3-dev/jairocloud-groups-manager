@@ -5,8 +5,10 @@
 """API endpoints for user-related operations."""
 
 from flask import Blueprint, url_for
+from flask_login import login_required
 from flask_pydantic import validate
 
+from server.const import USER_ROLES
 from server.entities.search_request import FilterOption, SearchResult
 from server.entities.summaries import RepositorySummary
 from server.entities.user_detail import UserDetail
@@ -21,6 +23,7 @@ from server.services.permissions import (
     is_current_user_system_admin,
 )
 
+from .helpers import roles_required
 from .schemas import ErrorResponse, UsersQuery
 
 
@@ -29,6 +32,8 @@ bp = Blueprint("users", __name__)
 
 @bp.get("")
 @bp.get("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def get(query: UsersQuery) -> tuple[SearchResult, int]:
     """Get a list of users based on query parameters.
@@ -45,6 +50,8 @@ def get(query: UsersQuery) -> tuple[SearchResult, int]:
 
 @bp.post("")
 @bp.post("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def post(
     body: UserDetail,
@@ -83,6 +90,8 @@ def post(
 
 
 @bp.get("/<string:user_id>")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
     """Get information of user endpoint.
@@ -101,12 +110,14 @@ def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
         return ErrorResponse(code="", message="user not found"), 404
 
     if not has_permission(user.repository_roles):
-        return ErrorResponse(code="", message="not has permmision"), 403
+        return ErrorResponse(code="", message="not has permission"), 403
 
     return user, 200
 
 
 @bp.put("/<string:user_id>")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def id_put(user_id: str, body: UserDetail) -> tuple[UserDetail | ErrorResponse, int]:
     """Update user information endpoint.
@@ -162,6 +173,8 @@ def has_permission(roles: list[RepositoryRole] | None) -> bool:
 
 
 @bp.get("/filter-options")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_many=True)
 def filter_options() -> list[FilterOption]:
     """Get filter options for searching users.

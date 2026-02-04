@@ -4,12 +4,14 @@
 
 """Models for login user entity for client side."""
 
+import typing as t
+
 from datetime import UTC, datetime
 from functools import cached_property
 from typing import override
 
 from flask_login import UserMixin
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, computed_field
 
 from server.services import permissions
 
@@ -19,7 +21,7 @@ from .common import camel_case_config
 class LoginUser(BaseModel, UserMixin):
     """Model for login user information."""
 
-    eppn: str
+    eppn: t.Annotated[str, Field(validation_alias="id", serialization_alias="id")]
     """The unique identifier for the user."""
 
     login_date: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -28,13 +30,16 @@ class LoginUser(BaseModel, UserMixin):
     is_member_of: str
     """login user isMemberOf attribute"""
 
-    user_name: str = Field(exclude=True)
+    user_name: str
+    """The display name of the user."""
 
-    _session_id: str | None = PrivateAttr(None)
+    session_id: str
+    """Session ID associated with the login user."""
 
-    model_config = camel_case_config
+    model_config = camel_case_config | {"extra": "ignore"}
     """Configure to use camelCase aliasing."""
 
+    @computed_field
     @cached_property
     def is_system_admin(self) -> bool:
         """If the logged-in user is a system administrator, then True."""

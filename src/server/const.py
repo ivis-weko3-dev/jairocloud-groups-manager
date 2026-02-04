@@ -27,6 +27,22 @@ DEFAULT_LOG_DATEFMT: Final = "%Y-%m-%dT%H:%M:%S"
 """Default date format string for log timestamps."""
 
 
+class SHIB_HEADERS(StrEnum):
+    """Constants for Shibboleth headers."""
+
+    EPPN = "eppn".upper()
+    """Header name for eduPersonPrincipalName."""
+
+    IS_MEMBER_OF = "isMemberOf".upper()
+    """Header name for isMemberOf attribute."""
+
+    DISPLAY_NAME = "displayName".upper()
+    """Header name for display name."""
+
+    JA_DISPLAY_NAME = "jaDisplayName".upper()
+    """Header name for Japanese display name."""
+
+
 MAP_USER_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:User"
 """Schema URI for mAP User resources."""
 
