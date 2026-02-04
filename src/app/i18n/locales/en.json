@@ -1,8 +1,33 @@
 {
+  "bulk": {
+    "about": "About bulk operations",
+    "about-description": "Users included in the file are newly registered or updated",
+    "about-description2": "Existing users are matched by id and updated if they match",
+    "about-description3": "You can choose to delete users who are not included in the file",
+    "about-description4": "Supported formats: TSV, CSV, Excel",
+    "description": "You can perform bulk operations on users belonging to a repository by uploading files.",
+    "empty": "sky",
+    "file-format-error": "The file format is not supported. \nChoose TSV, CSV, or Excel file.",
+    "missing_user": "User not included in file",
+    "select-repository": "Please select a repository",
+    "status": {
+      "create": "create",
+      "delete": "delete",
+      "error": "error",
+      "skip": "No updates",
+      "update": "update"
+    },
+    "target-repository": "Operation target repository",
+    "title": "Bulk user operations",
+    "upload-field": "Select or drag files",
+    "upload-file": "upload file",
+    "view-all": "Show all"
+  },
   "button": {
     "add": "Add",
     "cancel": "Cancel",
     "create-new": "Create new",
+    "next": "to the next",
     "delete": "Delete",
     "reload": "Reload",
     "save": "Save",
@@ -340,6 +365,9 @@
         "required": "Username is a required field."
       }
     }
+  },
+  "table": {
+    "count": "subject"
   },
   "users": {
     "button": {

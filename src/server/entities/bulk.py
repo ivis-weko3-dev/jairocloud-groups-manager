@@ -1,0 +1,147 @@
+#
+# Copyright (C) 2025 National Institute of Informatics.
+#
+
+"""Models for Bulk entity for client side."""
+
+import typing as t
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, RootModel
+
+from server.entities.common import camel_case_config, forbid_extra_config
+from server.entities.user_detail import UserDetail
+
+
+CSV_TO_FIELDS = {
+    "user_name": "user_name",
+    "groups[].id": "groups_ids",
+    "groups[].name": "groups_names",
+    "edu_person_principal_names[]": "eppns",
+    "emails[]": "emails",
+    "preferred_language": "preferred_language",
+}
+
+
+class RepositoryMember(BaseModel):
+    """Model for members of a repository."""
+
+    groups: set[str]
+    """The groups belonging to the repository."""
+
+    users: set[str]
+    """The users belonging to the repository."""
+
+
+class ValidateSummary(BaseModel):
+    """Model for summary of bulk validation result."""
+
+    results: list[CheckResult]
+    """The list of validation results for each user."""
+
+    summary: HistorySummary
+
+    missing_user: list[UserDetail] = []
+
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
+
+class HistorySummary(BaseModel):
+    """Summary of the history operation."""
+
+    create: int
+    """Number of created items."""
+    update: int
+    """Number of updated items."""
+    delete: int
+    """Number of deleted items."""
+    skip: int
+    """Number of skipped items."""
+    error: int
+    """Number of error items."""
+
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
+
+class CheckResult(BaseModel):
+    """Model for result of validation check for each user."""
+
+    id: str
+    """The unique identifier for the user."""
+
+    eppn: list[str]
+    """The eduPersonPrincipalNames of the user."""
+
+    email: list[EmailStr]
+    """The e-mail of the user."""
+
+    user_name: str
+    """The username of the user."""
+
+    groups: set[str]
+    """The groups of the user."""
+
+    status: t.Literal["create", "update", "delete", "skip", "error"]
+    """The status of the validation check."""
+
+    code: str | None
+    """The code representing the result of the validation check."""
+
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
+
+class ResultSummary(BaseModel):
+    """Model for summary of bulk upload result."""
+
+    results: list[CheckResult]
+    """The list of upload results for each user."""
+
+    summary: HistorySummary
+
+    file_id: UUID
+    """The ID of the uploaded file."""
+
+    file_name: str
+    """The name of the uploaded file."""
+
+    operator: str
+    """The operator who performed the upload."""
+
+    start_timestamp: datetime
+    """The timestamp when the upload started."""
+
+    end_timestamp: datetime | None = None
+    """The timestamp when the upload ended."""
+
+    model_config = camel_case_config | forbid_extra_config
+    """Configure camelCase aliasing and forbid extra fields."""
+
+
+class UserAggregated(RootModel):
+    root: list[UserDetail]
+
+
+class Aggregated(t.TypedDict):
+    summary: dict[str, int]
+    results: list[CheckResult]
+    missing_user: list[UserDetail]
+
+
+class FileContent(t.TypedDict):
+    repositories: dict[str, str]
+    groups: dict[str, str]
+    users: dict[str, str]
+
+
+class FileUserDict(t.TypedDict, total=False):
+    user_name: list[str]
+    groups_ids: list[str]
+    groups_names: list[str]
+    eppns: list[str]
+    emails: list[str]
+    preferred_language: list[str]

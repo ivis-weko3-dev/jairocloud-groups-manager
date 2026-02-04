@@ -1,9 +1,34 @@
 {
+  "bulk": {
+    "about": "一括操作について",
+    "about-description": "ファイルに含まれるユーザーは新規登録または更新されます。",
+    "about-description2": "既存ユーザーはidで照合し、一致する場合は更新されます",
+    "about-description3": "ファイルに含まれていないユーザーの削除を選択できます",
+    "about-description4": "対応形式: TSV, CSV, Excel",
+    "description": "ファイルのアップロードによりリポジトリに所属するユーザーを一括操作することができます。",
+    "empty": "空",
+    "file-format-error": "対応していないファイル形式です。TSV、CSV、またはExcelファイルを選択してください。",
+    "missing_user": "ファイルに含まれていないユーザー",
+    "select-repository": "リポジトリを選択してください",
+    "status": {
+      "create": "作成",
+      "delete": "削除",
+      "error": "エラー",
+      "skip": "更新なし",
+      "update": "更新"
+    },
+    "target-repository": "操作対象リポジトリ",
+    "title": "ユーザー一括操作",
+    "upload-field": "ファイルを選択またはドラッグ&ドロップ",
+    "upload-file": "アップロードファイル",
+    "view-all": "すべて表示"
+  },
   "button": {
     "add": "追加",
     "cancel": "取り消し",
     "create-new": "新規作成",
     "delete": "削除",
+    "next": "次へ",
     "reload": "再読み込み",
     "save": "保存",
     "update": "更新",

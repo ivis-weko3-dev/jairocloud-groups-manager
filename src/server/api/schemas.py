@@ -10,10 +10,13 @@ These schemas used in request and response validation.
 import typing as t
 
 from datetime import date
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
+from werkzeug.datastructures import FileStorage
 
 from server.entities.common import camel_case_config
+from server.entities.user_detail import UserDetail
 
 
 ignore_extra_config = ConfigDict(
@@ -196,3 +199,59 @@ class HistoryPublic(BaseModel):
 
     public: bool
     """Public status."""
+
+
+class TagetRepository(BaseModel):
+    repository_id: str
+    """ID of the target repository."""
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
+
+
+class UploadFiles(BaseModel):
+    """Schema for upload files."""
+
+    bulk_file: FileStorage
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class BulkBody(BaseModel):
+    """Body schema for bulk upload response."""
+
+    temp_file_id: UUID | None = None
+    """Temporary ID for the bulk upload session."""
+    history_id: UUID | None = None
+    """History ID associated with the bulk upload."""
+    task_id: str | None = None
+    """Task ID associated with the bulk upload."""
+    status: str | None = None
+    """Status of the bulk upload."""
+
+
+class UploadBody(BaseModel):
+    """Body schema for upload requests."""
+
+    temp_file_id: UUID | None = None
+    """Temporary ID for the upload session."""
+    repository_id: str | None = None
+    """ID of the target repository."""
+    task_id: str | None = None
+    """Task ID associated with the upload."""
+    delete_users: list[UserDetail] | None = None
+    """List of users whose files are to be deleted."""
+
+
+class UploadQuery(BaseModel):
+    """Query parameters for upload history data."""
+
+    f: list[int] | None = None
+    """Filter by status.
+    0:create, 1:update, 2:delete, 3:skip, 4:error"""
+
+    p: int | None = None
+    """Page number for pagination."""
+
+    l: int | None = None
+    """Number of users per page for pagination."""
