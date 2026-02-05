@@ -103,7 +103,10 @@ COPY nginx/ssl/server.key /etc/shibboleth/server.key
 RUN chmod 644 /etc/shibboleth/server.crt /etc/shibboleth/server.key
 
 RUN sed -i \
-    '1s|^|load_module modules/ngx_http_shibboleth_module.so;\nload_module modules/ngx_http_headers_more_filter_module.so;\n|' \
+    '1s|^|load_module modules/ngx_http_shibboleth_module.so;\n|' \
+    /etc/nginx/nginx.conf
+RUN sed -i \
+    '1s|^|load_module modules/ngx_http_headers_more_filter_module.so;\n|' \
     /etc/nginx/nginx.conf
 
 
@@ -114,10 +117,12 @@ RUN sed -i \
 FROM base AS dev
 
 RUN sed -i \
+    '1s|^|upstream app_server {\n  server app:3000;\n}\n\n|' \
+    /etc/nginx/conf.d/default.conf
+RUN sed -i \
     '/# Application resources requests/,/# replace this for dev server/ \
     s|app[.]inc|app.dev.inc|' \
     /etc/nginx/conf.d/default.conf
-
 RUN sed -i \
     '/# Application api requests/,/# replace this for dev server/ \
     s|api[.]inc|api.dev.inc|' \
