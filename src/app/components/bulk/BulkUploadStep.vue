@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t: $t } = useI18n()
 const emit = defineEmits<{
   next: []
 }>()
@@ -60,10 +61,12 @@ async function handleNext() {
     formData.append('bulk_file', selectedFile.value)
     formData.append('repository_id', selectedRepository.value)
 
-    const { task_id, temp_file_id } = await $fetch('/api/bulk/upload-file', {
+    const { data } = await useFetch('/api/bulk/upload-file', {
       method: 'POST',
       body: formData,
     })
+
+    const { task_id, temp_file_id } = data.value || {}
 
     taskId.value = task_id
     tempFileId.value = temp_file_id
@@ -91,11 +94,11 @@ async function pollValidationStatus(taskId: string) {
   const interval = 2000
 
   for (let index = 0; index < maxAttempts; index++) {
-    const res = await $fetch(`/api/bulk/validate/status/${taskId}`)
-    const st = (res.status) as string | undefined
+    const { data } = await useFetch(`/api/bulk/validate/status/${taskId}`)
+    const st = (data.value?.status) as string | undefined
 
     if (st === 'SUCCESS') return
-    if (st === 'FAILURE') throw new Error(res.error ?? 'Validation task failed')
+    if (st === 'FAILURE') throw new Error(data.value?.error ?? 'Validation task failed')
 
     await new Promise(r => setTimeout(r, interval))
   }
@@ -109,8 +112,8 @@ const isLoadingRepositories = ref(false)
 onMounted(async () => {
   isLoadingRepositories.value = true
   try {
-    const data = await $fetch('/api/repositories')
-    repositories.value = data.resources.map(repo => ({
+    const { data } = await useFetch('/api/repositories')
+    repositories.value = (data.value?.resources || []).map(repo => ({
       value: repo.id,
       label: repo.displayName,
     }))

@@ -1,5 +1,3 @@
-import type { ImportResultResponse, MissingUser, StatusType, ValidationResult } from "~/types/bulks"
-
 export const useUserUpload = () => {
   const selectedFile = useState<File | undefined>('userUpload:selectedFile', () => {})
   const selectedRepository = useState<string | undefined>('userUpload:selectedRepository', () => {})
@@ -14,7 +12,7 @@ export const useUserUpload = () => {
   const isProcessing = useState('userUpload:isProcessing', () => false)
   const taskId = useState<string | undefined>('userUpload:taskId', () => {})
 
-  const importResult = useState<ImportResultResponse | undefined>('userUpload:importResult', () => {})
+  const importResult = useState<UploadResultResponse | undefined>('userUpload:importResult', () => {})
 
   function mapBackendOperation(backendStatus: string): StatusType {
     const operationMap: Record<string, StatusType> = {
@@ -33,7 +31,7 @@ export const useUserUpload = () => {
         ? `/api/bulk/validate/result/${taskIdValue}?${queryParameters}`
         : `/api/bulk/validate/result/${taskIdValue}`
 
-      const result = await $fetch<{
+      const { data } = await useFetch<{
         results: Array<{
           id: string
           eppn: string[]
@@ -75,6 +73,8 @@ export const useUserUpload = () => {
           lastModified: string
         }>
       }>(url)
+
+      const result = data.value
 
       const parameters = new URLSearchParams(queryParameters || '')
       const pageIndex = Number.parseInt(parameters.get('p') || '0', 10)
@@ -132,7 +132,7 @@ export const useUserUpload = () => {
     isProcessing.value = true
 
     try {
-      const result = await $fetch<{
+      const { data } = await useFetch<{
         history_id: string
         task_id: string
         temp_file_id?: string
@@ -145,6 +145,8 @@ export const useUserUpload = () => {
           delete_users: selectedMissingUsers.value,
         },
       })
+
+      const result = data.value
 
       const uploadTaskId = result.task_id
       const uploadHistoryId = result.history_id
@@ -167,11 +169,11 @@ export const useUserUpload = () => {
     const interval = 2000
 
     for (let index = 0; index < maxAttempts; index++) {
-      const res = await $fetch(`/api/bulk/execute/status/${uploadTaskId}`)
-      const st = (res.status) as string | undefined
+      const { data } = await useFetch(`/api/bulk/execute/status/${uploadTaskId}`)
+      const st = (data.value?.status) as string | undefined
 
       if (st === 'SUCCESS') return
-      if (st === 'FAILURE') throw new Error(res.error ?? 'Validation task failed')
+      if (st === 'FAILURE') throw new Error(data.value?.error ?? 'Validation task failed')
 
       await new Promise(r => setTimeout(r, interval))
     }
@@ -185,14 +187,13 @@ export const useUserUpload = () => {
         ? `/api/bulk/result/${historyIdValue}?${queryParameters}`
         : `/api/bulk/result/${historyIdValue}`
 
-      const result = await $fetch<{
+      const { data } = await useFetch<{
         results: Array<{
           id: string
           eppn: string[]
           emails: string[]
           userName: string
           groups: string[]
-          operation: string
           status: string
           message?: string
           code?: string
@@ -212,6 +213,8 @@ export const useUserUpload = () => {
         }
       }>(url)
 
+      const result = data.value
+
       const parameters = new URLSearchParams(queryParameters || '')
       const pageIndex = Number.parseInt(parameters.get('p') || '0', 10)
       const pageSize = Number.parseInt(parameters.get('l') || '10', 10)
@@ -224,8 +227,7 @@ export const useUserUpload = () => {
           emails: item.emails,
           userName: item.userName,
           groups: item.groups,
-          operation: item.operation as 'create' | 'update' | 'delete' | 'skip',
-          status: item.status as 'success' | 'failed',
+          status: item.status as 'create' | 'update' | 'delete' | 'skip' | 'error',
           message: item.message,
           code: item.code,
         })),

@@ -2,7 +2,6 @@
 import { h, resolveComponent } from 'vue'
 
 import type { TableColumn } from '@nuxt/ui'
-import type { StatusType, ValidationResult, ValidationStatus } from '~/types/userUpload'
 
 const emit = defineEmits<{
   next: [taskId: string]
@@ -141,8 +140,6 @@ const columns: TableColumn<ValidationResult>[] = [
   },
 ]
 
-const isAllSelected = computed(() => selectedFilters.value.length === 0)
-
 async function loadValidationResults() {
   if (!taskId.value) return
 
@@ -165,7 +162,7 @@ async function loadValidationResults() {
     console.error('Failed to load validation results:', error)
     useToast().add({
       title: $t('bulk.status.error'),
-      description: '検証結果の取得に失敗しました',
+      description: $t('bulk.validation.fetch_failed'),
       color: 'error',
       icon: 'i-lucide-circle-x',
     })
@@ -204,7 +201,7 @@ async function handleNext() {
 
   try {
     const result = await executeUpload()
-    const uploadHistoryId = result?.history_id || historyId.value
+    const uploadHistoryId = result?.history_id
 
     if (uploadHistoryId) {
       emit('next', uploadHistoryId)
@@ -213,8 +210,8 @@ async function handleNext() {
   catch (error) {
     console.error('Import error:', error)
     useToast().add({
-      title: 'エラー',
-      description: 'インポートに失敗しました',
+      title: $t('bulk.status.error'),
+      description: $t('bulk.import.failed'),
       color: 'error',
       icon: 'i-lucide-circle-x',
     })
@@ -241,7 +238,7 @@ function deselectAllMissingUsers() {
   selectedMissingUsers.value = []
 }
 
-function toggleMissingUser(userId: number) {
+function toggleMissingUser(userId: string) {
   const index = selectedMissingUsers.value.indexOf(userId)
   if (index === -1) {
     selectedMissingUsers.value.push(userId)
@@ -252,7 +249,6 @@ function toggleMissingUser(userId: number) {
 }
 
 const totalCount = computed(() => summary.value.total)
-const displayCount = computed(() => validationResults.value.length)
 </script>
 
 <template>
@@ -263,16 +259,34 @@ const displayCount = computed(() => validationResults.value.length)
         color="error"
         icon="i-lucide-alert-circle"
         title="エラーが見つかりました"
-        description="ファイルを修正して再度アップロードしてください。"
+        description="$t('bulk.validation.error')"
       />
 
       <div class="sticky top-0 z-10 bg-background">
-        <div class="flex items-center justify-between gap-4 p-4 rounded-lg border border-default bg-background shadow-sm">
-          <NumberIndicator :title="$t('bulk.status.create')" icon="i-lucide-plus-circle" :number="summary.status.create ?? 0" color="success" />
-          <NumberIndicator :title="$t('bulk.status.update')" icon="i-lucide-pencil" :number="summary.status.update ?? 0" color="info" />
-          <NumberIndicator :title="$t('bulk.status.delete')" icon="i-lucide-trash-2" :number="summary.status.delete ?? 0" color="error" />
-          <NumberIndicator :title="$t('bulk.status.skip')" icon="i-lucide-minus-circle" :number="summary.status.skip ?? 0" />
-          <NumberIndicator :title="$t('bulk.status.error')" icon="i-lucide-circle-x" :number="summary.status.error ?? 0" color="error" />
+        <div
+          class="flex items-center justify-between gap-4 p-4 rounded-lg border border-default
+        bg-background shadow-sm"
+        >
+          <NumberIndicator
+            :title="$t('bulk.status.create')" icon="i-lucide-plus-circle"
+            :number="summary.status.create ?? 0" color="success"
+          />
+          <NumberIndicator
+            :title="$t('bulk.status.update')" icon="i-lucide-pencil"
+            :number="summary.status.update ?? 0" color="info"
+          />
+          <NumberIndicator
+            :title="$t('bulk.status.delete')" icon="i-lucide-trash-2"
+            :number="summary.status.delete ?? 0" color="error"
+          />
+          <NumberIndicator
+            :title="$t('bulk.status.skip')" icon="i-lucide-minus-circle"
+            :number="summary.status.skip ?? 0" color="warning"
+          />
+          <NumberIndicator
+            :title="$t('bulk.status.error')" icon="i-lucide-circle-x"
+            :number="summary.status.error ?? 0" color="error"
+          />
         </div>
       </div>
 
@@ -290,7 +304,7 @@ const displayCount = computed(() => validationResults.value.length)
           { label: $t('bulk.status.skip'), value: FILTER_MAP.skip },
           { label: $t('bulk.status.error'), value: FILTER_MAP.error },
         ]"
-        title="データプレビュー"
+        :title="$t('bulk.validation.results')"
         @update:page-index="(v) => pagination.pageIndex = v"
         @update:page-size="(v) => pagination.pageSize = v"
         @update:selected-filters="(v) => selectedFilters = v"
@@ -307,14 +321,14 @@ const displayCount = computed(() => validationResults.value.length)
             </div>
             <div class="flex items-center gap-2">
               <UButton
-                label="すべて選択"
+                :label="$t('bulk.select_all')"
                 size="xs"
                 color="neutral"
                 variant="outline"
                 @click="selectAllMissingUsers"
               />
               <UButton
-                label="すべて解除"
+                :label="$t('bulk.deselect_all')"
                 size="xs"
                 color="neutral"
                 variant="outline"
@@ -323,7 +337,7 @@ const displayCount = computed(() => validationResults.value.length)
             </div>
           </div>
           <p class="text-sm text-muted">
-            削除するユーザーを選択してください。
+            {{ $t('bulk.missing-user.select') }}
           </p>
         </template>
 
@@ -331,8 +345,9 @@ const displayCount = computed(() => validationResults.value.length)
           v-if="selectedMissingUsers.length > 0"
           color="error"
           icon="i-lucide-alert-triangle"
-          title="削除の確認"
-          :description="`選択した${selectedMissingUsers.length}件のユーザーは削除されます。この操作は元に戻せません。`"
+          :title="$t('bulk.missing-user.confirm')"
+          :description="$t('bulk.missing-user.confirm_desc',
+                           { count: selectedMissingUsers.length })"
           class="mb-4"
           variant="solid"
         />
@@ -373,7 +388,7 @@ const displayCount = computed(() => validationResults.value.length)
     <template #footer>
       <div class="flex justify-between">
         <UButton
-          label="戻る"
+          :label="$t('button.back')"
           color="neutral"
           variant="outline"
           icon="i-lucide-arrow-left"
@@ -381,7 +396,7 @@ const displayCount = computed(() => validationResults.value.length)
           @click="handlePrevious"
         />
         <UButton
-          label="インポート実行"
+          :label="$t('bulk.import.execute')"
           icon="i-lucide-arrow-right"
           trailing
           :loading="isProcessing"
@@ -389,7 +404,7 @@ const displayCount = computed(() => validationResults.value.length)
           @click="handleNext"
         >
           <template v-if="!canProceed && summary.status.error > 0" #trailing>
-            <UTooltip text="エラーを修正してください">
+            <UTooltip :text="$t('bulk.validation.fix_error')">
               <UIcon name="i-lucide-alert-circle" class="size-4" />
             </UTooltip>
           </template>

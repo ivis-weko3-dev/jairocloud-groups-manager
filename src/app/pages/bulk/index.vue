@@ -1,20 +1,21 @@
 <script setup lang="ts">
 const currentStep = ref(0)
 
+const { t: $t } = useI18n()
 const items = [
   {
-    title: 'ファイル選択',
-    description: 'CSV,TSVまたはExcelファイル',
+    title: $t('bulk.step.select_file'),
+    description: $t('bulk.step.select_file_description'),
     icon: 'i-lucide-file-up',
   },
   {
-    title: 'データ検証',
-    description: '変更内容の確認',
+    title: $t('bulk.step.validate'),
+    description: $t('bulk.step.validate_description'),
     icon: 'i-lucide-shield-check',
   },
   {
-    title: '完了',
-    description: 'アップロード結果',
+    title: $t('bulk.step.complete'),
+    description: $t('bulk.step.complete_description'),
     icon: 'i-lucide-circle-check-big',
   },
 ]

@@ -1,6 +1,6 @@
- type StatusType = 'create' | 'update' | 'delete' | 'skip' | 'error'
+type StatusType = 'create' | 'update' | 'delete' | 'skip' | 'error'
 
- interface ValidationResult {
+interface ValidationResult {
   row: number
   id: string
   status: StatusType
@@ -11,14 +11,14 @@
   code?: string
 }
 
- interface MissingUser {
+interface MissingUser {
   id: string
   name: string
   eppn: string
   groups: string[]
 }
 
- interface UploadResult {
+interface UploadResult {
   row: number
   id: string
   status: StatusType
@@ -26,10 +26,10 @@
   eppn: string
   emails: string
   groups: string[]
-  message?: string
+  code?: string
 }
 
- interface Summary {
+interface Summary {
   total: number
   status: {
     create: number
@@ -40,28 +40,9 @@
   }
 }
 
- interface ImportResult {
-  id: string
-  row?: number
-  eppn: string | string[]
-  userName: string
-  emails: string[]
-  groups: string[]
-  status: StatusType
-  code?: string
-}
-
- interface ImportResultResponse {
-  results: ImportResult[]
-  summary: {
-    total: number
-    success: number
-    failed: number
-    create: number
-    update: number
-    delete: number
-    skip: number
-  }
+interface UploadResultResponse {
+  results: UploadResult[]
+  summary: Summary
   fileInfo?: {
     fileName: string
     startedAt: string
@@ -70,23 +51,12 @@
   }
 }
 
- interface ImportResultResponse {
-  results: ImportResult[]
-  summary: {
-    total: number
-    success: number
-    failed: number
-    create: number
-    update: number
-    delete: number
-    skip: number
-  }
-  fileInfo?: {
-    fileName: string
-    startedAt: string
-    completedAt: string
-    executedBy: string
-  }
+interface UploadResponse {
+  taskId: string
+  repositoryId: string
+  tempFileId: string
+  deleteUser: UserDetail[]
 }
 
-export type { StatusType, ValidationResult, MissingUser, UploadResult, Summary, ImportResult, ImportResultResponse }
+export type { StatusType, ValidationResult, MissingUser, UploadResult, Summary,
+  UploadResultResponse, UploadResponse }

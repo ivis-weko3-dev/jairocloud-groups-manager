@@ -35,7 +35,7 @@ const STATUS_CONFIG: Record<string, { color: string, label: string, icon: string
   skip: { color: 'neutral', label: $t('bulk.status.skip'), icon: 'i-lucide-minus-circle' },
 }
 
-const resultColumns: TableColumn<ImportResult>[] = [
+const resultColumns: TableColumn<UploadResult>[] = [
   {
     accessorKey: 'row',
     header: $t('bulk.column.row'),
@@ -78,9 +78,9 @@ const resultColumns: TableColumn<ImportResult>[] = [
   },
   {
     accessorKey: 'status',
-    header: $t('bulk.status'),
+    header: $t('bulk.column.status'),
     cell: ({ row }) => {
-      const data = row.original as ImportResult
+      const data = row.original as UploadResult
       const status = data.status
       const message = data.code
 
@@ -110,7 +110,7 @@ const filteredResults = computed(() => {
     return importResult.value.results
   }
 
-  return importResult.value.results.filter((result: ImportResult) => {
+  return importResult.value.results.filter((result: UploadResult) => {
     return selectedFilters.value.includes(result.status)
   })
 })
@@ -123,39 +123,21 @@ const paginatedResults = computed(() => {
 
 const resultSummary = computed(() => ({
   total: filteredResults.value.length,
-  success: importResult.value?.summary?.success || 0,
-  failed: importResult.value?.summary?.failed || 0,
-  create: importResult.value?.summary?.create || 0,
-  update: importResult.value?.summary?.update || 0,
-  delete: importResult.value?.summary?.delete || 0,
-  skip: importResult.value?.summary?.skip || 0,
+  create: importResult.value?.summary?.status.create || 0,
+  update: importResult.value?.summary?.status.update || 0,
+  delete: importResult.value?.summary?.status.delete || 0,
+  skip: importResult.value?.summary?.status.skip || 0,
 }))
 
 async function reloadResults(queryParameters?: string) {
-  if (!props.historyId) return
+  if (!properties.historyId) return
 
   try {
-    await fetchUploadtResult(props.historyId, queryParameters)
+    await fetchUploadtResult(properties.historyId, queryParameters)
   }
   catch (error) {
     console.error('Failed to reload import results:', error)
   }
-}
-
-function changeResultPageSize(size: number) {
-  resultPagination.value.pageSize = size
-  resultPagination.value.pageIndex = 0
-}
-
-function toggleFilter(filter: string) {
-  const index = selectedFilters.value.indexOf(filter)
-  if (index === -1) {
-    selectedFilters.value.push(filter)
-  }
-  else {
-    selectedFilters.value.splice(index, 1)
-  }
-  resultPagination.value.pageIndex = 0
 }
 
 function clearFilters() {
@@ -167,7 +149,7 @@ function handleRestart() {
   emit('restart')
 }
 
-const fileInfo = computed(() => importResult.value?.fileInfo || {})
+const fileInfo = computed(() => importResult.value?.fileInfo)
 </script>
 
 <template>

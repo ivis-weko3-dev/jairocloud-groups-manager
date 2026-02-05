@@ -3,29 +3,30 @@ const route = useRoute()
 const router = useRouter()
 const historyId = computed(() => route.params.id as string)
 
-const currentStep = ref(2) // 0始まりなので2に変更
+const currentStep = ref(2)
 
+const { t: $t } = useI18n()
 const items = [
   {
-    title: 'ファイル選択',
-    description: 'CSV,TSVまたはExcelファイル',
+    title: $t('bulk.step.select_file'),
+    description: $t('bulk.step.select_file_description'),
     icon: 'i-lucide-file-up',
   },
   {
-    title: 'データ検証',
-    description: '変更内容の確認',
+    title: $t('bulk.step.validate'),
+    description: $t('bulk.step.validate_description'),
     icon: 'i-lucide-shield-check',
   },
   {
-    title: '完了',
-    description: 'インポート結果',
+    title: $t('bulk.step.complete'),
+    description: $t('bulk.step.complete_description'),
     icon: 'i-lucide-circle-check-big',
   },
 ]
 
 const stepper = ref()
 
-const { importResult, fetchUploadtResult, resetUpload } = useUserUpload()
+const { fetchUploadtResult, resetUpload } = useUserUpload()
 
 onMounted(async () => {
   if (!historyId.value) {
@@ -39,8 +40,8 @@ onMounted(async () => {
   catch (error) {
     console.error('Failed to fetch import result:', error)
     useToast().add({
-      title: 'エラー',
-      description: 'インポート結果の取得に失敗しました',
+      title: $t('bulk.status.error'),
+      description: $t('bulk.import.result_failed'),
       color: 'error',
       icon: 'i-lucide-circle-x',
     })

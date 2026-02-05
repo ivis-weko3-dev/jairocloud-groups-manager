@@ -5,11 +5,36 @@
     "about-description2": "Existing users are matched by id and updated if they match",
     "about-description3": "You can choose to delete users who are not included in the file",
     "about-description4": "Supported formats: TSV, CSV, Excel",
+    "column": {
+      "eppn": "eppn",
+      "groups": "Group ID",
+      "row": "row",
+      "status": "status",
+      "userName": "name"
+    },
+    "completed-at": "End date and time",
     "description": "You can perform bulk operations on users belonging to a repository by uploading files.",
-    "empty": "sky",
+    "deselect_all": "Release all",
+    "empty": "empty",
     "file-format-error": "The file format is not supported. \nChoose TSV, CSV, or Excel file.",
+    "file-validate-error": "File validation failed",
+    "filter": "filter",
+    "import": {
+      "execute": "Execute import",
+      "failed": "User update failed",
+      "result_failed": "Failed to get upload results"
+    },
+    "import-results": "Batch operation results",
+    "missing-user": {
+      "confirm": "Confirm deletion",
+      "confirm_desc": "The selected ${count} users will be deleted. \nThis operation cannot be undone.",
+      "select": "Please select the user to delete."
+    },
     "missing_user": "User not included in file",
+    "operator": "Execution user",
     "select-repository": "Please select a repository",
+    "select_all": "Select all",
+    "start-at": "Start date and time",
     "status": {
       "create": "create",
       "delete": "delete",
@@ -17,18 +42,37 @@
       "skip": "No updates",
       "update": "update"
     },
+    "step": {
+      "complete": "completion",
+      "complete_description": "Upload result",
+      "select_file": "File selection",
+      "select_file_description": "CSV,TSV or Excel file",
+      "validate": "data validation",
+      "validate_description": "Confirm changes"
+    },
+    "table": {
+      "count": "subject"
+    },
     "target-repository": "Operation target repository",
     "title": "Bulk user operations",
     "upload-field": "Select or drag files",
     "upload-file": "upload file",
+    "upload-file-info": "Batch operation results",
+    "validation": {
+      "error": "Please correct the file and upload it again.",
+      "fetch_failed": "Failed to obtain verification results",
+      "fix_error": "Please fix the error",
+      "results": "data preview"
+    },
     "view-all": "Show all"
   },
   "button": {
     "add": "Add",
+    "back": "return",
     "cancel": "Cancel",
     "create-new": "Create new",
-    "next": "to the next",
     "delete": "Delete",
+    "next": "to the next",
     "reload": "Reload",
     "save": "Save",
     "update": "Update",
@@ -365,9 +409,6 @@
         "required": "Username is a required field."
       }
     }
-  },
-  "table": {
-    "count": "subject"
   },
   "users": {
     "button": {
