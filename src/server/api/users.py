@@ -10,8 +10,7 @@ from flask_pydantic import validate
 
 from server.const import USER_ROLES
 from server.entities.search_request import FilterOption, SearchResult
-from server.entities.summaries import RepositorySummary
-from server.entities.user_detail import UserDetail
+from server.entities.user_detail import RepositoryRole, UserDetail
 from server.exc import (
     ResourceInvalid,
     ResourceNotFound,

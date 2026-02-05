@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import typing as t
-import uuid  # noqa: TC003
+import uuid
 
 from datetime import datetime  # noqa: TC003
 
@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import db
 
@@ -43,6 +43,7 @@ class Files(db.Model):
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID,
+        default=uuid.uuid7,
         primary_key=True,
     )
     """File identifier (UUID)."""
@@ -57,10 +58,7 @@ class Files(db.Model):
         MutableDict.as_mutable(JSON().with_variant(postgresql.JSONB, "postgresql")),
     )
     """Repositories, groups, and users contained in the file."""
-
-    __table_args__ = (
-        Index("ix_files_file_content", "file_content", postgresql_using="gin"),
-    )
+    __table_args__ = (Index(None, "file_content", postgresql_using="gin"),)
 
 
 class DownloadHistory(db.Model):
@@ -70,6 +68,7 @@ class DownloadHistory(db.Model):
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID,
+        default=uuid.uuid7,
         primary_key=True,
     )
     """History record ID (uuid.UUID)."""
@@ -84,7 +83,7 @@ class DownloadHistory(db.Model):
 
     file_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("files.id"),
+        ForeignKey(Files.id),
         nullable=False,
     )
     """Foreign key to files.id (downloaded file ID)."""
@@ -115,6 +114,7 @@ class DownloadHistory(db.Model):
         nullable=True,
     )
     """Self-referencing FK to the first download record (nullable)."""
+    file = relationship("Files")
 
 
 class UploadHistory(db.Model):
@@ -122,15 +122,17 @@ class UploadHistory(db.Model):
 
     __tablename__ = "upload_history"
 
-    type Status = t.Literal["S", "P", "F"]
+    type Status = t.Literal["S", "P", "F", "C"]
     """Allowed status values for the upload history.
     - 'S': Success
     - 'P': In Progress
     - 'F': Failed
+    - 'C': Cancel
     """
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID,
+        default=uuid.uuid7,
         primary_key=True,
     )
     """History record ID (UUID)."""
@@ -151,7 +153,7 @@ class UploadHistory(db.Model):
 
     file_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("files.id"),
+        ForeignKey(Files.id),
         nullable=False,
     )
     """Foreign key to files.id (uploaded file ID)."""
@@ -178,9 +180,10 @@ class UploadHistory(db.Model):
 
     status: Mapped[Status] = mapped_column(
         String(1),
+        default="C",
         nullable=False,
     )
-    """Status: 'S' (success), 'F' (failure), 'P' (in progress)."""
+    """Status: 'C' (cancel) 'S' (success), 'F' (failure), 'P' (in progress)."""
 
     results: Mapped[dict[str, t.Any]] = mapped_column(
         MutableDict.as_mutable(JSON().with_variant(postgresql.JSONB, "postgresql")),
@@ -188,10 +191,11 @@ class UploadHistory(db.Model):
     )
     """upload result data."""
 
+    file = relationship("Files")
     __table_args__ = (
         CheckConstraint(
             status.in_(t.get_args(Status.__value__)),
             name="status",
         ),
-        Index("ix_upload_history_results", "results", postgresql_using="gin"),
+        Index(None, "results", postgresql_using="gin"),
     )

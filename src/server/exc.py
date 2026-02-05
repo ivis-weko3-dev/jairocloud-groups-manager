@@ -123,3 +123,10 @@ class InvalidQueryError(JAIROCloudGroupsManagerError):
 
     Errors caused by unexpected query structure or data during query construction.
     """
+
+
+class ImmutableError(JAIROCloudGroupsManagerError):
+    """Exception for immutable attribute modification errors.
+
+    Errors caused by attempts to modify immutable attributes.
+    """
