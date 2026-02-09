@@ -4,6 +4,8 @@
 
 """API endpoints for repository-related operations."""
 
+import typing as t
+
 from flask import Blueprint, url_for
 from flask_login import login_required
 from flask_pydantic import validate
@@ -39,8 +41,8 @@ def get(
         query (RepositoriesQuery): Query parameters for filtering repositories.
 
     Returns:
-        tuple[dict, int]:
-            A tuple containing the list of repositories and the HTTP status code.
+        - If succeeded in getting repositories, search result and status code 200
+        - If query is invalid, error message and status code 400
     """
     try:
         results = repositories.search(query)
@@ -74,7 +76,9 @@ def post(
     except ResourceInvalid as exc:
         return ErrorResponse(code="", message=str(exc)), 409
 
-    location = url_for("api.repositories.id_get", repository_id=created.id)
+    location = url_for(
+        "api.repositories.id_get", repository_id=created.id, _external=True
+    )
     return created, 201, {"Location": location}
 
 
@@ -93,7 +97,6 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
             repository information and status code 200
         - If logged-in user does not have permission, status code 403
         - If repository not found, status code 404
-        - If other error, status code 500
     """
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
@@ -123,7 +126,6 @@ def id_put(
             and status code 200
         - If logged-in user does not have permission, status code 403
         - If repository not found, status code 404
-        - If other error, status code 500
     """
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
@@ -138,14 +140,40 @@ def id_put(
     return updated, 200
 
 
-def has_permission(repository_id: str | None) -> bool:
+@bp.delete("/<string:repository_id>")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN)
+@validate(response_by_alias=True)
+def id_delete(
+    repository_id: str,
+) -> tuple[t.Literal[""], int] | tuple[ErrorResponse, int]:
+    """Delete repository endpoint.
+
+    Args:
+        repository_id(str): Repository id
+
+    Returns:
+        - If succeeded in deleting repository, status code 204
+        - If repository not found, status code 404
+    """
+    try:
+        repositories.delete_by_id(repository_id)
+    except ResourceNotFound as exc:
+        return ErrorResponse(code="", message=str(exc)), 404
+    except ResourceInvalid as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
+
+    return "", 204
+
+
+def has_permission(repository_id: str) -> bool:
     """Check user controll permmision.
 
     If the logged-in user is a system administrator or
     an administrator of the target repository, that user has permission.
 
     Args:
-        repository_id (str | None): Repository ID to check permission for.
+        repository_id (str): Repository ID to check permission for.
 
     Returns:
         bool:

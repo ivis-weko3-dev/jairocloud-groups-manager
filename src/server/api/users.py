@@ -12,6 +12,7 @@ from server.const import USER_ROLES
 from server.entities.search_request import FilterOption, SearchResult
 from server.entities.user_detail import RepositoryRole, UserDetail
 from server.exc import (
+    InvalidQueryError,
     ResourceInvalid,
     ResourceNotFound,
 )
@@ -34,16 +35,21 @@ bp = Blueprint("users", __name__)
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
-def get(query: UsersQuery) -> tuple[SearchResult, int]:
+def get(query: UsersQuery) -> tuple[SearchResult | ErrorResponse, int]:
     """Get a list of users based on query parameters.
 
     Args:
         query (UsersQuery): Query parameters for filtering users.
 
     Returns:
-        tuple[dict, int]: A tuple containing the list of users and the HTTP status code.
+        - If succeeded in getting users, search result and status code 200
+        - If query is invalid, error message and status code 400
     """
-    results = users.search(query)
+    try:
+        results = users.search(query)
+    except InvalidQueryError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
+
     return results, 200
 
 

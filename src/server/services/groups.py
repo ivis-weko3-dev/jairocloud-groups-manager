@@ -4,6 +4,7 @@
 
 """Services for managing groups."""
 
+import re
 import typing as t
 
 from http import HTTPStatus
@@ -15,6 +16,7 @@ from pydantic_core import ValidationError
 
 from server.clients import bulks, groups
 from server.config import config
+from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.bulk_request import BulkOperation
 from server.entities.group_detail import GroupDetail
 from server.entities.map_error import MapError
@@ -296,7 +298,7 @@ def update(group: GroupDetail) -> GroupDetail:
     return GroupDetail.from_map_group(result)
 
 
-def delete(group_ids: set[str]) -> set[str] | None:
+def delete_multiple(group_ids: set[str]) -> set[str] | None:
     """Delete groups from mAP Core API by group_ids.
 
     Args:
@@ -364,13 +366,14 @@ def delete_by_id(group_id: str) -> None:
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
+        ResourceNotFound: If the Group resource is not found.
         ResourceInvalid: If the Group resource data is invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        result = groups.delete(
+        result = groups.delete_by_id(
             group_id, access_token=access_token, client_secret=client_secret
         )
     except requests.HTTPError as exc:
@@ -383,7 +386,7 @@ def delete_by_id(group_id: str) -> None:
             error = "mAP Core API server error."
             raise UnexpectedResponseError(error) from exc
 
-        error = "Failed to get Group resource from mAP Core API."
+        error = "Failed to delete Group resource from mAP Core API."
         raise UnexpectedResponseError(error) from exc
 
     except requests.RequestException as exc:
@@ -397,10 +400,13 @@ def delete_by_id(group_id: str) -> None:
     except OAuthTokenError, CredentialsError:
         raise
 
-    if isinstance(result, MapError):
-        error = f"Failed to delete Group resource: {result.detail}"
-        current_app.logger.error(error)
-        raise ResourceInvalid(error)
+    if result is None:
+        return
+
+    if re.search(MAP_NOT_FOUND_PATTERN, result.detail):
+        raise ResourceNotFound(result.detail)
+
+    raise ResourceInvalid(result.detail)
 
 
 def update_member(group_id: str, add: set[str], remove: set[str]) -> GroupDetail:

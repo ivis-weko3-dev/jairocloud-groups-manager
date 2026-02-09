@@ -355,6 +355,49 @@ def patch_by_id(
     return resource
 
 
+def delete_by_id(
+    service_id: str,
+    *,
+    access_token: str,
+    client_secret: str,
+) -> MapError | None:
+    """Delete a Service resource by its ID in mAP API.
+
+    Args:
+        service_id (str): ID of the Service resource to delete.
+        access_token (str): OAuth access token for authorization.
+        client_secret (str): Client secret for Authentication.
+
+    Returns:
+        MapError:
+            The None if successful, otherwise Error response.
+    """
+    time_stamp = get_time_stamp()
+    signature = compute_signature(client_secret, access_token, time_stamp)
+    auth_params = {
+        "time_stamp": time_stamp,
+        "signature": signature,
+    }
+
+    response = requests.delete(
+        f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{service_id}",
+        params=auth_params,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+        },
+        timeout=config.MAP_CORE.timeout,
+    )
+
+    if response.status_code > HTTPStatus.BAD_REQUEST:
+        response.raise_for_status()
+
+    if not response.text:
+        get_by_id.clear_cache(service_id)  # pyright: ignore[reportFunctionMemberAccess]
+        return None
+
+    return MapError.model_validate_json(response.text)
+
+
 def _get_alias_generator() -> t.Callable[[str], str]:
     generator = MapService.model_config.get("alias_generator")
     if generator and not callable(generator):
