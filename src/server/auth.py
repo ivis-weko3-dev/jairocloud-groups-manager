@@ -16,15 +16,33 @@ from server.datastore import account_store
 from server.entities.login_user import LoginUser
 
 
+if t.TYPE_CHECKING:
+    from flask_login import AnonymousUserMixin
+    from werkzeug.local import LocalProxy
+
+    type CurrentUser = LoginUser | AnonymousUserMixin
+
 login_manager = LoginManager()
+
+
+def is_user_logged_in(current_user: LocalProxy) -> t.TypeGuard[LoginUser]:
+    """Guard to check if the current_user is of type LoginUser.
+
+    Args:
+        current_user: The current user object.
+
+    Returns:
+        TypeGuard[LoginUser]: True if current_user is LoginUser, else False.
+    """
+    return t.cast("CurrentUser", current_user).is_authenticated
 
 
 def refresh_session() -> None:
     """Extend the TTL of the Redis login state for login users."""
-    if not current_user.is_authenticated:
+    if not is_user_logged_in(current_user):
         return
 
-    session_id: str = t.cast("LoginUser", current_user).session_id or session["_id"]
+    session_id: str = current_user.session_id or session["_id"]
 
     key = build_account_store_key(session_id)
     login_date_raw = account_store.hget(key, "loginDate")
