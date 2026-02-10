@@ -80,7 +80,7 @@ const useUsersTable = () => {
     },
     {
       icon: 'i-lucide-file-up',
-      label: $t('button.upload-users'),
+      label: $t('button.upload'),
       to: '/upload',
       color: 'primary',
       variant: 'solid',
@@ -289,8 +289,8 @@ const useUsersTable = () => {
           copy(row.original.id)
 
           toast.add({
-            title: $t('toast.success-title'),
-            description: $t('user.actions.copy-id-success'),
+            title: $t('toast.success.title'),
+            description: $t('toast.success.copy-user-id.description'),
             color: 'success',
             icon: 'i-lucide-circle-check',
           })
@@ -303,7 +303,8 @@ const useUsersTable = () => {
           copy(row.original.eppns?.[0] || '')
 
           toast.add({
-            title: $t('user.actions.copy-eppn-success'),
+            title: $t('toast.success.title'),
+            description: $t('toast.success.copy-user-eppn.description'),
             color: 'success',
             icon: 'i-lucide-circle-check',
           })
