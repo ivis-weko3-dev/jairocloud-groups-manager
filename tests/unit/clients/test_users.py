@@ -634,6 +634,8 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) ->
     mock_put = mocker.patch("server.clients.users.requests.put")
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
+    mocker.patch("server.clients.users.get_by_id.clear_cache")
+    mocker.patch("server.clients.users.get_by_eppn.clear_cache")
 
     original_func = inspect.unwrap(users.put_by_id)
     result: MapUser = original_func(user, include=include, access_token="token", client_secret="secret")
@@ -678,6 +680,8 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) ->
     mock_put = mocker.patch("server.clients.users.requests.put")
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
+    mocker.patch("server.clients.users.get_by_id.clear_cache")
+    mocker.patch("server.clients.users.get_by_eppn.clear_cache")
 
     original_func = inspect.unwrap(users.put_by_id)
     result: MapUser = original_func(user, exclude=exclude, access_token="token", client_secret="secret")
@@ -751,7 +755,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> No
     user_id: str = json_data["id"]
     operations = [ReplaceOperation(op="replace", path="nickName", value="Tomy")]
     expected_user: MapUser = MapUser.model_validate(json_data)
-    expected_emails = (json_data["eduPersonPrincipalNames"][0]["value"],)
+    expected_eppn = (json_data["eduPersonPrincipalNames"][0]["value"],)
     expected_payload = PatchRequestPayload(operations=operations).model_dump(  # type: ignore  # noqa: PGH003
         mode="json", by_alias=True, exclude_unset=False
     )
@@ -804,7 +808,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> No
     assert clear_id.call_count == 1
     assert clear_id.call_args[0][0] == user_id
     assert clear_eppn.call_count == 1
-    assert clear_eppn.call_args[0] == expected_emails
+    assert clear_eppn.call_args[0] == expected_eppn
 
 
 def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
@@ -899,6 +903,9 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) 
         "Operations": [{"op": "add", "path": "emails", "value": {"value": "john_doe@example.com"}}],
     }
     expected_json = {"request": expected_request} | expected_payload
+
+    mocker.patch("server.clients.users.get_by_id.clear_cache")
+    mocker.patch("server.clients.users.get_by_eppn.clear_cache")
 
     mocker.patch("server.clients.users.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.users.compute_signature", return_value=hashlib.sha256(b"hash").hexdigest())
