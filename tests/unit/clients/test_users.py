@@ -4,7 +4,6 @@ import json
 import time
 import typing as t
 
-import pydantic_core
 import pytest
 
 from requests.exceptions import HTTPError
@@ -180,8 +179,8 @@ def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) ->
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_get_by_id_not_found(app: Flask, mocker: MockerFixture) -> None:
-    """Test that None is returned when the user is not found (404)."""
+def test_get_by_id_400_returns_maperror(app: Flask, mocker: MockerFixture) -> None:
+    """Test that MapError is returned when the user is 400 for get_by_id."""
     json_data = load_json_data("data/map_error.json")
 
     user_id = "nonexistent_user"
@@ -189,7 +188,7 @@ def test_get_by_id_not_found(app: Flask, mocker: MockerFixture) -> None:
 
     mock_response = mocker.patch("server.clients.users.requests.get")
     mock_response.return_value.text = expected_error.model_dump_json()
-    mock_response.return_value.status_code = 200
+    mock_response.return_value.status_code = 400
 
     original_func = inspect.unwrap(users.get_by_id)
     result = original_func(user_id, access_token="token", client_secret="secret")
@@ -360,8 +359,8 @@ def test_get_by_eppn_with_exclude(app: Flask, mocker: MockerFixture, user_data) 
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_get_by_eppn_not_found(app: Flask, mocker: MockerFixture) -> None:
-    """Test that MapError is returned when the user is not found (404) for get_by_eppn."""
+def test_get_by_eppn_400_returns_maperror(app: Flask, mocker: MockerFixture) -> None:
+    """Test that MapError is returned when the user is 400 for get_by_eppn."""
     json_data = load_json_data("data/map_error.json")
 
     eppn = "nonexistent_eppn@example.com"
@@ -369,7 +368,7 @@ def test_get_by_eppn_not_found(app: Flask, mocker: MockerFixture) -> None:
 
     mock_get = mocker.patch("server.clients.users.requests.get")
     mock_get.return_value.text = expected_error.model_dump_json()
-    mock_get.return_value.status_code = 200
+    mock_get.return_value.status_code = 400
 
     original_func = inspect.unwrap(users.get_by_eppn)
     result = original_func(eppn, access_token="token", client_secret="secret")
@@ -528,13 +527,13 @@ def test_post_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_post_not_found(app: Flask, mocker: MockerFixture, user_data) -> None:
-    """Test that None is returned when the user is not found (404)."""
+def test_post_400_returns_maperror(app: Flask, mocker: MockerFixture, user_data) -> None:
+    """Test that MapError is returned when the user is not found (400)."""
     json_data = load_json_data("data/map_error.json")
 
     mock_post = mocker.patch("server.clients.users.requests.post")
     mock_post.return_value.text = json.dumps(json_data)
-    mock_post.return_value.status_code = 200
+    mock_post.return_value.status_code = 400
 
     _, user = user_data
     result = users.post(user, include=None, exclude=None, access_token="token", client_secret="secret")
@@ -703,19 +702,19 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) ->
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_put_by_id_not_found(app: Flask, mocker: MockerFixture, user_data) -> None:
-    """Test that None is returned when the user is not found (404) from put_by_id."""
+def test_put_by_id_400_returns_maperror(app: Flask, mocker: MockerFixture, user_data) -> None:
+    """Test that MapError is returned when the user is not found (400) from put_by_id."""
     json_error_data: dict[str, t.Any] = load_json_data("data/map_error.json")
 
     mock_put = mocker.patch("server.clients.users.requests.put")
     mock_put.return_value.text = json.dumps(json_error_data)
-    mock_put.return_value.status_code = 200
+    mock_put.return_value.status_code = 400
 
     _, user = user_data
     result = users.put_by_id(user, access_token="token", client_secret="secret")
 
     assert isinstance(result, MapError)
-    assert "Not Found" in result.detail or result.detail
+    assert "Not Found" in result.detail
 
 
 def test_put_by_id_http_error(app: Flask, mocker: MockerFixture, user_data) -> None:
@@ -932,7 +931,7 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) 
     assert called_kwargs["json"] == expected_json
 
 
-def test_patch_by_id_not_found(app: Flask, mocker: MockerFixture) -> None:
+def test_patch_by_id_status_400_returns_maperror(app: Flask, mocker: MockerFixture) -> None:
     """Test that MapError is returned when error response is received from patch_by_id."""
     error_data: dict[str, t.Any] = load_json_data("data/map_error.json")
     operations: list[PatchOperation] = [AddOperation(path="emails", value={"value": "john_doe@example.com"})]
@@ -940,13 +939,13 @@ def test_patch_by_id_not_found(app: Flask, mocker: MockerFixture) -> None:
     user_id = "dummy_id"
     mock_patch = mocker.patch("server.clients.users.requests.patch")
     mock_patch.return_value.text = json.dumps(error_data)
-    mock_patch.return_value.status_code = 200
+    mock_patch.return_value.status_code = 400
 
     original_func = inspect.unwrap(users.patch_by_id)
     result = original_func(user_id, operations, access_token="token", client_secret="secret")
 
     assert isinstance(result, MapError)
-    assert "Not Found" in result.detail or result.detail
+    assert "Not Found" in result.detail
 
 
 def test_patch_by_id_http_error(app: Flask, mocker: MockerFixture, user_data) -> None:
@@ -1131,8 +1130,8 @@ def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa
     assert result.resources[0].emails[0].value == "mail@example.com"
 
 
-def test_search_not_found(app: Flask, mocker: MockerFixture) -> None:
-    """Test that MapError is returned when the search result is not found (404)."""
+def test_search_status_400_returns_maperror(app: Flask, mocker: MockerFixture) -> None:
+    """Test that MapError is returned when the search result is not found."""
 
     query = SearchRequestParameter()
     access_token = "token"
@@ -1142,9 +1141,10 @@ def test_search_not_found(app: Flask, mocker: MockerFixture) -> None:
 
     mock_get = mocker.patch("server.clients.users.requests.get")
     mock_get.return_value.text = expected_error.model_dump_json()
-    mock_get.return_value.status_code = 200
-    with pytest.raises((pydantic_core.ValidationError, Exception)):
-        users.search(query, access_token=access_token, client_secret=client_secret)
+    mock_get.return_value.status_code = 400
+    result = users.search(query, access_token=access_token, client_secret=client_secret)
+    assert isinstance(result, MapError)
+    assert "Not Found" in result.detail
 
 
 def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
