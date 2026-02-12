@@ -212,6 +212,16 @@
     "succes": "成功",
     "success-count": "成功件数",
     "sum": "総ダウンロード回数 | 総アップロード回数",
+    "table": {
+      "column": {
+        "download-date": "ダウンロード日時",
+        "eppns": "eppn",
+        "groups": "グループ",
+        "operator": "実行ユーザー",
+        "re-download": "再ダウンロード",
+        "users": "ユーザー"
+      }
+    },
     "table-title": "履歴一覧",
     "target": "ダウンロード対象 | アップロード対象",
     "title": "履歴",
@@ -219,6 +229,13 @@
     "uploaded-at": "アップロード日時",
     "user-count": "ユーザー数",
     "view": "表示件数"
+  },
+  "login": {
+    "dev-account": "アカウント",
+    "dev-login-button": "ログイン",
+    "dev-login-error": "ログインに失敗しました。",
+    "dev-login-title": "開発者ログイン",
+    "title": "ログイン"
   },
   "menu": {
     "management": "管理",

@@ -6,7 +6,10 @@
 
 import typing as t
 
+from sqlalchemy_utils import database_exists
+
 from .api.router import create_api_blueprint
+from .auth import login_manager
 from .cli.base import register_cli_commands
 from .config import RuntimeConfig, setup_config
 from .const import DEFAULT_CONFIG_PATH
@@ -15,6 +18,7 @@ from .db.base import db
 from .db.utils import load_models
 from .exc import ConfigurationError
 from .logger import setup_logger
+from .messages import W
 
 
 if t.TYPE_CHECKING:
@@ -50,9 +54,10 @@ class JAIROCloudGroupsManager:
 
         """
         self.init_config(app)
-        self.init_db_app(app)
-
         setup_logger(app, self.config)
+
+        self.init_db_app(app)
+        login_manager.init_app(app)
 
         self.datastore = setup_datastore(app, self.config)
         app.register_blueprint(create_api_blueprint(), url_prefix="/api")
@@ -84,16 +89,23 @@ class JAIROCloudGroupsManager:
             app (Flask): The Flask application instance.
 
         """
+        db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+        if not database_exists(db_uri):
+            app.logger.warning(W.DATABASE_NOT_EXIST)
+
         db.init_app(app)
         load_models()
 
-    @staticmethod
-    def dev_contrib(app: Flask) -> None:
+    def dev_contrib(self, app: Flask) -> None:
         """Provide development contribution utilities."""
         with app.app_context():
-            from contrib import messages  # noqa: PLC0415
+            from contrib import developers, messages  # noqa: PLC0415
 
             messages.generate_type_stub()
+            app.register_blueprint(
+                developers.create_developer_blueprint(self.config),
+                url_prefix="/api/dev",
+            )
 
     @property
     def config(self) -> RuntimeConfig:

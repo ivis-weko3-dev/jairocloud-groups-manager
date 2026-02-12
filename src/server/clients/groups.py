@@ -349,13 +349,13 @@ def patch_by_id(
     return resource
 
 
-def delete(
+def delete_by_id(
     group_id: str,
     *,
     access_token: str,
     client_secret: str,
 ) -> MapError | None:
-    """Patch a Group resource by its ID in mAP API.
+    """Delete a Group resource by its ID in mAP API.
 
     Args:
         group_id (str): ID of the Group resource.
@@ -363,7 +363,7 @@ def delete(
         client_secret (str): Client secret for Basic Authentication.
 
     Returns:
-        DeleteMapGroupResponse:
+        MapError:
             The None if successful, otherwise Error response.
     """
     time_stamp = get_time_stamp()

@@ -4,9 +4,26 @@
 
 """Custom exceptions for the server application."""
 
+from server.messages.base import LogMessage
+
 
 class JAIROCloudGroupsManagerError(Exception):
     """Base exception for the server application."""
+
+    def __init__(self, message: str | LogMessage) -> None:
+        """Initialize the exception instance.
+
+        Args:
+            message (str | LogMessage): The error message.
+
+        """
+        self.code = ""
+        if isinstance(message, LogMessage):
+            self.code = message.code
+            message = message.data
+        super().__init__(message)
+
+        self.message = message
 
 
 class ConfigurationError(JAIROCloudGroupsManagerError):

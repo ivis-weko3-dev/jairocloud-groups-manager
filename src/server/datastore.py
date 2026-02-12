@@ -11,8 +11,10 @@ from redis import Redis, sentinel
 from redis.exceptions import ConnectionError as RedisConnectionError
 from werkzeug.local import LocalProxy
 
+from server.messages import E, W
+
 from .config import config as config_
-from .exc import ConfigurationError, DatastoreError
+from .exc import ConfigurationError
 
 
 if t.TYPE_CHECKING:
@@ -50,7 +52,6 @@ def connection(
 
     Raises:
         ConfigurationError: If configuration for Redis is invalid.
-        DatastoreError: If failed to connect to Redis.
 
     """
     app = app or current_app
@@ -59,24 +60,23 @@ def connection(
         if config.REDIS.cache_type == "RedisCache":
             base_url = config.REDIS.single.base_url.rstrip("/")
             store = Redis.from_url(f"{base_url}/{db}")
-            store.ping()
-            app.logger.info("Successfully connected to Redis.")
         else:
             sentinels = sentinel.Sentinel(
                 [(node.host, node.port) for node in config.REDIS.sentinel.sentinels],
+                socket_timeout=0.1,
                 decode_responses=False,
             )
             store = sentinels.master_for(config.REDIS.sentinel.master_name, db=db)
-            store.ping()
-            app.logger.info("Successfully connected to Redis Sentinel.")
+
     except ValueError as exc:
-        error = "Failed to connect to Redis. Invalid configuration."
-        app.logger.error(error)
+        error = E.INVALID_REDIS_CONFIG % {"error": str(exc)}
         raise ConfigurationError(error) from exc
+
+    try:
+        store.ping()
     except RedisConnectionError as exc:
-        error = "Failed to connect to Redis."
-        app.logger.error(error)
-        raise DatastoreError(error) from exc
+        error = W.FAILD_CONNECT_REDIS % {"error": str(exc)}
+        app.logger.warning(error)
 
     return store
 

@@ -293,3 +293,59 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:
         raise ResourceInvalid(result.detail)
 
     return RepositoryDetail.from_map_service(result)
+
+
+def delete_by_id(repository_id: str) -> None:
+    """Delete a Repository resource by its ID.
+
+    Args:
+        repository_id (str): ID of the Repository resource to delete.
+
+    Raises:
+        OAuthTokenError: If the access token is invalid or expired.
+        CredentialsError: If the client credentials are invalid.
+        ResourceNotFound: If the Repository resource does not exist.
+        ResourceInvalid: If the Repository resource cannot be deleted.
+        UnexpectedResponseError: If response from mAP Core API is unexpected.
+    """
+    service_id = resolve_service_id(repository_id=repository_id)
+    try:
+        access_token = get_access_token()
+        client_secret = get_client_secret()
+        result: MapError | None = services.delete_by_id(
+            service_id,
+            access_token=access_token,
+            client_secret=client_secret,
+        )
+
+    except requests.HTTPError as exc:
+        code = exc.response.status_code
+        if code == HTTPStatus.UNAUTHORIZED:
+            error = "Access token is invalid or expired."
+            raise OAuthTokenError(error) from exc
+
+        if code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            error = "mAP Core API server error."
+            raise UnexpectedResponseError(error) from exc
+
+        error = "Failed to delete Repository resource in mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except requests.RequestException as exc:
+        error = "Failed to connect to mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except ValidationError as exc:
+        error = "Failed to parse response from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except OAuthTokenError, CredentialsError:
+        raise
+
+    if result is None:
+        return
+
+    if re.search(MAP_NOT_FOUND_PATTERN, result.detail):
+        raise ResourceNotFound(result.detail)
+
+    raise ResourceInvalid(result.detail)

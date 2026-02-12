@@ -4,13 +4,19 @@
 
 """API router for the server application."""
 
+import traceback
+
 from importlib import import_module
 from pathlib import Path
 from pkgutil import iter_modules
 
 from flask import Blueprint
+from flask_pydantic import validate
 
-from server.api.helper import refresh_session
+from server.auth import refresh_session
+from server.exc import JAIROCloudGroupsManagerError
+
+from .schemas import ErrorResponse
 
 
 def create_api_blueprint() -> Blueprint:
@@ -24,9 +30,23 @@ def create_api_blueprint() -> Blueprint:
     for _, module_name, _ in iter_modules([str(Path(__file__).parent)]):
         module = import_module(f"{__package__}.{module_name}")
         if hasattr(module, "bp") and isinstance(module.bp, Blueprint):
-            bp_api.register_blueprint(
-                module.bp, url_prefix=f"/{module_name}", strict_slashes=False
-            )
+            bp_api.register_blueprint(module.bp, url_prefix=f"/{module_name}")
+
+    @bp_api.errorhandler(JAIROCloudGroupsManagerError)
+    @validate()
+    def handle_unexpected_error(
+        error: JAIROCloudGroupsManagerError,
+    ) -> tuple[ErrorResponse, int]:
+        """Handle unexpected errors for the API.
+
+        Args:
+            error: The error object.
+
+        Returns:
+            dict: Response body.
+        """
+        traceback.print_exc()
+        return ErrorResponse(code=error.code, message=error.message), 500
 
     bp_api.before_request(refresh_session)
 

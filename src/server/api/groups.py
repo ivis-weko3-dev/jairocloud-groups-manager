@@ -4,20 +4,27 @@
 
 """API endpoints for group-related operations."""
 
+import typing as t
+
 from flask import Blueprint, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 from flask_pydantic import validate
 
-from server.api.helper import roles_required
+from server.api.helpers import roles_required
 from server.const import USER_ROLES
 from server.entities.group_detail import GroupDetail
 from server.entities.search_request import FilterOption, SearchResult
 from server.exc import (
+    InvalidQueryError,
     ResourceInvalid,
     ResourceNotFound,
 )
-from server.services import groups, permissions
+from server.services import groups
 from server.services.filter_options import search_groups_options
+from server.services.utils import (
+    filter_permitted_group_ids,
+    is_current_user_system_admin,
+)
 
 from .schemas import (
     DeleteGroupsRequest,
@@ -32,25 +39,32 @@ bp = Blueprint("groups", __name__)
 
 @bp.get("")
 @bp.get("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
-def get(query: GroupsQuery) -> tuple[SearchResult, int]:
+def get(query: GroupsQuery) -> tuple[SearchResult | ErrorResponse, int]:
     """Get a list of groups based on query parameters.
 
     Args:
         query (GroupsQuery): Query parameters for filtering groups.
 
     Returns:
-        tuple[dict, int]:
-            A tuple containing the list of groups and the HTTP status code.
+        - If succeeded in getting groups, search result and status code 200
+        - If query is invalid, error message and status code 400
     """
-    results = groups.search(query)
+    try:
+        results = groups.search(query)
+    except InvalidQueryError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
+
     return results, 200
 
 
+@bp.get("")
 @bp.post("/")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
+@validate(response_by_alias=True)
 def post(
     body: GroupDetail,
 ) -> tuple[GroupDetail, int, dict[str, str]] | tuple[ErrorResponse, int]:
@@ -65,23 +79,26 @@ def post(
         - If logged-in user does not have permission, status code 403
         - If id already exist, status code 409
     """
-    if isinstance(groups.get_by_id(body.id), GroupDetail):
-        return ErrorResponse(code="", message="id already exist"), 409
+    repository_id = body.repository.id if body.repository else None
+    if not repository_id:
+        return ErrorResponse(code="", message="repository id is required"), 400
+
+    if not has_permission(repository_id):
+        return ErrorResponse(code="", message="not has permission"), 403
+
     try:
         result = groups.create(body)
     except ResourceInvalid:
-        return ErrorResponse(code="", message="id already exist"), 400
+        return ErrorResponse(code="", message="id already exist"), 409
 
-    header = {
-        "Location": url_for("api.groups.id_get", group_id=result.id, _external=True)
-    }
-    return result, 201, header
+    location = url_for("api.groups.id_get", group_id=result.id, _external=True)
+    return result, 201, {"Location": location}
 
 
 @bp.get("/<string:group_id>")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
+@validate(response_by_alias=True)
 def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
     """Get information of group endpoint.
 
@@ -94,10 +111,9 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
         - If logged-in user does not have permission, status code 403
         - If group not found, status code 404
     """
-    if not (
-        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
-    ):
+    if not has_permission(group_id):
         return ErrorResponse(code="", message=""), 403
+
     result = groups.get_by_id(group_id)
 
     if result is None:
@@ -108,8 +124,8 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
 @bp.put("/<string:group_id>")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
-def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
+@validate(response_by_alias=True)
+def id_put(group_id: str, body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
     """Update group information endpoint.
 
     Args:
@@ -123,12 +139,11 @@ def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
         - If group not found, status code 404
         - If coflicted group information, status code 409
     """
-    if not (
-        current_user.is_system_admin or permissions.filter_permitted_group_ids(body.id)
-    ):
+    if not has_permission(group_id):
         return ErrorResponse(
-            code="", message=f"Not have permission to edit {body.id}."
+            code="", message=f"Not have permission to edit {group_id}."
         ), 403
+
     try:
         result = groups.update(body)
     except ResourceInvalid as ex:
@@ -141,7 +156,7 @@ def id_put(body: GroupDetail) -> tuple[GroupDetail | ErrorResponse, int]:
 @bp.patch("/<string:group_id>")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
+@validate(response_by_alias=True)
 def id_patch(
     group_id: str, body: GroupPatchRequest
 ) -> tuple[GroupDetail | ErrorResponse, int]:
@@ -158,30 +173,36 @@ def id_patch(
         - If group not found, status code 404
         - If coflicted group member, status code 409
     """
-    if not (
-        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
-    ):
+    if not has_permission(group_id):
         return ErrorResponse(code="", message=""), 403
-    try:
-        if body.path == "member":
-            add_users = set(body.value) if body.op == "add" else set()
-            remove_users = set(body.value) if body.op == "remove" else set()
-            result = groups.update_member(group_id, add=add_users, remove=remove_users)
-        else:
-            error = "Changes cannot be made by non-members."
+
+    adding = set()
+    removing = set()
+    for operation in body.operations:
+        if operation.path != "member":
+            error = f"Unsupported attribute to update: {operation.path}"
             return ErrorResponse(code="", message=error), 400
+
+        if operation.op == "add":
+            adding.update(set(operation.value))
+        elif operation.op == "remove":
+            removing.update(set(operation.value))
+
+    try:
+        result = groups.update_member(group_id, add=adding, remove=removing)
     except ResourceInvalid as ex:
         return ErrorResponse(code="", message=str(ex)), 409
     except ResourceNotFound as ex:
         return ErrorResponse(code="", message=str(ex)), 404
+
     return result, 200
 
 
 @bp.delete("/<string:group_id>")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
-def id_delete(group_id: str) -> tuple[None, int] | tuple[ErrorResponse, int]:
+@validate(response_by_alias=True)
+def id_delete(group_id: str) -> tuple[t.Literal[""], int] | tuple[ErrorResponse, int]:
     """Single group deletion endpoint.
 
     Args:
@@ -192,21 +213,20 @@ def id_delete(group_id: str) -> tuple[None, int] | tuple[ErrorResponse, int]:
           status code 204
         - If logged-in user does not have permission, status code 403
     """
-    if not (
-        current_user.is_system_admin or permissions.filter_permitted_group_ids(group_id)
-    ):
+    if not has_permission(group_id):
         return ErrorResponse(code="", message=""), 403
+
     groups.delete_by_id(group_id)
-    return None, 204
+    return "", 204
 
 
 @bp.post("/delete")
 @login_required
 @roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
-@validate()
+@validate(response_by_alias=True)
 def delete_post(
     body: DeleteGroupsRequest,
-) -> tuple[None, int] | tuple[ErrorResponse, int]:
+) -> tuple[t.Literal[""], int] | tuple[ErrorResponse, int]:
     """The multiple group deletion endpoint.
 
     Args:
@@ -217,17 +237,15 @@ def delete_post(
           status code 204
         - If logged-in user does not have permission, status code 403
     """
-    group_id = body.group_ids
-    if not (
-        current_user.is_system_admin
-        or permissions.filter_permitted_group_ids(*group_id)
-    ):
+    group_ids = body.group_ids
+    if not has_permission(*group_ids):
         return ErrorResponse(code="", message=""), 403
-    group_list = groups.delete(body.group_ids)
+
+    group_list = groups.delete_multiple(group_ids)
     if group_list:
         message = f"{group_list} is failed"
         return ErrorResponse(code="", message=message), 500
-    return None, 204
+    return "", 204
 
 
 @bp.get("/filter-options")
@@ -239,3 +257,23 @@ def filter_options() -> list[FilterOption]:
         list[FilterOption]: List of filter options for group search.
     """
     return search_groups_options()
+
+
+def has_permission(*group_id: str) -> bool:
+    """Check user controll permmision.
+
+    If the logged-in user is a system administrator or
+    an administrator of the target group, that user has permission.
+
+    Args:
+        group_id (str): Group ID to check permission for.
+
+    Returns:
+        bool:
+        - True: logged-in user has permission
+        - False: logged-in user does not have permission
+    """
+    if is_current_user_system_admin():
+        return True
+
+    return bool(filter_permitted_group_ids(*group_id))

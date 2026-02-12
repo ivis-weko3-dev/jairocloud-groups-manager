@@ -11,6 +11,7 @@ from server.factory import create_app
 
 if t.TYPE_CHECKING:
     from flask import Flask
+    from pytest_mock import MockerFixture
 
 
 def is_running_in_docker() -> bool:
@@ -70,6 +71,30 @@ def test_config():
         },
         "RABBITMQ": {"url": f"amqp://guest:guest@{amqp_host}:5672//"},
     })
+
+
+@pytest.fixture(autouse=True)
+def redis_disable(mocker: MockerFixture):
+    mocker.patch("server.datastore.Redis")
+    mocker.patch("server.datastore.sentinel")
+
+
+@pytest.fixture
+def datastore(mocker: MockerFixture):
+    app_cache = mocker.MagicMock()
+    account_store = mocker.MagicMock()
+    group_cache = mocker.MagicMock()
+
+    def _stores(name):
+        return {
+            "app_cache": app_cache,
+            "account_store": account_store,
+            "group_cache": group_cache,
+        }[name]
+
+    mocker.patch("server.datastore._stores", side_effect=_stores)
+
+    return app_cache, account_store, group_cache
 
 
 @pytest.fixture

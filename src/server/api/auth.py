@@ -4,7 +4,8 @@
 
 """API router for authentication endpoints."""
 
-from urllib.parse import quote
+import typing as t
+import urllib.parse as urlparse
 
 from flask import (
     Blueprint,
@@ -14,22 +15,23 @@ from flask import (
     request,
     session,
 )
-from flask_login import login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user
 from flask_pydantic import validate
 
-from server.api.helper import build_account_store_key
+from server.auth import build_account_store_key
 from server.config import config
-from server.const import USER_ROLES
+from server.const import SHIB_HEADERS, USER_ROLES
 from server.datastore import account_store
 from server.entities.login_user import LoginUser
-from server.services import permissions, users
-from server.services.utils.affiliations import detect_affiliations
+from server.services import users
+from server.services.utils import detect_affiliations, extract_group_ids
 
 
 bp = Blueprint("auth", __name__)
 
 
 @bp.get("/check")
+@login_required
 @validate(response_by_alias=True)
 def check() -> tuple[LoginUser, int]:
     """Check the authentication status.
@@ -37,12 +39,7 @@ def check() -> tuple[LoginUser, int]:
     Returns:
         dict: Authentication status.
     """
-    # NOTE: Placeholder to keep the session alive.
-    return LoginUser(
-        eppn="anonymous",
-        user_name="Anonymous User",
-        is_member_of="",
-    ), 200
+    return t.cast("LoginUser", current_user), 200
 
 
 @bp.get("/login")
@@ -52,9 +49,10 @@ def login() -> Response:
     Returns:
         Response: if successful login, redirect to the top page.
     """
-    eppn = request.headers.get("eppn")
-    is_member_of = request.headers.get("IsMemberOf")
-    user_name = request.headers.get("DisplayName")
+    eppn = request.headers.get(SHIB_HEADERS.EPPN)
+    is_member_of = request.headers.get(SHIB_HEADERS.IS_MEMBER_OF)
+    user_name = request.headers.get(SHIB_HEADERS.DISPLAY_NAME)
+
     if not eppn:
         return make_response(redirect("/?error=401"))
 
@@ -62,49 +60,63 @@ def login() -> Response:
         user = users.get_by_eppn(eppn)
         if not user:
             return make_response(redirect("/?error=401"))
-        groups = [group.id for group in user.groups or []]
-        user_name = user.user_name or "Unknown User"
-        is_member_of = ";".join(
-            f"https://cg.gakunin.jp/gr/{quote(g, safe='')}" for g in groups
+
+        user_name = user.user_name if user_name is None else user_name
+        is_member_of = (
+            ";".join(
+                f"https://cg.gakunin.jp/gr/{urlparse.quote(g.id, safe='')}"
+                for g in user.groups or []
+            )
+            if is_member_of is None
+            else is_member_of
         )
-    groups = permissions.extract_group_ids(is_member_of)
+
+    groups = extract_group_ids(is_member_of)
     user_roles, _ = detect_affiliations(groups)
     if not any(
-        role in {USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN}
+        r.role in {USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN}
         for r in user_roles
-        for role in r.roles
     ):
         return make_response(redirect("/?error=403"))
 
-    user = LoginUser(eppn=eppn, is_member_of=is_member_of, user_name=user_name)
+    user = LoginUser(
+        eppn=eppn, is_member_of=is_member_of, user_name=user_name, session_id=""
+    )
+    alias: t.Callable[[str], str] = LoginUser.model_config.get(
+        "alias_generator", lambda x: x
+    )  # pyright: ignore[reportAssignmentType]
 
     login_user(user)
-    session_id: str = session.get("_id")  # pyright: ignore[reportAssignmentType]
-    user._session_id = session_id  # noqa: SLF001
+    user.session_id = session_id = session["_id"]
+
     key = build_account_store_key(session_id)
-    account_store.hset(
-        key,
-        mapping=user.model_dump(mode="json", by_alias=True),
-    )
+    account_data = user.model_dump(mode="json", by_alias=True) | {
+        alias("is_system_admin"): str(user.is_system_admin)
+    }
+    account_store.hset(key, mapping=account_data)
     session_ttl: int = config.SESSION.sliding_lifetime
     if session_ttl >= 0:
         account_store.expire(key, session_ttl)
-    next_q = request.args.get("next")
-    target = "/" if not next_q else f"/?next={next_q}"
-    return make_response(redirect(target))
+
+    next_location = request.args.get("next")
+    location = "/" if not next_location else f"/?next={next_location}"
+
+    return make_response(redirect(location))
 
 
 @bp.get("/logout")
+@login_required
 def logout() -> Response:
     """Log out the current user and clear their session.
 
     Returns:
         Response: redirect login page
     """
-    session_id: str = session.get("_id")  # pyright: ignore[reportAssignmentType]
+    session_id: str = session["_id"]
     if session_id:
         key = build_account_store_key(session_id)
         account_store.delete(key)
+
     logout_user()
 
-    return make_response(redirect("/login"))
+    return make_response(redirect("/"))

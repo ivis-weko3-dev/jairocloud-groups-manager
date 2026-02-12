@@ -283,7 +283,8 @@ def update(user: UserDetail) -> UserDetail:
         ResourceNotFound: If the User resource is not found.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
-    current: UserDetail | None = get_by_id(user.id)
+    user_id = t.cast("str", user.id)
+    current: UserDetail | None = get_by_id(user_id)
     if current is None:
         error = f"'{user.id}' Not Found"
         raise ResourceNotFound(error)
@@ -298,7 +299,7 @@ def update(user: UserDetail) -> UserDetail:
         access_token = get_access_token()
         client_secret = get_client_secret()
         result: MapUser | MapError = users.patch_by_id(
-            user.id,
+            user_id,
             operations,
             exclude={"meta"},
             access_token=access_token,
@@ -337,39 +338,3 @@ def update(user: UserDetail) -> UserDetail:
         raise ResourceInvalid(result.detail)
 
     return UserDetail.from_map_user(result)
-
-
-def extract_groups_with_eppn(eppn: str) -> list[str]:
-    """Extract the list of group IDs associated with a user identified by their eppn.
-
-    Args:
-        eppn (str): The eduPersonPrincipalName of the user.
-
-    Returns:
-        list[str]: A list of group IDs the user belongs to.
-
-    Raises:
-        ResourceNotFound: If the user is not found.
-    """
-    user = get_by_eppn(eppn)
-    if not user:
-        raise ResourceNotFound
-    return [g.id for g in user.groups] if (user and user.groups) else []
-
-
-def get_user_name_from_eppn(eppn: str) -> str:
-    """Get the user name associated with the given eppn.
-
-    Args:
-        eppn (str): The eduPersonPrincipalName of the user.
-
-    Returns:
-        str: The user name.
-
-    Raises:
-        ResourceNotFound: If the user is not found.
-    """
-    user = get_by_eppn(eppn)
-    if not user:
-        raise ResourceNotFound
-    return user.user_name

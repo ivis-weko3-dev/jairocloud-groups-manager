@@ -215,6 +215,16 @@
     "succes": "success",
     "success-count": "Number of successes",
     "sum": "Total number of downloads | Total number of uploads",
+    "table": {
+      "column": {
+        "download-date": "Download date and time",
+        "eppns": "eppn",
+        "groups": "group",
+        "operator": "Execution user",
+        "re-download": "re-download",
+        "users": "user"
+      }
+    },
     "table-title": "History list",
     "target": "Download target | Upload target",
     "title": "History",
@@ -222,6 +232,13 @@
     "uploaded-at": "Upload date and time",
     "user-count": "Number of users",
     "view": "Number of items displayed"
+  },
+  "login": {
+    "dev-account": "Account",
+    "dev-login-button": "Login",
+    "dev-login-error": "login failed.",
+    "dev-login-title": "Developer Lgin",
+    "title": "Login"
   },
   "menu": {
     "management": "Management",

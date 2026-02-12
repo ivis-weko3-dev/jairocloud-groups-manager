@@ -5,21 +5,25 @@
 """API endpoints for user-related operations."""
 
 from flask import Blueprint, url_for
+from flask_login import login_required
 from flask_pydantic import validate
 
+from server.const import USER_ROLES
 from server.entities.search_request import FilterOption, SearchResult
 from server.entities.user_detail import RepositoryRole, UserDetail
 from server.exc import (
+    InvalidQueryError,
     ResourceInvalid,
     ResourceNotFound,
 )
 from server.services import users
 from server.services.filter_options import search_users_options
-from server.services.permissions import (
+from server.services.utils import (
     get_permitted_repository_ids,
     is_current_user_system_admin,
 )
 
+from .helpers import roles_required
 from .schemas import ErrorResponse, UsersQuery
 
 
@@ -28,22 +32,31 @@ bp = Blueprint("users", __name__)
 
 @bp.get("")
 @bp.get("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
-def get(query: UsersQuery) -> tuple[SearchResult, int]:
+def get(query: UsersQuery) -> tuple[SearchResult | ErrorResponse, int]:
     """Get a list of users based on query parameters.
 
     Args:
         query (UsersQuery): Query parameters for filtering users.
 
     Returns:
-        tuple[dict, int]: A tuple containing the list of users and the HTTP status code.
+        - If succeeded in getting users, search result and status code 200
+        - If query is invalid, error message and status code 400
     """
-    results = users.search(query)
+    try:
+        results = users.search(query)
+    except InvalidQueryError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
+
     return results, 200
 
 
 @bp.post("")
 @bp.post("/")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def post(
     body: UserDetail,
@@ -61,20 +74,14 @@ def post(
         - If other error, status code 500
 
     """
-    user = users.get_by_id(body.id)
-    if user is not None:
-        return ErrorResponse(code="", message="id already exist"), 409
-
-    if body.eppns is not None:
-        for eppn in body.eppns:
-            user = users.get_by_eppn(eppn)
-            if user is not None:
-                return ErrorResponse(code="", message="eppn already exist"), 409
-
     if not has_permission(body.repository_roles):
         return ErrorResponse(code="", message="not has permission"), 403
 
-    created = users.create(body)
+    try:
+        created = users.create(body)
+    except ResourceInvalid as exv:
+        return ErrorResponse(code="", message=str(exv)), 409
+
     header = {
         "Location": url_for("api.users.id_get", user_id=created.id, _external=True)
     }
@@ -82,6 +89,8 @@ def post(
 
 
 @bp.get("/<string:user_id>")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
     """Get information of user endpoint.
@@ -100,12 +109,14 @@ def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
         return ErrorResponse(code="", message="user not found"), 404
 
     if not has_permission(user.repository_roles):
-        return ErrorResponse(code="", message="not has permmision"), 403
+        return ErrorResponse(code="", message="not has permission"), 403
 
     return user, 200
 
 
 @bp.put("/<string:user_id>")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_by_alias=True)
 def id_put(user_id: str, body: UserDetail) -> tuple[UserDetail | ErrorResponse, int]:
     """Update user information endpoint.
@@ -161,6 +172,8 @@ def has_permission(roles: list[RepositoryRole] | None) -> bool:
 
 
 @bp.get("/filter-options")
+@login_required
+@roles_required(USER_ROLES.SYSTEM_ADMIN, USER_ROLES.REPOSITORY_ADMIN)
 @validate(response_many=True)
 def filter_options() -> list[FilterOption]:
     """Get filter options for searching users.

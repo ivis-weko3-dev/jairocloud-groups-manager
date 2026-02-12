@@ -175,12 +175,21 @@ class UsersQuery(BaseModel):
 
 
 class GroupPatchRequest(BaseModel):
+    """Schema for patching group information."""
+
+    operations: list[GroupPatchOperation]
+    """List of patch operations."""
+
+
+class GroupPatchOperation(BaseModel):
     """Schema for patching group members."""
 
     op: t.Literal["add", "remove"]
     """The patch operation to perform."""
+
     path: str
     """The target path of the patch operation."""
+
     value: list[str]
     """Value to be changed."""
 
@@ -190,6 +199,7 @@ class DeleteGroupsRequest(BaseModel):
 
     group_ids: set[str]
     """Set of group IDs to delete."""
+
     model_config = camel_case_config
     """Configure to use camelCase aliasing."""
 

@@ -159,3 +159,19 @@ port = 26379
 [rabbitmq]
 # Hostname or IP address of the RabbitMQ server for Celery broker.
 url = "amqp://guest:guest@rabbitmq:5672//"
+
+
+# [develop]
+# Enable or disable developer login feature.
+# developer_login = false
+
+# Developer account for testing.
+# [[develop.accounts]]
+# ePPN of the developer account.
+# eppn = ""
+
+# isMemberOf attributes for the developer account.
+# is_member_of = ""
+
+# user name of the developer account.
+# user_name = ""

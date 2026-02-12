@@ -81,6 +81,8 @@ class RuntimeConfig(BaseSettings):
     RABBITMQ: RabbitmqConfig
     """RabbitMQ configuration values."""
 
+    DEVELOP: DevelopConfig | None = None
+
     @computed_field
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> URL:
@@ -411,6 +413,29 @@ type HasRepoAndUserDefinedId = t.Annotated[
 
 It should include `{repository_id}` followed by `{user_defined_id}` placeholders.
 """
+
+
+class DevelopConfig(BaseModel):
+    """Schema for development environment configuration."""
+
+    developer_login: bool = False
+    """Whether to enable developer login in development mode."""
+
+    accounts: list[DevAccountConfig] = Field(default_factory=list)
+    """List of development accounts."""
+
+
+class DevAccountConfig(BaseModel):
+    """Schema for development account configuration."""
+
+    eppn: str
+    """EPPN of the development account."""
+
+    is_member_of: str
+    """isMemberOf attribute of the development account."""
+
+    user_name: str
+    """User name of the development account."""
 
 
 def setup_config(path_or_obj: str | RuntimeConfig) -> RuntimeConfig:

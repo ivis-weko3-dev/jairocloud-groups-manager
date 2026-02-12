@@ -27,10 +27,10 @@ class BulkRequestPayload(BaseModel):
     """Schema URIs that define the attributes present in the bulk resource."""
 
     operations: list[BulkOperation]
-    """ bulk operations """
+    """Bulk operations."""
 
     fail_on_errors: int | None = None
-    """ The number of errors allowed before returning an error response. """
+    """The number of errors allowed before returning an error response."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure camelCase aliasing and forbid extra fields."""
@@ -45,26 +45,31 @@ class BulkResponse(BaseModel):
     """Schema URIs that define the attributes present in the bulk resource."""
 
     operations: list[BulkOperation]
-    """ bulk operations """
+    """Bulk operations."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure camelCase aliasing and forbid extra fields."""
 
 
 class BulkOperation(BaseModel):
-    """Handles a single HTTP request to the resource endpoint."""
+    """Operation object in Bulk request/response.
+
+    Each operation corresponds to a single HTTP request against a resource endpoint.
+    """
 
     method: t.Literal["POST", "PUT", "PATCH", "DELETE"]
     """The HTTP method of the current operation."""
 
     bulk_id: str | None = None
-    """REQUIRED when "method" is "POST". """
+    """REQUIRED when "method" is "POST"."""
 
     path: str
     """The resource's relative path to the SCIM service provider's root."""
 
     data: MapService | MapGroup | MapUser | PatchOperation | None = None
-    """Resource data used in a single operation."""
+    """The resource data.
+    It would appear for a single SCIM POST, PUT, or PATCH operation.
+    """
 
     location: str | None = None
     """The resource endpoint URL."""
