@@ -254,6 +254,10 @@
   },
   "toast": {
     "error": {
+      "bad-gateway": {
+        "description": "サーバーとの通信に失敗しました。",
+        "title": "通信エラー"
+      },
       "bad-request": {
         "description": "サーバーがリクエストを不正とみなしました。",
         "title": "不正なリクエスト"

@@ -281,13 +281,17 @@
   },
   "toast": {
     "error": {
+      "bad-gateway": {
+        "description": "Communication with the server failed.",
+        "title": "Bad Gateway"
+      },
       "bad-request": {
         "description": "The server marked the request as invalid.",
         "title": "Bad Request"
       },
       "conflict": {
         "description": "There was a conflict in the input content.",
-        "title": "Conflict error"
+        "title": "Conflict Error"
       },
       "failed-search": {
         "title": "Search Error"
