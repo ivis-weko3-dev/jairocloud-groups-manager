@@ -47,7 +47,12 @@ const {
 })
 
 const isFilterOpen = ref(false)
-const filterSelects = makeAttributeFilters(filterOptions)
+const repositorySelect = useTemplateRef('repositorySelect')
+const groupSelect = useTemplateRef('groupSelect')
+const { repositoryFilter, roleFilter, groupFilter } = makeAttributeFilters(filterOptions, {
+  repositorySelect: { ref: repositorySelect, url: '/api/repositories' },
+  groupSelect: { ref: groupSelect, url: '/api/groups' },
+})
 const pageInfo = makePageInfo(searchResult)
 </script>
 
@@ -101,7 +106,6 @@ const pageInfo = makePageInfo(searchResult)
         :label="$t('table.filter-button-label')"
         color="neutral" variant="outline" icon="i-lucide-filter"
         :trailing-icon="isFilterOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        :loading="filterOptionsStatus === 'pending'"
         @click="isFilterOpen = !isFilterOpen"
       />
 
@@ -150,11 +154,27 @@ const pageInfo = makePageInfo(searchResult)
   >
     <template #content>
       <USelectMenu
-        v-for="filter in filterSelects"
-        :key="filter.key" :placeholder="filter.placeholder" :icon="filter.icon"
-        :items="filter.items" :multiple="filter.multiple"
-        :loading="filterOptionsStatus === 'pending'" :search-input="filter.searchInput"
-        @update:model-value="filter.onUpdated"
+        ref="repositorySelect"
+        v-model:search-term="repositoryFilter.searchTerm.value" ignore-filter
+        :placeholder="repositoryFilter.placeholder"
+        :icon="repositoryFilter.icon" :items="repositoryFilter.items"
+        :multiple="repositoryFilter.multiple" :loading="repositoryFilter.loading"
+        @update:open="repositoryFilter.onOpen" @update:model-value="repositoryFilter.onUpdated"
+      />
+      <USelectMenu
+        :search-input="false"
+        :placeholder="roleFilter.placeholder"
+        :icon="roleFilter.icon" :items="roleFilter.items"
+        :multiple="roleFilter.multiple" :loading="filterOptionsStatus === 'pending'"
+        @update:model-value="roleFilter.onUpdated"
+      />
+      <USelectMenu
+        ref="groupSelect"
+        v-model:search-term="groupFilter.searchTerm.value" ignore-filter
+        :placeholder="groupFilter.placeholder"
+        :icon="groupFilter.icon" :items="groupFilter.items"
+        :multiple="groupFilter.multiple" :loading="groupFilter.loading"
+        @update:open="groupFilter.onOpen" @update:model-value="groupFilter.onUpdated"
       />
 
       <UPopover>

@@ -15,6 +15,8 @@ const useGroupsTable = () => {
   const { t: $t } = useI18n()
   const { copy } = useClipboard()
 
+  const { table: { pageSize: pageSizeConfig } } = useAppConfig()
+
   const query = computed<GroupsSearchQuery>(() => normalizeGroupsQuery(route.query))
   const updateQuery = async (newQuery: Partial<GroupsSearchQuery>) => {
     await navigateTo({
@@ -256,24 +258,48 @@ const useGroupsTable = () => {
 
   const columnVisibility = ref({ id: false })
 
-  const makeAttributeFilters = (data: Ref<FilterOption[] | undefined>) => {
+  const makeAttributeFilters = (
+    data: Ref<FilterOption[] | undefined>,
+    {
+      repositorySelect,
+    }: { [key in 'repositorySelect']: { ref: Ref<unknown>, url: string } },
+  ) => {
+    const {
+      items: repositoryItems,
+      searchTerm: repoSearchTerm,
+      status: repoSearchStatus,
+      onOpen: onRepoOpen,
+      setupInfiniteScroll: setupRepoScroll,
+    } = useSelectMenuInfiniteScroll<RepositorySummary>({
+      url: repositorySelect.url,
+      limit: pageSizeConfig.repositories[0],
+      transform: repository => ({
+        label: repository.serviceName,
+        value: repository.id,
+      }),
+    })
+    setupRepoScroll(repositorySelect.ref)
+
     const options = computed(() => (
       Object.fromEntries(data.value?.map(option => [option.key, option]) ?? [],
       ) as Record<keyof GroupsSearchQuery, FilterOption>
     ))
 
-    const filters = computed(() => [
-      {
-        key: 'r',
-        placeholder: $t('repositories.title'),
-        icon: 'i-lucide-folder',
-        items: options.value.r.items ?? [],
-        multiple: options.value.r.multiple ?? false,
-        searchInput: true,
-        onUpdated: (values: unknown) => {
-          updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
-        },
+    const repositoryFilter = computed(() => ({
+      key: 'repositorySelect',
+      placeholder: $t('repositories.title'),
+      icon: 'i-lucide-folder',
+      items: repositoryItems.value,
+      multiple: options.value.r.multiple ?? false,
+      searchTerm: repoSearchTerm,
+      loading: repoSearchStatus.value === 'pending',
+      onOpen: onRepoOpen,
+      onUpdated: (values: unknown) => {
+        updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
       },
+    }))
+
+    const filters = computed(() => [
       {
         key: 's',
         placeholder: $t('groups.table.column.public'),
@@ -309,7 +335,7 @@ const useGroupsTable = () => {
       },
     ])
 
-    return filters
+    return { repositoryFilter, filters }
   }
 
   const makePageInfo = (result: Ref<GroupsSearchResult | undefined>) => {

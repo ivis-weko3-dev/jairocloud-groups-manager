@@ -18,6 +18,8 @@ const useUsersTable = () => {
   const { t: $t } = useI18n()
   const { copy } = useClipboard()
 
+  const { table: { pageSize: pageSizeConfig } } = useAppConfig()
+
   /** Reactive query object */
   const query = computed<UsersSearchQuery>(() => normalizeUsersQuery(route.query))
   /** Update query parameters and push to router */
@@ -339,52 +341,90 @@ const useUsersTable = () => {
     generalUser: $t('users.roles.general-user'),
   }))
 
-  const makeAttributeFilters = (data: Ref<FilterOption[] | undefined>) => {
+  const makeAttributeFilters = (
+    data: Ref<FilterOption[] | undefined>,
+    {
+      repositorySelect, groupSelect,
+    }: { [key in 'repositorySelect' | 'groupSelect']: { ref: Ref<unknown>, url: string } },
+  ) => {
+    const {
+      items: repositoryItems,
+      searchTerm: repoSearchTerm,
+      status: repoSearchStatus,
+      onOpen: onRepoOpen,
+      setupInfiniteScroll: setupRepoScroll,
+    } = useSelectMenuInfiniteScroll<RepositorySummary>({
+      url: repositorySelect.url,
+      limit: pageSizeConfig.repositories[0],
+      transform: repository => ({
+        label: repository.serviceName,
+        value: repository.id,
+      }),
+    })
+    setupRepoScroll(repositorySelect.ref)
+
+    const {
+      items: groupItems,
+      searchTerm: groupSearchTerm,
+      status: groupSearchStatus,
+      onOpen: onGroupOpen,
+      setupInfiniteScroll: setupGroupScroll,
+    } = useSelectMenuInfiniteScroll<GroupSummary>({
+      url: groupSelect.url,
+      limit: pageSizeConfig.groups[0],
+      transform: group => ({
+        label: group.displayName,
+        value: group.id,
+      }),
+    })
+    setupGroupScroll(groupSelect.ref)
+
     const options = computed(() => (
       Object.fromEntries(data.value?.map(option => [option.key, option]) ?? [],
       ) as Record<keyof UsersSearchQuery, FilterOption>
     ))
 
-    const filters = computed(() => [
-      {
-        key: 'r',
-        placeholder: $t('repositories.title'),
-        icon: 'i-lucide-folder',
-        items: options.value.r.items ?? [],
-        multiple: options.value.r.multiple ?? false,
-        searchInput: true,
-        onUpdated: (values: unknown) => {
-          updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
-        },
+    const repositoryFilter = computed(() => ({
+      key: 'repositorySelect' as const,
+      placeholder: $t('repositories.title'),
+      icon: 'i-lucide-folder',
+      items: repositoryItems.value,
+      multiple: options.value.r.multiple ?? false,
+      searchTerm: repoSearchTerm,
+      loading: repoSearchStatus.value === 'pending',
+      onOpen: onRepoOpen,
+      onUpdated: (values: unknown) => {
+        updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
       },
-      {
-        key: 'a',
-        placeholder: $t('user.roles-title'),
-        icon: 'i-lucide-shield-check',
-        items: options.value.a.items?.map(item => ({
-          value: item.value,
-          label: UserRoleNames.value[item.label as UserRole],
-        })) ?? [],
-        multiple: options.value.a.multiple ?? false,
-        searchInput: false,
-        onUpdated: (values: unknown) => {
-          updateQuery({ a: (values as { value: UserRoleValue }[]).map(v => v.value), p: 1 })
-        },
+    }))
+    const roleFilter = computed(() => ({
+      key: 'roleSelect' as const,
+      placeholder: $t('user.roles-title'),
+      icon: 'i-lucide-shield-check',
+      items: options.value.a.items?.map(item => ({
+        value: item.value,
+        label: UserRoleNames.value[item.label as UserRole],
+      })) ?? [],
+      multiple: options.value.a.multiple ?? false,
+      onUpdated: (values: unknown) => {
+        updateQuery({ a: (values as { value: UserRoleValue }[]).map(v => v.value), p: 1 })
       },
-      {
-        key: 'g',
-        placeholder: $t('groups.title'),
-        icon: 'i-lucide-users',
-        items: options.value.g.items ?? [],
-        multiple: options.value.g.multiple ?? false,
-        searchInput: true,
-        onUpdated: (values: unknown) => {
-          updateQuery({ g: (values as { value: string }[]).map(v => v.value), p: 1 })
-        },
+    }))
+    const groupFilter = computed(() => ({
+      key: 'groupSelect' as const,
+      placeholder: $t('groups.title'),
+      icon: 'i-lucide-users',
+      items: groupItems.value,
+      multiple: options.value.g.multiple ?? false,
+      searchTerm: groupSearchTerm,
+      loading: groupSearchStatus.value === 'pending',
+      onOpen: onGroupOpen,
+      onUpdated: (values: unknown) => {
+        updateQuery({ g: (values as { value: string }[]).map(v => v.value), p: 1 })
       },
-    ])
+    }))
 
-    return filters
+    return { repositoryFilter, roleFilter, groupFilter }
   }
 
   const dateRange = shallowRef<{ start: CalendarDate | undefined, end: CalendarDate | undefined }>({
@@ -419,35 +459,63 @@ const useUsersTable = () => {
   }
 
   return {
+    /** Computed reference for the current query */
     query,
+    /** Update query parameters and push to router */
     updateQuery,
+    /** Criteria for filtering and sorting users */
     criteria: {
+      /** Reactive object for the search term */
       searchTerm,
+      /** Reactive object for the specified IDs */
       specifiedIds,
+      /** Reactive object for the specified repositories */
       specifiedRepos,
+      /** Reactive object for the specified groups */
       specifiedGroups,
+      /** Reactive object for the specified roles */
       specifiedRoles,
+      /** Reactive object for the start date */
       startDate,
+      /** Reactive object for the end date */
       endDate,
+      /** Computed reference for the sort key */
       sortKey,
+      /** Computed reference for the sort order */
       sortOrder,
+      /** Reactive object for the current page number */
       pageNumber,
+      /** Reactive object for the number of items per page */
       pageSize,
     },
+    /** Button properties for creating a new user */
     creationButtons,
+    /** Button properties for actions when the list is empty */
     emptyActions,
+    /** Count of selected users */
     selectedCount,
+    /** Toggle selection of a user */
     toggleSelection,
+    /** Dropdown items of actions for the selected users */
     selectedUsersActions,
+    /** Column definitions for the table with translations */
     columns,
+    /** Column names for the table with translations */
     columnNames,
+    /** Reactive object for the visibility of columns */
     columnVisibility,
+    /** Mapping of user role names with translations */
     UserRoleNames,
+    /** Make attribute filters for table columns */
     makeAttributeFilters,
+    /** Date range for filtering */
     dateFilter: {
+      /** Reactive object for the date range */
       dateRange,
+      /** Computed reference for the formatted date range */
       formattedDateRange,
     },
+    /** Make indicator for the page information */
     makePageInfo,
   }
 }
