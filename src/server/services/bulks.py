@@ -45,11 +45,14 @@ from server.exc import (
     ResourceNotFound,
     UnexpectedResponseError,
 )
-from server.services import groups, history_table, users, utils
-from server.services.token import get_access_token, get_client_secret
+
+from . import groups, history_table, users, utils
+from .token import get_access_token, get_client_secret
+from .utils import session_required
 
 
 @shared_task()
+@session_required
 def validate_upload_data(
     operator_id: str, operator_name: str, temp_file_id: UUID
 ) -> UUID:

@@ -108,73 +108,69 @@ const canProceed = computed(() => {
 </script>
 
 <template>
-  <UCard>
-    <div class="space-y-4">
-      <UAlert
-        icon="i-lucide-info"
-        color="warning"
-        variant="subtle"
-        :title="$t('bulk.about')"
-        :ui="{
-          title: 'text-black',
-          description: 'text-black',
-        }"
-      >
-        <template #description>
-          <ul class="list-disc list-inside space-y-1 text-sm">
-            <li>{{ $t('bulk.about-description') }}</li>
-            <li>{{ $t('bulk.about-description2') }}</li>
-            <li>{{ $t('bulk.about-description3') }}</li>
-            <li>{{ $t('bulk.about-description4') }}</li>
-          </ul>
-        </template>
-      </UAlert>
+  <div class="space-y-4">
+    <UAlert
+      icon="i-lucide-info"
+      color="warning"
+      variant="subtle"
+      :title="$t('bulk.about')"
+      :ui="{
+        title: 'text-black',
+        description: 'text-black',
+      }"
+    >
+      <template #description>
+        <ul class="list-disc list-inside space-y-1 text-sm">
+          <li>{{ $t('bulk.about-description') }}</li>
+          <li>{{ $t('bulk.about-description2') }}</li>
+          <li>{{ $t('bulk.about-description3') }}</li>
+          <li>{{ $t('bulk.about-description4') }}</li>
+        </ul>
+      </template>
+    </UAlert>
 
-      <UFormField
-        :label="$t('bulk.select-repository')"
-        name="repository"
-      >
-        <USelectMenu
-          ref="repositorySelect"
-          v-model="selectedRepository"
-          :search-term="repoSearchTerm" value-key="value" size="xl"
-          :placeholder="$t('group.placeholder.repository')"
-          :items="repositoryNames" :loading="repoSearchStatus === 'pending'" ignore-filter
-          :ui="{ base: 'w-full' }"
-          @update:open="onRepoOpen"
-        />
-      </UFormField>
+    <UFormField
+      :label="$t('bulk.select-repository')"
+      name="repository"
+    >
+      <USelectMenu
+        ref="repositorySelect"
+        v-model="selectedRepository"
+        :search-term="repoSearchTerm" value-key="value" size="xl"
+        :placeholder="$t('group.placeholder.repository')"
+        :items="repositoryNames" :loading="repoSearchStatus === 'pending'" ignore-filter
+        :ui="{ base: 'w-full' }"
+        @update:open="onRepoOpen"
+      />
+    </UFormField>
 
-      <UFormField
-        :label="$t('bulk.upload-file')"
-        name="file"
-        :error="fileFormatError"
-      >
-        <UFileUpload
-          v-model="selectedFile"
-          accept=".csv,.tsv,.xlsx,text/csv,text/tab-separated-values,application/vnd.ms-excel,
+    <UFormField
+      :label="$t('bulk.upload-file')"
+      name="file"
+      :error="fileFormatError"
+    >
+      <UFileUpload
+        v-model="selectedFile"
+        accept=".csv,.tsv,.xlsx,text/csv,text/tab-separated-values,application/vnd.ms-excel,
           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          :label="$t('bulk.upload-field')"
-          description="TSV, CSV, Excel"
-          icon="i-lucide-file-up"
-          layout="list"
-          position="inside"
-          color="primary"
-        />
-      </UFormField>
-    </div>
+        :label="$t('bulk.upload-field')"
+        description="TSV, CSV, Excel"
+        icon="i-lucide-file-up"
+        layout="list"
+        position="inside"
+        color="primary"
+      />
+    </UFormField>
 
-    <template #footer>
-      <div class="flex justify-end">
-        <UButton
-          :label="$t('button.next')"
-          icon="i-lucide-arrow-right"
-          trailing
-          :loading="isProcessing"
-          :disabled="!canProceed"
-          @click="handleNext"
-        />
-      </div>
-    </template>
-  </UCard>
+    <div class="flex justify-end">
+      <UButton
+        :label="$t('button.next')"
+        icon="i-lucide-arrow-right"
+        trailing
+        :loading="isProcessing"
+        :disabled="!canProceed"
+        @click="handleNext"
+      />
+    </div>
+  </div>
 </template>

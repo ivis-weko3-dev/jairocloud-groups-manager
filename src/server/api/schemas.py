@@ -33,6 +33,9 @@ ignore_extra_config = ConfigDict(
 class LoginUserState(BaseModel):
     """Schema for logged-in user state response."""
 
+    id: str
+    """The ID of the user."""
+
     eppn: str
     """The eduPersonPrincipalName of the user."""
 
