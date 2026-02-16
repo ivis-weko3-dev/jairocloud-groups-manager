@@ -14,49 +14,76 @@ interface ValidationResult {
 interface MissingUser {
   id: string
   name: string
-  eppn: string
+  eppn: string[]
   groups: string[]
+}
+
+interface ValidationSummary {
+  items: ValidationResult[]
+  summary: Summary
+  missingUsers: MissingUser[]
+  total: number
+  offset: number
+  pageSize: number
 }
 
 interface UploadResult {
   row: number
   id: string
   status: StatusType
-  name: string
-  eppn: string
-  emails: string
+  userName: string
+  eppn: string[]
+  emails: string[]
   groups: string[]
   code?: string
 }
 
 interface Summary {
-  total: number
-  status: {
-    create: number
-    update: number
-    delete: number
-    skip: number
-    error: number
-  }
+  create: number
+  update: number
+  delete: number
+  skip: number
+  error: number
 }
 
-interface UploadResultResponse {
+interface ResultSummary {
   results: UploadResult[]
   summary: Summary
-  fileInfo?: {
+  fileInfo: {
     fileName: string
     startedAt: string
     completedAt: string
     executedBy: string
   }
+  total: number
+  offset: number
+  pageSize: number
 }
 
-interface UploadResponse {
+interface BulkProcessingStatus {
+  status: 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE'
+  taskId: string
+  historyId?: string
+  tempFileId?: string
+}
+interface ExcuteRequest {
   taskId: string
   repositoryId: string
   tempFileId: string
-  deleteUser: UserDetail[]
+  deleteUsers: string[]
 }
 
-export type { StatusType, ValidationResult, MissingUser, UploadResult, Summary,
-  UploadResultResponse, UploadResponse }
+interface UploadQuery {
+  f?: string[]
+  p?: number
+  l?: number
+  d?: 'asc' | 'desc'
+}
+
+interface ExcuteResponse {
+  taskId: string
+  historyId: string
+}
+
+export type { StatusType, ValidationResult, MissingUser, UploadResult, Summary, ExcuteResponse,
+  BulkProcessingStatus, ValidationSummary, ResultSummary, ExcuteRequest, UploadQuery }

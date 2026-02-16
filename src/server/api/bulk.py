@@ -4,6 +4,8 @@
 
 """API router for bulk endpoints."""
 
+import typing as t
+
 from pathlib import Path
 from uuid import UUID, uuid7
 
@@ -16,13 +18,14 @@ from server.api.helpers import validate_files
 from server.api.schemas import (
     BulkBody,
     ErrorResponse,
+    ExcuteRequest,
     TargetRepository,
-    UploadBody,
     UploadFiles,
     UploadQuery,
 )
 from server.config import config
 from server.entities.bulk import ResultSummary, ValidateSummary
+from server.entities.login_user import LoginUser
 from server.services import bulks, history_table
 
 
@@ -46,11 +49,12 @@ def upload_file(
         ErrorResponse: The response containing task ID or error message.
     """
     temp_id = uuid7()
-    temp_dir = Path(config.temp_file_dir)
+    temp_dir = Path(config.STORAGE.local.temporary)
+    current_app.logger.info("temp_dir %s", temp_dir.exists())
     current_app.logger.info("files %s", files)
     original_filename = files.bulk_file.filename or "upload_file"
-    operator_id = current_user.id
-    operator_name = current_user.user_name
+    operator_id = t.cast("LoginUser", current_user).map_id
+    operator_name = t.cast("LoginUser", current_user).user_name
     new_filename = f"{temp_id}_{Path(original_filename).name}"
     file_path = temp_dir / new_filename
     files.bulk_file.save(str(file_path))
@@ -60,8 +64,8 @@ def upload_file(
     )
 
     bulks.delete_temporary_file.apply_async((str(temp_id),), countdown=3600)  # pyright: ignore[reportCallIssue]
-    async_result = bulks.validate_upload_data.delay(
-        temp_file_id=temp_id, operator_id=operator_id, operator_name=operator_name
+    async_result = bulks.validate_upload_data.apply_async(
+        (operator_id, operator_name, temp_id), session_required=True
     )  # pyright: ignore[reportCallIssue]
     return BulkBody(task_id=async_result.id, temp_file_id=temp_id), 200
 
@@ -127,33 +131,9 @@ def validate_result(
     ), 200
 
 
-@bp.get("/missing-user-get/<string:task_id>")
-@validate(response_by_alias=True)
-def missing_user_get(task_id: str) -> tuple[UploadBody | ErrorResponse, int]:
-    """Get the list of users not included in a validation task.
-
-    Args:
-        task_id (str): The ID of the validation task.
-
-    Returns:
-        list[UserDetail]: The response containing list of users not included
-        ErrorResponse: The response containing error message
-    """
-    try:
-        res = current_app.extensions["celery"].AsyncResult(task_id)
-    except exceptions.ConnectionError:
-        return ErrorResponse(code="", message=""), 500
-    if not res:
-        return ErrorResponse(code="", message=f"{task_id} not found."), 404
-    if not res.successful():
-        return ErrorResponse(code="", message="Task not successful."), 400
-    history_id = res.result
-    return UploadBody(delete_users=bulks.get_missing_users(history_id)), 200
-
-
 @bp.post("/execute")
 @validate(response_by_alias=True)
-def execute(body: UploadBody) -> tuple[BulkBody | ErrorResponse, int]:
+def execute(body: ExcuteRequest) -> tuple[BulkBody | ErrorResponse, int]:
     """Execute a bulk upload.
 
     Args:

@@ -241,45 +241,59 @@ class UploadFiles(BaseModel):
     """Schema for upload files."""
 
     bulk_file: FileStorage
+    """File to upload."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    """Configure to allow arbitrary types."""
 
 
 class BulkBody(BaseModel):
-    """Body schema for bulk upload response."""
+    """Schema for response body of bulk upload processing."""
 
     temp_file_id: UUID | None = None
     """Temporary ID for the bulk upload session."""
+
     history_id: UUID | None = None
     """History ID associated with the bulk upload."""
+
     task_id: str | None = None
     """Task ID associated with the bulk upload."""
+
     status: str | None = None
     """Status of the bulk upload."""
 
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
-class UploadBody(BaseModel):
-    """Body schema for upload requests."""
+
+class ExcuteRequest(BaseModel):
+    """Schema for requset body of bulk upload execution."""
 
     temp_file_id: UUID | None = None
     """Temporary ID for the upload session."""
+
     repository_id: str | None = None
     """ID of the target repository."""
+
     task_id: str | None = None
     """Task ID associated with the upload."""
+
     delete_users: list[UserDetail] | None = None
     """List of users whose files are to be deleted."""
+
+    model_config = camel_case_config
+    """Configure to use camelCase aliasing."""
 
 
 class UploadQuery(BaseModel):
     """Query parameters for upload history data."""
 
-    f: list[int] | None = None
+    f: t.Annotated[list[int] | None, "filter"] = None
     """Filter by status.
-    0:create, 1:update, 2:delete, 3:skip, 4:error"""
+    0:create, 1:delete, 2:error, 3:skip, 4:update"""
 
-    p: int | None = None
-    """Page number for pagination."""
+    p: t.Annotated[int | None, "page"] = None
+    """Page number to retrieve."""
 
-    l: int | None = None  # noqa: E741
-    """Number of users per page for pagination."""
+    l: t.Annotated[int | None, "length"] = None  # noqa: E741
+    """Page size (number of items per page)."""

@@ -1,155 +1,60 @@
 <script setup lang="ts">
-import { h, resolveComponent } from 'vue'
-
-import type { TableColumn } from '@nuxt/ui'
+const { t: $t } = useI18n()
 
 const properties = defineProps<{
   historyId: string
+  taskId: string
 }>()
-
-const emit = defineEmits<{
-  restart: []
-}>()
-
-const UBadge = resolveComponent('UBadge')
-const UIcon = resolveComponent('UIcon')
-
-const { t: $t } = useI18n()
 
 const {
-  importResult,
-  fetchUploadtResult,
-} = useUserUpload()
+  uploadResult,
+  fetchUploadResult,
+} = useExecuteUpload()
+const { makePageInfo } = useBulk()
 
-const resultPagination = ref({
-  pageIndex: 0,
-  pageSize: 10,
-})
+const toast = useToast()
 
-const selectedFilters = ref<string[]>([])
+const { data: status, execute }
+  = await useFetch<BulkProcessingStatus>(`/api/bulk/execute/status/${properties.taskId}`)
+const { polling: { interval, maxAttempts } } = useAppConfig()
+const pollExecuteStatus = async () => {
+  for (let index = 0; index < maxAttempts; index++) {
+    await execute()
+    const st = (status.value?.status)
+    if (st === 'SUCCESS') return
+    if (st === 'FAILURE') {
+      toast.add({
+        title: $t('bulk.status.error'),
+        description: $t('bulk.execute.failed'),
+        color: 'error',
+        icon: 'i-lucide-circle-x',
+      })
+      return
+    }
 
-const STATUS_CONFIG: Record<string, { color: string, label: string, icon: string }> = {
-  create: { color: 'success', label: $t('bulk.status.create'), icon: 'i-lucide-plus-circle' },
-  update: { color: 'info', label: $t('bulk.status.update'), icon: 'i-lucide-pencil' },
-  delete: { color: 'error', label: $t('bulk.status.delete'), icon: 'i-lucide-trash-2' },
-  skip: { color: 'neutral', label: $t('bulk.status.skip'), icon: 'i-lucide-minus-circle' },
-}
-
-const resultColumns: TableColumn<UploadResult>[] = [
-  {
-    accessorKey: 'row',
-    header: $t('bulk.column.row'),
-    cell: ({ row }) => {
-      const rowNumber = row.getValue('row')
-      return rowNumber ? `${rowNumber}` : '-'
-    },
-    meta: { class: { td: 'w-20' } },
-  },
-  {
-    accessorKey: 'userName',
-    header: $t('bulk.column.userName'),
-    cell: ({ row }) => {
-      const name = row.getValue('userName') as string
-      return name || h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
-    },
-  },
-  {
-    accessorKey: 'eppn',
-    header: $t('bulk.column.eppn'),
-    cell: ({ row }) => {
-      const eppn = row.getValue('eppn') as string | string[]
-      const eppnArray = Array.isArray(eppn) ? eppn : [eppn]
-      return eppnArray && eppnArray.length > 0
-        ? h('div', { class: 'flex flex-col gap-1' },
-            eppnArray.map(e => h('span', { class: 'font-mono text-sm' }, e)))
-        : h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
-    },
-  },
-  {
-    accessorKey: 'groups',
-    header: $t('bulk.column.groups'),
-    cell: ({ row }) => {
-      const groups = row.getValue('groups') as string[]
-      return groups && groups.length > 0
-        ? h('div', { class: 'flex flex-col gap-1' },
-            groups.map(group => h('span', { class: 'font-mono text-sm' }, group)))
-        : h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: $t('bulk.column.status'),
-    cell: ({ row }) => {
-      const data = row.original as UploadResult
-      const status = data.status
-      const message = data.code
-
-      const config = STATUS_CONFIG[status]
-
-      if (!config) {
-        return h('span', { class: 'text-muted italic' }, status || '-')
-      }
-
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(UBadge, { color: config.color, variant: 'subtle', class: 'gap-1' }, () => [
-          h(UIcon, { name: config.icon, class: 'size-3' }),
-          config.label,
-        ]),
-        message
-          ? h('span', { class: 'text-sm text-muted' }, message)
-          : undefined,
-      ].filter(Boolean))
-    },
-  },
-]
-
-const filteredResults = computed(() => {
-  if (!importResult.value?.results) return []
-
-  if (selectedFilters.value.length === 0) {
-    return importResult.value.results
+    await new Promise(r => setTimeout(r, interval))
   }
-
-  return importResult.value.results.filter((result: UploadResult) => {
-    return selectedFilters.value.includes(result.status)
+  toast.add({
+    title: $t('bulk.status.error'),
+    description: $t('bulk.execute.timeout'),
+    color: 'error',
+    icon: 'i-lucide-circle-x',
   })
+}
+onMounted(async () => {
+  await pollExecuteStatus()
 })
 
-const paginatedResults = computed(() => {
-  const start = resultPagination.value.pageIndex * resultPagination.value.pageSize
-  const end = start + resultPagination.value.pageSize
-  return filteredResults.value.slice(start, end)
-})
-
+uploadResult.value = await fetchUploadResult(properties.historyId)
+const fileInfo = computed(() => uploadResult.value!.fileInfo)
+const pageInfo = makePageInfo(uploadResult)
 const resultSummary = computed(() => ({
-  total: filteredResults.value.length,
-  create: importResult.value?.summary?.status.create || 0,
-  update: importResult.value?.summary?.status.update || 0,
-  delete: importResult.value?.summary?.status.delete || 0,
-  skip: importResult.value?.summary?.status.skip || 0,
+  create: uploadResult.value!.summary.create,
+  update: uploadResult.value!.summary.update,
+  delete: uploadResult.value!.summary.delete,
+  skip: uploadResult.value!.summary.skip,
+  error: uploadResult.value!.summary.error,
 }))
-
-async function reloadResults(queryParameters?: string) {
-  if (!properties.historyId) return
-
-  try {
-    await fetchUploadtResult(properties.historyId, queryParameters)
-  }
-  catch (error) {
-    console.error('Failed to reload import results:', error)
-  }
-}
-
-function clearFilters() {
-  selectedFilters.value = []
-  resultPagination.value.pageIndex = 0
-}
-
-function handleRestart() {
-  emit('restart')
-}
-
-const fileInfo = computed(() => importResult.value?.fileInfo)
 </script>
 
 <template>
@@ -209,24 +114,11 @@ const fileInfo = computed(() => importResult.value?.fileInfo)
       </UCard>
 
       <BulkUserTable
-        :data="paginatedResults"
-        :columns="resultColumns"
-        :total-count="resultSummary.total"
-        :page-index="resultPagination.pageIndex"
-        :page-size="resultPagination.pageSize"
-        :selected-filters="selectedFilters"
-        :filter-options="[
-          { label: $t('bulk.status.create'), value: 'create' },
-          { label: $t('bulk.status.update'), value: 'update' },
-          { label: $t('bulk.status.delete'), value: 'delete' },
-          { label: $t('bulk.status.skip'), value: 'skip' },
-          { label: $t('bulk.status.error'), value: 'error' },
-        ]"
+        :data="uploadResult!.results"
+        :total-count="uploadResult!.total"
+        :page-info="pageInfo"
+        :offset="uploadResult!.offset"
         :title="$t('bulk.import-results')"
-        @update:page-index="(v) => resultPagination.pageIndex = v"
-        @update:page-size="(v) => resultPagination.pageSize = v"
-        @update:selected-filters="(v) => selectedFilters = v"
-        @clear-filters="clearFilters"
       />
     </div>
   </UCard>

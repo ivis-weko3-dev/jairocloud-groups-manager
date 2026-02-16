@@ -228,7 +228,6 @@ class UploadHistory(db.Model):
     )
     """Upload result data."""
 
-    file = relationship("Files")
     __table_args__ = (
         CheckConstraint(
             status.in_(t.get_args(Status.__value__)),

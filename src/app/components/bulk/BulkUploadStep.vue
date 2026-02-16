@@ -1,32 +1,25 @@
 <script setup lang="ts">
 const { t: $t } = useI18n()
 const emit = defineEmits<{
-  next: []
+  next: [taskId: string]
 }>()
 
 const {
   selectedFile,
-  selectedRepository,
-  validateFile,
   isProcessing,
-  taskId,
-  tempFileId,
 } = useUserUpload()
-
+const { table: { pageSize } } = useAppConfig()
+const selectedRepository = inject<Ref<string | undefined>>('selectedRepository', ref(undefined))
 const hasFileFormatError = ref(false)
 const fileFormatError = computed(() => {
   return hasFileFormatError.value ? $t('bulk.file-format-error') : undefined
 })
-const canProceed = computed(() => selectedFile.value !== undefined
-  && selectedRepository.value !== undefined
-  && !hasFileFormatError.value)
 
-function validateFileFormat(file: File | File[] | null) {
+const validateFileFormat = (file: File | undefined) => {
   hasFileFormatError.value = false
 
   if (!file) return
-  const targetFile = Array.isArray(file) ? file[0] : file
-  const fileName = targetFile.name.toLowerCase()
+  const fileName = file.name.toLowerCase()
   const allowedExtensions = ['.csv', '.tsv', '.xlsx']
   const allowedMimeTypes = [
     'text/csv',
@@ -36,7 +29,7 @@ function validateFileFormat(file: File | File[] | null) {
   ]
 
   const hasValidExtension = allowedExtensions.some(extension => fileName.endsWith(extension))
-  const hasValidMimeType = allowedMimeTypes.includes(targetFile.type)
+  const hasValidMimeType = allowedMimeTypes.includes(file.type)
 
   if (!hasValidExtension && !hasValidMimeType) {
     hasFileFormatError.value = true
@@ -46,38 +39,37 @@ function validateFileFormat(file: File | File[] | null) {
 watch(selectedFile, (newFile) => {
   validateFileFormat(newFile)
 })
-
-async function handleNext() {
+const toast = useToast()
+const { handleFetchError } = useErrorHandling()
+const handleNext = async () => {
   if (hasFileFormatError.value || !selectedFile.value || !selectedRepository.value) return
 
   isProcessing.value = true
 
+  const formData = new FormData()
+  if (!selectedFile.value) {
+    return
+  }
+
+  formData.append('bulk_file', selectedFile.value)
+  formData.append('repository_id', selectedRepository.value)
+
+  const { data } = useFetch<BulkProcessingStatus>('/api/bulk/upload-file', {
+    method: 'POST',
+    body: formData,
+    onResponseError({ response }) {
+      handleFetchError({ response })
+    },
+    lazy: true,
+    server: false,
+  })
   try {
-    const formData = new FormData()
-    if (!selectedFile.value) {
-      return
-    }
+    const { taskId } = data.value!
 
-    formData.append('bulk_file', selectedFile.value)
-    formData.append('repository_id', selectedRepository.value)
-
-    const { data } = await useFetch('/api/bulk/upload-file', {
-      method: 'POST',
-      body: formData,
-    })
-
-    const { task_id, temp_file_id } = data.value || {}
-
-    taskId.value = task_id
-    tempFileId.value = temp_file_id
-    await pollValidationStatus(task_id)
-
-    await validateFile(task_id)
-
-    emit('next')
+    emit('next', taskId)
   }
   catch {
-    useToast().add({
+    toast.add({
       title: $t('bulk.status.error'),
       description: $t('bulk.file-validate-error'),
       color: 'error',
@@ -89,41 +81,29 @@ async function handleNext() {
   }
 }
 
-async function pollValidationStatus(taskId: string) {
-  const maxAttempts = 100
-  const interval = 2000
+const repositorySelect = useTemplateRef('repositorySelect')
+const {
+  items: repositoryNames,
+  searchTerm: repoSearchTerm,
+  status: repoSearchStatus,
+  onOpen: onRepoOpen,
+  setupInfiniteScroll: setupRepoScroll,
+} = useSelectMenuInfiniteScroll<RepositorySummary>({
+  url: '/api/repositories',
+  limit: pageSize.repositories[0],
+  transform: (repository: RepositorySummary) => ({
+    label: repository.serviceName,
+    value: repository.id,
+  }),
+})
+setupRepoScroll(repositorySelect)
 
-  for (let index = 0; index < maxAttempts; index++) {
-    const { data } = await useFetch(`/api/bulk/validate/status/${taskId}`)
-    const st = (data.value?.status) as string | undefined
-
-    if (st === 'SUCCESS') return
-    if (st === 'FAILURE') throw new Error(data.value?.error ?? 'Validation task failed')
-
-    await new Promise(r => setTimeout(r, interval))
-  }
-
-  throw new Error('Validation timeout')
-}
-
-const repositories = ref([])
-const isLoadingRepositories = ref(false)
-
-onMounted(async () => {
-  isLoadingRepositories.value = true
-  try {
-    const { data } = await useFetch('/api/repositories')
-    repositories.value = (data.value?.resources || []).map(repo => ({
-      value: repo.id,
-      label: repo.displayName,
-    }))
-  }
-  catch {
-    repositories.value = []
-  }
-  finally {
-    isLoadingRepositories.value = false
-  }
+const canProceed = computed(() => {
+  if (selectedFile.value == undefined)
+    return false
+  if (selectedRepository.value == undefined)
+    return false
+  return !hasFileFormatError.value
 })
 </script>
 
@@ -155,17 +135,14 @@ onMounted(async () => {
         name="repository"
       >
         <USelectMenu
+          ref="repositorySelect"
           v-model="selectedRepository"
-          :items="repositories"
-          :loading="isLoadingRepositories"
-          :placeholder="$t('bulk.target-repository')"
-          value-key="value"
-          class="w-full"
-        >
-          <template #item-leading="{ item }">
-            <UIcon name="i-lucide-folder" class="size-5" />
-          </template>
-        </USelectMenu>
+          :search-term="repoSearchTerm" value-key="value" size="xl"
+          :placeholder="$t('group.placeholder.repository')"
+          :items="repositoryNames" :loading="repoSearchStatus === 'pending'" ignore-filter
+          :ui="{ base: 'w-full' }"
+          @update:open="onRepoOpen"
+        />
       </UFormField>
 
       <UFormField
@@ -194,7 +171,7 @@ onMounted(async () => {
           icon="i-lucide-arrow-right"
           trailing
           :loading="isProcessing"
-          :disabled="!canProceed || isProcessing"
+          :disabled="!canProceed"
           @click="handleNext"
         />
       </div>

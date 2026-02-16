@@ -6,23 +6,27 @@
     "about-description3": "ファイルに含まれていないユーザーの削除を選択できます",
     "about-description4": "対応形式: TSV, CSV, Excel",
     "column": {
-      "eppn": "eppn",
+      "email": "E-maile",
+      "eppn": "ePPN",
       "groups": "グループ ID",
       "row": "行",
       "status": "ステータス",
-      "userName": "名前"
+      "user-name": "名前"
     },
     "completed-at": "終了日時",
     "description": "ファイルのアップロードによりリポジトリに所属するユーザーを一括操作することができます。",
     "deselect_all": "すべて解除",
     "empty": "空",
+    "excute": {
+    },
+    "execute": {
+      "failed": "ユーザーの更新に失敗しました",
+      "result_failed": "実行結果の取得に失敗しました"
+    },
     "file-format-error": "対応していないファイル形式です。TSV、CSV、またはExcelファイルを選択してください。",
     "file-validate-error": "ファイルの検証に失敗しました",
     "filter": "フィルター",
     "import": {
-      "execute": "インポート実行",
-      "failed": "ユーザーの更新に失敗しました",
-      "result_failed": "アップロード結果の取得に失敗しました"
     },
     "import-results": "一括操作結果",
     "missing-user": {
@@ -50,16 +54,17 @@
       "validate": "データ検証",
       "validate_description": "変更内容の確認"
     },
-    "table": {
-      "count": "件"
-    },
     "target-repository": "操作対象リポジトリ",
     "title": "ユーザー一括操作",
+    "upload": {
+      "execute": "アップロード実行"
+    },
     "upload-field": "ファイルを選択またはドラッグ&ドロップ",
     "upload-file": "アップロードファイル",
     "upload-file-info": "一括操作結果",
     "validation": {
-      "error": "ファイルを修正して再度アップロードしてください。",
+      "error": "不正なデータが検出されました",
+      "error-detail": "ファイルを修正して再度アップロードしてください。",
       "fetch_failed": "検証結果の取得に失敗しました",
       "fix_error": "エラーを修正してください",
       "results": "データプレビュー"

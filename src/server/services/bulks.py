@@ -69,7 +69,7 @@ def validate_upload_data(
     repository_member = get_repository_member(repository_id)
 
     file_users: list[UserDetail] = build_user_from_file(file_path).root
-    file_users_id = {u.id for u in file_users}
+    file_users_id = {u.id for u in file_users if u.id is not None}
     missing_users = _get_missing_users(repository_member, file_users_id)
     repo_user_by_id = _get_repo_user_by_id(repository_member, file_users_id)
 
@@ -272,7 +272,7 @@ def build_user_from_file(file_path: str) -> UserAggregated:
         gen = read_file(file_path)
     except (ResourceInvalid, ResourceNotFound) as e:
         current_app.logger.error(e)
-        raise ResourceNotFound from e
+        raise ResourceNotFound(str(e)) from e
     it = next(gen)
     header = [("" if h is None else str(h).strip()) for h in next(it)]
     _ = next(it)
@@ -429,23 +429,9 @@ def get_validate_result(
         "results": check_results,
         "summary": summary,
         "missingUser": missing_user or [],
+        "offset": offset,
+        "pageSize": size,
     })
-
-
-def get_missing_users(history_id: UUID) -> list[UserDetail]:
-    """Get the list of users not included in the bulk operation.
-
-    Args:
-        history_id (UUID): The ID of the upload history.
-
-    Returns:
-        list[UserDetail]: The list of users not included in the bulk operation.
-    """
-    missing_user = history_table.get_upload_results(history_id, "missingUser")
-    if not isinstance(missing_user, list):
-        return []
-
-    return [UserDetail.model_validate(user_data) for user_data in missing_user]
 
 
 @shared_task
@@ -479,7 +465,7 @@ def update_users(
     repository_id = upload_data.file.file_content["repositories"][0]["id"]
     check_results: list[CheckResult] = upload_data.results.get("results", [])
     summary = upload_data.results.get("summary", {})
-    if summary.get("error") > 0:
+    if t.cast("int", summary.get("error", 0)) > 0:
         raise ValueError
     bulk_ops, count_delete = _build_bulk_operations_from_check_results(
         repository_id, check_results, delete_users
@@ -559,7 +545,7 @@ def save_file(temp_file_id: UUID) -> UUID:
         raise ResourceNotFound(str(e)) from e
 
     file_path = Path(files.file_path)
-    if file_path.parent != Path(config.temp_file_dir):
+    if file_path.parent != Path(config.STORAGE.local.temporary):
         return files.id
     if not file_path.exists():
         error_msg = f"File not found: {file_path}"
@@ -568,7 +554,9 @@ def save_file(temp_file_id: UUID) -> UUID:
         error = "not supported file format."
         raise ResourceInvalid(error)
 
-    target_dir = Path(config.file_dir) / datetime.now(UTC).strftime("%Y/%m")
+    target_dir = Path(config.STORAGE.local.storage) / datetime.now(UTC).strftime(
+        "%Y/%m"
+    )
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / file_path.name
     file_path.rename(target_path)
@@ -735,8 +723,9 @@ def get_upload_result(
         "operator": upload.operator_name or upload.operator_id,
         "startTimestamp": upload.timestamp,
         "endTimestamp": upload.end_timestamp,
+        "offset": offset,
+        "pageSize": size,
     }
-    current_app.logger.info("payload: %s", payload)
     return ResultSummary.model_validate(payload)
 
 

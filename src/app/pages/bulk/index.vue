@@ -1,36 +1,22 @@
 <script setup lang="ts">
-const currentStep = ref(0)
+const { currentStep, items } = useBulk()
+const selectedRepository = ref<string | undefined>(undefined)
+provide('selectedRepository', selectedRepository)
+const taskId = ref<string | undefined>(undefined)
+provide('taskId', taskId)
 
-const { t: $t } = useI18n()
-const items = [
-  {
-    title: $t('bulk.step.select_file'),
-    description: $t('bulk.step.select_file_description'),
-    icon: 'i-lucide-file-up',
-  },
-  {
-    title: $t('bulk.step.validate'),
-    description: $t('bulk.step.validate_description'),
-    icon: 'i-lucide-shield-check',
-  },
-  {
-    title: $t('bulk.step.complete'),
-    description: $t('bulk.step.complete_description'),
-    icon: 'i-lucide-circle-check-big',
-  },
-]
-
-function onUploadComplete() {
-  currentStep.value = 1
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+const onValidateComplete = (taskIdValue: string) => {
+  taskId.value = taskIdValue
+  currentStep.value = 'validate'
 }
 
-async function onImportComplete(uploadHistoryId: string) {
-  await navigateTo(`/bulk/${uploadHistoryId}`)
+const onUploadComplete = ({ taskId: taskIdValue, historyId }: ExcuteResponse) => {
+  taskId.value = taskIdValue
+  navigateTo(`/bulk/${historyId}?taskId=${taskIdValue}`)
 }
 
-function goBackToUpload() {
-  currentStep.value = 0
+const goBackToUpload = () => {
+  currentStep.value = 'upload'
 }
 </script>
 
@@ -48,18 +34,17 @@ function goBackToUpload() {
       :items="items"
       disabled
       orientation="horizontal"
-      class="my-8"
-    />
-
-    <BulkUploadStep
-      v-if="currentStep === 0"
-      @next="onUploadComplete"
+      class="my-10"
     />
 
     <BulkValidationStep
-      v-else-if="currentStep === 1"
-      @next="onImportComplete"
+      v-if="currentStep === 'validate'"
+      @next="onUploadComplete"
       @prev="goBackToUpload"
+    />
+    <BulkUploadStep
+      v-else
+      @next="onValidateComplete"
     />
   </div>
 </template>

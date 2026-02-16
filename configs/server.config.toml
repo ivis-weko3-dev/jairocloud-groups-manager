@@ -50,7 +50,7 @@ type = "local"
 temporary = "/var/tmp/jcgroups"
 
 # Path to the storage directory.
-storage = "/data/jcgroups"
+storage = "/var/tmp/jcgroups"
 
 
 [sp]

@@ -1,142 +1,141 @@
-<script setup lang="ts" generic="T extends Record<string, any>">
-import type { TableColumn } from '@nuxt/ui'
+<script setup lang="ts" generic="T extends UploadResult | ValidationResult">
+import { UBadge, UIcon } from '#components'
+
+import type { BadgeProps, TableColumn } from '@nuxt/ui'
 
 const properties = defineProps<{
   data: T[]
-  columns: TableColumn<T>[]
   totalCount: number
-  pageIndex: number
-  pageSize: number
-  selectedFilters: string[]
-  filterOptions: Array<{ label: string, value: string }>
   title?: string
-  description?: string
+  pageInfo?: string
+  offset?: number
 }>()
-
-const emit = defineEmits<{
-  'update:pageIndex': [value: number]
-  'update:pageSize': [value: number]
-  'update:selectedFilters': [value: string[]]
-  'clearFilters': []
-}>()
-
 const { t: $t } = useI18n()
 
-const isAllSelected = computed(() => properties.selectedFilters.length === 0)
-const displayCount = computed(() => properties.data.length)
+const { updateQuery, pageNumber, pageSize, makeStatusFilters } = useBulk()
+const { table: { pageSize: { bulks: pageOptions } } } = useAppConfig()
+const offset = computed(() => properties.offset ?? 1)
 
-function changePageSize(size: number) {
-  emit('update:pageSize', size)
-  emit('update:pageIndex', 0)
-}
+const STATUS_CONFIG = computed<{ [key in StatusType]: BadgeProps }>(() => ({
+  create: { color: 'success', label: $t('bulk.status.create'), icon: 'i-lucide-plus-circle' },
+  update: { color: 'info', label: $t('bulk.status.update'), icon: 'i-lucide-pencil' },
+  delete: { color: 'error', label: $t('bulk.status.delete'), icon: 'i-lucide-trash-2' },
+  skip: { color: 'neutral', label: $t('bulk.status.skip'), icon: 'i-lucide-minus-circle' },
+  error: { color: 'error', label: $t('bulk.status.error'), icon: 'i-lucide-circle-x' },
+}))
+const columns: TableColumn<T>[] = [
+  {
+    accessorKey: 'row',
+    header: $t('bulk.column.row'),
+    cell: ({ row }) => {
+      const rowNumber = row.getValue('row')
+      return rowNumber ? `${rowNumber}` : '-'
+    },
+    meta: { class: { td: 'w-20' } },
+  },
+  {
+    accessorKey: 'userName',
+    header: $t('bulk.column.user-name'),
+    cell: ({ row }) => {
+      const name = row.getValue('userName') as string
+      return name || h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
+    },
+  },
+  {
+    accessorKey: 'eppn',
+    header: $t('bulk.column.eppn'),
+    cell: ({ row }) => {
+      const eppn = row.getValue('eppn') as string | string[]
+      const eppnArray = Array.isArray(eppn) ? eppn : [eppn]
+      return eppnArray && eppnArray.length > 0
+        ? h('div', { class: 'flex flex-col gap-1' },
+            eppnArray.map(eppns => h('span', { class: 'font-mono text-sm' }, eppns)))
+        : h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
+    },
+  },
+  {
+    accessorKey: 'groups',
+    header: $t('bulk.column.groups'),
+    cell: ({ row }) => {
+      const groups = row.getValue('groups') as string[]
+      return groups && groups.length > 0
+        ? h('div', { class: 'flex flex-col gap-1' },
+            groups.map(group => h('span', { class: 'font-mono text-sm' }, group)))
+        : h('span', { class: 'text-muted italic' }, $t('bulk.empty'))
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: $t('bulk.column.status'),
+    cell: ({ row }) => {
+      const data = row.original
+      const status = data.status
+      const message = data.code
 
-function toggleFilter(filterValue: string) {
-  const filters = [...properties.selectedFilters]
-  const index = filters.indexOf(filterValue)
-  if (index === -1) {
-    filters.push(filterValue)
-  }
-  else {
-    filters.splice(index, 1)
-  }
-  emit('update:selectedFilters', filters)
-  emit('update:pageIndex', 0)
-}
+      const badgeConfig = STATUS_CONFIG.value[status]
 
-function selectAllFilters() {
-  emit('clearFilters')
-  emit('update:pageIndex', 0)
-}
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(UBadge, { color: badgeConfig.color, variant: 'subtle', class: 'gap-1' }, () => [
+          h(UIcon, { name: badgeConfig.icon, class: 'size-3' }),
+          badgeConfig.label,
+        ]),
+        message
+          ? h('span', { class: 'text-sm text-muted' }, message)
+          : undefined,
+      ].filter(Boolean))
+    },
+  },
+]
+const filterSelects = makeStatusFilters()
 </script>
 
 <template>
-  <UCard variant="outline">
-    <template #header>
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-semibold">
-            {{ title }}
-          </h3>
-          <p v-if="description" class="text-sm text-muted mt-0.5">
-            {{ description }}
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <UDropdownMenu
-            :items="[
-              [
-                {
-                  label: $t('bulk.view-all'),
-                  type: 'checkbox',
-                  checked: isAllSelected,
-                  onSelect: selectAllFilters,
-                },
-              ],
-              filterOptions.map(option => ({
-                label: option.label,
-                type: 'checkbox' as const,
-                checked: selectedFilters.includes(option.value),
-                onSelect: () => toggleFilter(option.value),
-              })),
-            ]"
-          >
-            <UButton
-              :label="$t('bulk.filter')"
-              icon="i-lucide-filter"
-              size="sm"
-              color="neutral"
-              variant="outline"
-              trailing-icon="i-lucide-chevron-down"
-            />
-          </UDropdownMenu>
-          <UDropdownMenu
-            :items="[
-              [
-                { label: '10件', onSelect: () => changePageSize(10) },
-                { label: '25件', onSelect: () => changePageSize(25) },
-                { label: '50件', onSelect: () => changePageSize(50) },
-                { label: '100件', onSelect: () => changePageSize(100) },
-              ],
-            ]"
-          >
-            <UButton
-              :label="`${pageSize}${$t('bulk.table.count')}`"
-              size="sm"
-              color="neutral"
-              variant="outline"
-              trailing-icon="i-lucide-chevron-down"
-            />
-          </UDropdownMenu>
-        </div>
-      </div>
-    </template>
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h3 class="text-lg font-semibold">
+        {{ title }}
+      </h3>
+    </div>
+    <div class="flex items-center gap-2">
+      <USelectMenu
+        v-for="filter in filterSelects"
+        :key="filter.key"
+        :items="filter.items" :multiple="filter.multiple"
+        :search-input="false"
+        :ui="{ base: 'w-40' }"
+        :placeholder="$t('table.filter-button-label')"
+        @update:model-value="filter.onUpdated"
+      />
+      <USelect
+        v-model="pageSize" :items="pageOptions"
+        class="w-24"
+        @update:model-value="() => updateQuery(
+          { l: pageSize, p: Math.ceil(offset / pageSize!) },
+        )"
+      />
+    </div>
+  </div>
 
-    <UTable
-      :data="data"
-      :columns="columns"
-      sticky
+  <UTable
+    :data="data"
+    :columns="columns"
+    sticky
+  />
+
+  <div class="flex items-center">
+    <div class="flex items-center gap-4 flex-1">
+      <span class="text-sm text-muted">
+        {{ pageInfo }}
+      </span>
+    </div>
+
+    <UPagination
+      v-model:page="pageNumber"
+      :items-per-page="pageSize"
+      :total="properties.totalCount"
+      @update:page="(value) => updateQuery({ p: value })"
     />
 
-    <template #footer>
-      <div class="flex items-center">
-        <div class="flex items-center gap-4 flex-1">
-          <span class="text-sm text-muted">
-            {{ (pageIndex * pageSize) + 1 }}-
-            {{ Math.min((pageIndex + 1) * pageSize, displayCount) }}
-            / {{ totalCount }}{{ $t('bulk.table.count') }}
-          </span>
-        </div>
-
-        <UPagination
-          :model-value="pageIndex + 1"
-          :total="totalCount"
-          :items-per-page="pageSize"
-          size="xs"
-          class="flex-center"
-          @update:model-value="(page: number) => emit('update:pageIndex', page - 1)"
-        />
-        <div class="flex-1" />
-      </div>
-    </template>
-  </UCard>
+    <div class="flex-1" />
+  </div>
 </template>
