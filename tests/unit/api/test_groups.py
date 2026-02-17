@@ -432,13 +432,14 @@ def test_id_patch_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mock
     patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
     expected_status = 403
     mocker.patch("server.api.groups.has_permission", return_value=False)
-    mocker.patch("server.services.groups.update_member", return_value=group)
+    mocker_update_member = mocker.patch("server.services.groups.update_member", return_value=group)
 
     original_func = inspect.unwrap(groups_api.id_patch)
     result, status = original_func(group_id, patch_body)
 
     assert isinstance(result, groups_api.ErrorResponse)
     assert status == expected_status
+    assert mocker_update_member.return_value == group
 
 
 def test_id_patch_update_error_returns_409(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -489,6 +490,55 @@ def test_id_patch_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixtu
     original_func = inspect.unwrap(groups_api.id_patch)
     with pytest.raises(UnexpectedError) as exc_info:
         original_func(group_id, patch_body)
+    assert str(exc_info.value) == error_detail
+
+
+def test_id_delete_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns None and 204 for system admin."""
+    group_id: str = gen_group_id("g1")
+    expected_status: int = 204
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    delete_mock = mocker.patch("server.services.groups.delete_by_id", return_value=None)
+    original_func = inspect.unwrap(groups_api.id_delete)
+    result, status = original_func(group_id)
+    assert not result
+    assert status == expected_status
+    delete_mock.assert_called_once_with(group_id)
+
+
+def test_id_delete_success_group_permission(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns None and 204 for user with permission."""
+    group_id: str = gen_group_id("g2")
+    expected_status: int = 204
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    delete_mock = mocker.patch("server.services.groups.delete_by_id", return_value=None)
+    original_func = inspect.unwrap(groups_api.id_delete)
+    result, status = original_func(group_id)
+    assert not result
+    assert status == expected_status
+    delete_mock.assert_called_once_with(group_id)
+
+
+def test_id_delete_forbidden_no_permission(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns ErrorResponse and 403 when user lacks permission for the group."""
+    group_id: str = gen_group_id("g3")
+    expected_status: int = 403
+    mocker.patch("server.api.groups.has_permission", return_value=False)
+    original_func = inspect.unwrap(groups_api.id_delete)
+    result, status = original_func(group_id)
+    assert isinstance(result, groups_api.ErrorResponse)
+    assert status == expected_status
+
+
+def test_id_delete_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns the unexpected error as-is when an unexpected error occurs during group deletion."""
+    group_id: str = gen_group_id("g4")
+    error_detail: str = "unexpected error in id_delete"
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.services.groups.delete_by_id", side_effect=UnexpectedError(error_detail))
+    original_func = inspect.unwrap(groups_api.id_delete)
+    with pytest.raises(UnexpectedError) as exc_info:
+        original_func(group_id)
     assert str(exc_info.value) == error_detail
 
 
@@ -601,16 +651,17 @@ def test_delete_post_all_failure_group_permission(app: Flask, gen_group_id, mock
 
 
 def test_delete_post_partial_permission(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
-    """Tests delete_post returns ErrorResponse and 403 for user with partial permission."""
-    group_ids = {gen_group_id("g11"), gen_group_id("g12")}
-    body = DeleteGroupsRequest(group_ids=group_ids)
-    expected_status = 403
-    mocker.patch("server.api.groups.has_permission", return_value=False)
-    mocker.patch("server.services.groups.delete_multiple", return_value=None)
-
-    original_func = inspect.unwrap(groups_api.delete_post)
-    result, status = original_func(body)
-
+    """Tests delete_post returns ErrorResponse and 403 for user with partial permission"""
+    group_id1: str = gen_group_id("g11")
+    group_id2: str = gen_group_id("g12")
+    group_ids: set[str] = {group_id1, group_id2}
+    body: DeleteGroupsRequest = DeleteGroupsRequest(group_ids=group_ids)
+    expected_status: int = 403
+    mocker.patch("server.services.utils.filter_permitted_group_ids", return_value=[group_id1])
+    mocker.patch("server.api.groups.is_current_user_system_admin", return_value=False)
+    with app.app_context(), app.test_request_context():
+        original_func = inspect.unwrap(groups_api.delete_post)
+        result, status = original_func(body)
     assert isinstance(result, groups_api.ErrorResponse)
     assert status == expected_status
 
