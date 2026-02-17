@@ -9,7 +9,6 @@ import typing as t
 
 from server.const import USER_ROLES
 from server.entities.search_request import FilterOption
-from server.services import groups, repositories
 from server.services.utils import (
     is_current_user_system_admin,
 )
@@ -18,7 +17,6 @@ from server.services.utils.search_queries import (
     GroupsCriteria,
     UsersCriteria,
     group_sortable_keys,
-    make_criteria_object,
     repository_sortable_keys,
     user_sortable_keys,
 )
@@ -65,23 +63,18 @@ def search_groups_options() -> list[FilterOption[GroupSummary]]:
     options = _initial_options()
 
     repos: list[dict[str, str]] = [
-        {"value": repo.id, "label": t.cast("str", repo.service_name)}
-        for repo in repositories.search(
-            make_criteria_object("repositories", l=-1)
-        ).resources
+        # lazy load repositories.
     ]
-
-    if repos:
-        options.append(
-            # affiliated repositories
-            FilterOption(
-                key="r",
-                description=_get_description(GroupsCriteria, "r"),
-                type=_get_type(GroupsCriteria, "r"),
-                multiple=_allow_multiple(GroupsCriteria, "r"),
-                items=repos,
-            )
+    options.append(
+        # affiliated repositories
+        FilterOption(
+            key="r",
+            description=_get_description(GroupsCriteria, "r"),
+            type=_get_type(GroupsCriteria, "r"),
+            multiple=_allow_multiple(GroupsCriteria, "r"),
+            items=repos,
         )
+    )
 
     options.extend((
         # affiliated users
@@ -141,40 +134,31 @@ def search_users_options() -> list[FilterOption[UserSummary]]:
     options = _initial_options()
 
     repos: list[dict[str, str]] = [
-        {"value": repo.id, "label": t.cast("str", repo.service_name)}
-        for repo in repositories.search(
-            make_criteria_object("repositories", l=-1)
-        ).resources
+        # lazy load repositories.
     ]
-
-    if repos:
-        options.append(
-            # affiliated repositories
-            FilterOption(
-                key="r",
-                description=_get_description(UsersCriteria, "r"),
-                type=_get_type(UsersCriteria, "r"),
-                multiple=_allow_multiple(UsersCriteria, "r"),
-                items=repos,
-            )
+    options.append(
+        # affiliated repositories
+        FilterOption(
+            key="r",
+            description=_get_description(UsersCriteria, "r"),
+            type=_get_type(UsersCriteria, "r"),
+            multiple=_allow_multiple(UsersCriteria, "r"),
+            items=repos,
         )
-
+    )
     gros: list[dict[str, str]] = [
-        {"value": group.id, "label": t.cast("str", group.display_name)}
-        for group in groups.search(make_criteria_object("groups", l=-1)).resources
+        # lazy load groups.
     ]
-
-    if gros:
-        options.append(
-            # affiliated groups
-            FilterOption(
-                key="g",
-                description=_get_description(UsersCriteria, "g"),
-                type=_get_type(UsersCriteria, "g"),
-                multiple=_allow_multiple(UsersCriteria, "g"),
-                items=gros,
-            )
+    options.append(
+        # affiliated groups
+        FilterOption(
+            key="g",
+            description=_get_description(UsersCriteria, "g"),
+            type=_get_type(UsersCriteria, "g"),
+            multiple=_allow_multiple(UsersCriteria, "g"),
+            items=gros,
         )
+    )
 
     roles = list(USER_ROLES)
     options.append(

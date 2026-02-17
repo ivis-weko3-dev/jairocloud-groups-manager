@@ -75,11 +75,12 @@ watch(repository, (newRepo: RepositoryDetail) => {
   })
 }, { immediate: true })
 
-const onSubmit = async (data: RepositoryUpdatePayload) => {
+const onSubmit = async (data: RepositoryForm) => {
+  const { created, spConnectorId, ...payload } = data
   try {
     await $fetch(`/api/repositories/${repositoryId.value}`, {
       method: 'PUT',
-      body: data,
+      body: payload,
     })
 
     toast.add({
@@ -172,7 +173,7 @@ const onCancel = () => {
 
       <RepositoryForm
         v-model="state" :mode="mode"
-        @submit="(data) => onSubmit(data as RepositoryUpdatePayload)" @cancel="onCancel"
+        @submit="(data) => onSubmit(data as RepositoryForm)" @cancel="onCancel"
       />
     </UCard>
   </div>

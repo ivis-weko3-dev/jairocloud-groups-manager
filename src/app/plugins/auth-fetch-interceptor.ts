@@ -7,11 +7,13 @@
  */
 export default defineNuxtPlugin(() => {
   const { baseURL } = useAppConfig()
-  const { handleFetchError } = useErrorHandling()
 
   globalThis.$fetch = $fetch.create({
     baseURL,
     credentials: 'include',
-    onResponseError: ({ response }) => handleFetchError({ response }),
+    onResponseError: ({ response }) => {
+      const { handleFetchError } = useErrorHandling()
+      handleFetchError({ response })
+    },
   })
 })

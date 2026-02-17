@@ -5,11 +5,12 @@ const toast = useToast()
 const { stateAsCreate: state } = useGroupForm()
 
 const { handleFetchError } = useErrorHandling()
-const onSubmit = async (data: GroupCreatePayload) => {
+const onSubmit = async (data: GroupCreateForm) => {
+  const { ...payload } = data
   try {
     await $fetch('/api/groups', {
       method: 'POST',
-      body: data,
+      body: payload as GroupCreatePayload,
     })
 
     toast.add({
@@ -75,9 +76,8 @@ const onSubmit = async (data: GroupCreatePayload) => {
       </template>
 
       <GroupForm
-        :model-value="state"
-        mode="new"
-        @submit="(data) => onSubmit(data as GroupCreatePayload)"
+        :model-value="state" mode="new"
+        @submit="(data) => onSubmit(data as GroupCreateForm)"
         @cancel="() => navigateTo('/groups')"
       />
     </UCard>

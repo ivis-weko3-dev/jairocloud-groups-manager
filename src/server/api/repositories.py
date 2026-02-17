@@ -13,7 +13,12 @@ from flask_pydantic import validate
 from server.const import USER_ROLES
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResult
-from server.exc import InvalidQueryError, ResourceInvalid, ResourceNotFound
+from server.exc import (
+    InvalidFormError,
+    InvalidQueryError,
+    ResourceInvalid,
+    ResourceNotFound,
+)
 from server.services import repositories
 from server.services.utils import (
     get_permitted_repository_ids,
@@ -68,11 +73,14 @@ def post(
     Returns:
         - If succeeded in creating repository, repository information
             and status code 201 and location header
+        - If form is invalid, error message and status code 400
         - If logged-in user does not have permission, status code 403
         - If id already exists, status code 409
     """
     try:
         created = repositories.create(body)
+    except InvalidFormError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
     except ResourceInvalid as exc:
         return ErrorResponse(code="", message=str(exc)), 409
 
@@ -101,7 +109,7 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
 
-    result = repositories.get_by_id(repository_id)
+    result = repositories.get_by_id(repository_id, more_detail=True)
     if result is None:
         return ErrorResponse(code="", message="repository not found"), 404
 
@@ -130,8 +138,11 @@ def id_put(
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
 
+    body.id = repository_id
     try:
         updated = repositories.update(body)
+    except InvalidFormError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
     except ResourceNotFound as exc:
         return ErrorResponse(code="", message=str(exc)), 404
     except ResourceInvalid as exc:

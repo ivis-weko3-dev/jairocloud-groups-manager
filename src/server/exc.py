@@ -55,6 +55,20 @@ class OAuthTokenError(ServiceSettingsError):
     """
 
 
+class UnsafeOperationError(JAIROCloudGroupsManagerError):
+    """Exception for unsafe operations.
+
+    Errors caused by operations that are considered unsafe.
+    """
+
+
+class SystemAdminNotFound(JAIROCloudGroupsManagerError):  # noqa: N818
+    """Exception for system administrator not found.
+
+    Errors caused by the absence of a system administrator in the system.
+    """
+
+
 class DatabaseError(JAIROCloudGroupsManagerError):
     """Exception for database errors.
 
@@ -122,6 +136,13 @@ class InvalidQueryError(JAIROCloudGroupsManagerError):
     """Exception for unexpected query construction errors.
 
     Errors caused by unexpected query structure or data during query construction.
+    """
+
+
+class InvalidFormError(JAIROCloudGroupsManagerError):
+    """Exception for invalid form data errors.
+
+    Errors caused by invalid form data in API requests.
     """
 
 

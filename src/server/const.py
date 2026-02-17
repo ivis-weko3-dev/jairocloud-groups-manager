@@ -139,6 +139,12 @@ HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN: Final = (
 It should include `{repository_id}`, followed by `{user_defined_id}` placeholders.
 """
 
+HAS_REPO_NAME_PATTERN: Final = r".*\{repository_name\}.*"
+"""Regular expression pattern for role-type group names.
+
+It should include `{repository_name}` placeholder.
+"""
+
 IS_MEMBER_OF_PATTERN: Final = r"/gr/([^/;]+)(?=;|$)(?!/admin)"
 """Regular expression pattern to extract group IDs from isMemberOf attribute.
 

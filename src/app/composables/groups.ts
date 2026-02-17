@@ -7,6 +7,7 @@ import { UButton, UCheckbox, UDropdownMenu, ULink } from '#components'
 import type { Row } from '@tanstack/table-core'
 import type { ButtonProps, DropdownMenuItem, TableColumn, TableRow } from '@nuxt/ui'
 
+/** Composable for managing groups table */
 const useGroupsTable = () => {
   const route = useRoute()
 
@@ -14,9 +15,9 @@ const useGroupsTable = () => {
   const { t: $t } = useI18n()
   const { copy } = useClipboard()
 
-  /** Reactive query object */
+  const { table: { pageSize: pageSizeConfig } } = useAppConfig()
+
   const query = computed<GroupsSearchQuery>(() => normalizeGroupsQuery(route.query))
-  /** Update query parameters and push to router */
   const updateQuery = async (newQuery: Partial<GroupsSearchQuery>) => {
     await navigateTo({
       query: {
@@ -33,6 +34,7 @@ const useGroupsTable = () => {
   const pageSize = ref(query.value.l)
 
   const searchIdentityKey = computed(() => {
+    // exclude pagination and sorting parameters
     const { k, d, p, l, ...filters } = query.value
     return JSON.stringify(filters)
   })
@@ -41,10 +43,10 @@ const useGroupsTable = () => {
     `selection-groups:${searchIdentityKey.value}`, () => ({}),
   )
 
-  /** Number of selected groups */
   const selectedCount = computed(() => {
     return Object.values(selectedMap.value).filter(value => value === true).length
   })
+  /** Toggle the selection of a group */
   const toggleSelection = (event: Event | undefined, row: Row<GroupSummary>) => {
     selectedMap.value[row.id] = !selectedMap.value[row.id]
     row.toggleSelected(selectedMap.value[row.id])
@@ -64,14 +66,14 @@ const useGroupsTable = () => {
     false: $t('groups.table.cell.public.private'),
   }))
 
-  const visibilityStatus = computed(() => ({
+  const visibilityStatus = computed<Record<Visibility, string>>(() => ({
     Public: $t('groups.table.cell.visibility.public'),
     Private: $t('groups.table.cell.visibility.private'),
     Hidden: $t('groups.table.cell.visibility.hidden'),
   }))
 
   /** Returns action buttons for a group entity */
-  const creationButtons = computed<ButtonProps[]>(() => [
+  const creationButtons = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-plus',
       label: $t('button.create-new'),
@@ -82,7 +84,7 @@ const useGroupsTable = () => {
   ])
 
   /** Actions to display when the list is empty */
-  const emptyActions = computed<ButtonProps[]>(() => [
+  const emptyActions = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-refresh-cw',
       label: $t('button.reload'),
@@ -93,7 +95,7 @@ const useGroupsTable = () => {
   ])
 
   /** Actions for selected groups */
-  const selectedGroupsActions = computed<DropdownMenuItem[]>(() => [
+  const selectedGroupsActions = computed<[DropdownMenuItem, ...DropdownMenuItem[]]>(() => [
     {
       icon: 'i-lucide-trash',
       label: $t('groups.delete-selected-button'),
@@ -256,24 +258,48 @@ const useGroupsTable = () => {
 
   const columnVisibility = ref({ id: false })
 
-  const makeAttributeFilters = (data: Ref<FilterOption[] | undefined>) => {
+  const makeAttributeFilters = (
+    data: Ref<FilterOption[] | undefined>,
+    {
+      repositorySelect,
+    }: { [key in 'repositorySelect']: { ref: Ref<unknown>, url: string } },
+  ) => {
+    const {
+      items: repositoryItems,
+      searchTerm: repoSearchTerm,
+      status: repoSearchStatus,
+      onOpen: onRepoOpen,
+      setupInfiniteScroll: setupRepoScroll,
+    } = useSelectMenuInfiniteScroll<RepositorySummary>({
+      url: repositorySelect.url,
+      limit: pageSizeConfig.repositories[0],
+      transform: repository => ({
+        label: repository.serviceName,
+        value: repository.id,
+      }),
+    })
+    setupRepoScroll(repositorySelect.ref)
+
     const options = computed(() => (
       Object.fromEntries(data.value?.map(option => [option.key, option]) ?? [],
       ) as Record<keyof GroupsSearchQuery, FilterOption>
     ))
 
-    const filters = computed(() => [
-      {
-        key: 'r',
-        placeholder: $t('repositories.title'),
-        icon: 'i-lucide-folder',
-        items: options.value.r.items ?? [],
-        multiple: options.value.r.multiple ?? false,
-        searchInput: true,
-        onUpdated: (values: unknown) => {
-          updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
-        },
+    const repositoryFilter = computed(() => ({
+      key: 'repositorySelect',
+      placeholder: $t('repositories.title'),
+      icon: 'i-lucide-folder',
+      items: repositoryItems.value,
+      multiple: options.value.r.multiple ?? false,
+      searchTerm: repoSearchTerm,
+      loading: repoSearchStatus.value === 'pending',
+      onOpen: onRepoOpen,
+      onUpdated: (values: unknown) => {
+        updateQuery({ r: (values as { value: string }[]).map(v => v.value), p: 1 })
       },
+    }))
+
+    const filters = computed(() => [
       {
         key: 's',
         placeholder: $t('groups.table.column.public'),
@@ -309,7 +335,7 @@ const useGroupsTable = () => {
       },
     ])
 
-    return filters
+    return { repositoryFilter, filters }
   }
 
   const makePageInfo = (result: Ref<GroupsSearchResult | undefined>) => {
@@ -326,25 +352,44 @@ const useGroupsTable = () => {
   }
 
   return {
+    /** Computed reference for the current query */
     query,
+    /** Update query parameters and push to router */
     updateQuery,
+    /** Criteria for filtering and sorting groups */
     criteria: {
+      /** Reactive object for the search term */
       searchTerm,
+      /** Computed reference for the sort key */
       sortKey,
+      /** Computed reference for the sort order */
       sortOrder,
+      /** Reactive object for the current page number */
       pageNumber,
+      /** Reactive object for the page size */
       pageSize,
     },
+    /** Column names for the table with translations */
     columnNames,
+    /** Reactive object for the selected groups */
     selectedMap,
+    /** Computed reference for the count of selected groups */
     selectedCount,
+    /** Toggle selection of a group */
     toggleSelection,
+    /** Dropdown items of actions for the selected groups */
     selectedGroupsActions,
+    /** Button properties for creating a new group */
     creationButtons,
+    /** Button properties for empty actions */
     emptyActions,
+    /** Column definitions for the table with translations */
     columns,
+    /** Reactive object for the visibility of columns */
     columnVisibility,
+    /** Make attribute filters for table columns */
     makeAttributeFilters,
+    /** Make indicator for the page information */
     makePageInfo,
   }
 }

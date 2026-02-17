@@ -6,11 +6,18 @@ const toast = useToast()
 const { stateAsCreate: state } = useUserForm()
 
 const { handleFetchError } = useErrorHandling()
-const onSubmit = async (data: UserCreatePayload) => {
+const onSubmit = async (data: UserCreateForm) => {
+  const payload: UserCreatePayload = {
+    ...data,
+    repositoryRoles: data.repositoryRoles.map(item =>
+      ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
+    ),
+  }
+
   try {
     await $fetch('/api/users', {
       method: 'POST',
-      body: data,
+      body: payload,
     })
 
     toast.add({

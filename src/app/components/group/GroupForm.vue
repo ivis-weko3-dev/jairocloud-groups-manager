@@ -9,7 +9,7 @@ const properties = defineProps<Properties>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: GroupCreateForm | GroupUpdateForm]
-  'submit': [data: GroupCreatePayload | GroupUpdatePayload]
+  'submit': [data: GroupCreateForm | GroupUpdateForm]
   'error': [event: FormErrorEvent]
   'cancel': []
 }>()
@@ -47,7 +47,7 @@ const {
 } = useSelectMenuInfiniteScroll<RepositorySummary>({
   url: '/api/repositories',
   limit: pageSize.repositories[0],
-  transform: (repository: RepositorySummary) => ({
+  transform: repository => ({
     label: repository.serviceName,
     value: repository.id,
   }),
@@ -58,7 +58,7 @@ const maxIdLength = computed(() => getMaxIdLength(state.value.repository.id),
 )
 
 const form = useTemplateRef('form')
-const onSubmit = (event: FormSubmitEvent<GroupCreatePayload | GroupUpdatePayload>) => {
+const onSubmit = (event: FormSubmitEvent<GroupCreateForm | GroupUpdateForm>) => {
   emit('submit', event.data)
 }
 const onError = (event: FormErrorEvent) => {
@@ -76,7 +76,7 @@ const onCancel = () => {
     ref="form"
     :schema="schema" :state="state" class="space-y-6"
     @submit="(event) => onSubmit(
-      event as FormSubmitEvent<GroupCreatePayload | GroupUpdatePayload>,
+      event as FormSubmitEvent<GroupCreateForm | GroupUpdateForm>,
     )"
     @error="onError"
   >

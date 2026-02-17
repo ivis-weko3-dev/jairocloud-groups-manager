@@ -17,7 +17,7 @@ from pydantic_core import ValidationError
 from server.clients import users
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
-from server.entities.search_request import SearchResult
+from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import UserSummary
 from server.entities.user_detail import UserDetail
 from server.exc import (
@@ -34,6 +34,7 @@ from .utils import (
     UsersCriteria,
     build_patch_operations,
     build_search_query,
+    make_criteria_object,
 )
 
 
@@ -43,14 +44,32 @@ if t.TYPE_CHECKING:
     from server.entities.patch_request import PatchOperation
 
 
-def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
+@t.overload
+def search(criteria: UsersCriteria) -> SearchResult[UserSummary]: ...
+@t.overload
+def search(
+    criteria: UsersCriteria, *, raw: t.Literal[True]
+) -> SearchResponse[MapUser]: ...
+
+
+def search(
+    criteria: UsersCriteria, *, raw: bool = False
+) -> SearchResult[UserSummary] | SearchResponse[MapUser]:
     """Search for users based on given criteria.
 
     Args:
         criteria (UsersCriteria): Search criteria for filtering users.
+        raw (bool):
+            If True, return raw search response from mAP Core API. Defaults to False.
 
     Returns:
-        SearchResult: Search result containing User summaries.
+        object: Search results. The type depends on the `raw` argument.
+        - SearchResult;
+            Search result containing User summaries. It has members `total`,
+            `page_size`, `offset`, and `resources`.
+        - SearchResponse;
+            Raw search response from mAP Core API. It has members `schemas`,
+            `total_results`, `start_index`, `items_per_page`, and `resources`.
 
     Raises:
         InvalidQueryError: If the query construction is invalid.
@@ -105,6 +124,9 @@ def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
         current_app.logger.info(results.detail)
         raise InvalidQueryError(results.detail)
 
+    if raw:
+        return results
+
     return SearchResult(
         total=results.total_results,
         page_size=results.items_per_page,
@@ -113,14 +135,24 @@ def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
     )
 
 
-def get_by_id(user_id: str) -> UserDetail | None:
+@t.overload
+def get_by_id(user_id: str) -> UserDetail | None: ...
+@t.overload
+def get_by_id(user_id: str, *, raw: t.Literal[True]) -> MapUser | None: ...
+
+
+def get_by_id(user_id: str, *, raw: bool = False) -> UserDetail | MapUser | None:
     """Get a User detail by its ID.
 
     Args:
         user_id (str): ID of the User detail.
+        raw (bool): If True, return raw MapUser object. Defaults to False.
 
     Returns:
-        UserDetail: The User detail if found, otherwise None.
+        object: The User object if found, otherwise None. The type depends
+            on the `raw` argument.
+        - UserDetail: The User detail object.
+        - MapUser: The raw User object from mAP Core API.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
@@ -161,17 +193,30 @@ def get_by_id(user_id: str) -> UserDetail | None:
         current_app.logger.info(result.detail)
         return None
 
+    if raw:
+        return result
+
     return UserDetail.from_map_user(result)
 
 
-def get_by_eppn(eppn: str) -> UserDetail | None:
+@t.overload
+def get_by_eppn(eppn: str) -> UserDetail | None: ...
+@t.overload
+def get_by_eppn(eppn: str, *, raw: t.Literal[True]) -> MapUser | None: ...
+
+
+def get_by_eppn(eppn: str, *, raw: bool = False) -> UserDetail | MapUser | None:
     """Get a User detail by its eduPersonPrincipalName.
 
     Args:
         eppn (str): eduPersonPrincipalName of the User detail.
+        raw (bool): If True, return raw MapUser object. Defaults to False.
 
     Returns:
-        UserDetail: The User detail if found, otherwise None.
+        object: The User object if found, otherwise None. The type depends
+            on the `raw` argument.
+        - UserDetail: The User detail object.
+        - MapUser: The raw User object from mAP Core API.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
@@ -211,6 +256,9 @@ def get_by_eppn(eppn: str) -> UserDetail | None:
     if isinstance(result, MapError):
         current_app.logger.info(result.detail)
         return None
+
+    if raw:
+        return result
 
     return UserDetail.from_map_user(result)
 
@@ -342,3 +390,87 @@ def update(user: UserDetail) -> UserDetail:
         raise ResourceInvalid(result.detail)
 
     return UserDetail.from_map_user(result)
+
+
+@t.overload
+def get_system_admins() -> set[str]: ...
+@t.overload
+def get_system_admins(*, raw: t.Literal[True]) -> list[MapUser]: ...
+
+
+def get_system_admins(*, raw: bool = False) -> set[str] | list[MapUser]:
+    """Get system administrators.
+
+    Args:
+        raw (bool): If True, return raw MapUser objects. Defaults to False.
+
+    Returns:
+        list: The list of system administrators. The type of items depends on
+            the `raw` argument.
+        - str: The IDs of the system administrators.
+        - MapUser: The raw User objects of system administrators from mAP Core API.
+    """
+    criteria = make_criteria_object("users", a=[0], super=True)
+    result = search(criteria, raw=True)
+
+    if raw:
+        return result.resources
+
+    return {t.cast("str", user.id) for user in result.resources}
+
+
+def count(criteria: UsersCriteria) -> int:
+    """Search for users based on given criteria.
+
+    Args:
+        criteria (UsersCriteria): Search criteria for filtering users.
+
+    Returns:
+        int: The count of users matching the given criteria.
+
+    Raises:
+        InvalidQueryError: If the query construction is invalid.
+        OAuthTokenError: If the access token is invalid or expired.
+        CredentialsError: If the client credentials are invalid.
+        UnexpectedResponseError: If response from mAP Core API is unexpected.
+    """
+    criteria.l = -1
+    try:
+        query = build_search_query(criteria)
+        access_token = get_access_token()
+        client_secret = get_client_secret()
+        results: UsersSearchResponse = users.search(
+            query,
+            include={"id"},
+            access_token=access_token,
+            client_secret=client_secret,
+        )
+    except requests.HTTPError as exc:
+        code = exc.response.status_code
+        if code == HTTPStatus.UNAUTHORIZED:
+            error = "Access token is invalid or expired."
+            raise OAuthTokenError(error) from exc
+
+        if code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            error = "mAP Core API server error."
+            raise UnexpectedResponseError(error) from exc
+
+        error = "Failed to search User resources from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except requests.RequestException as exc:
+        error = "Failed to communicate with mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except ValidationError as exc:
+        error = "Failed to parse User resources from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except InvalidQueryError, OAuthTokenError, CredentialsError:
+        raise
+
+    if isinstance(results, MapError):
+        current_app.logger.info(results.detail)
+        raise InvalidQueryError(results.detail)
+
+    return results.total_results

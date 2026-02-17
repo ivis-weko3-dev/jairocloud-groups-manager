@@ -23,8 +23,8 @@ interface UserSummary {
   id: string
   userName: string
   role?: UserRole
-  emails?: string[]
-  eppns?: string[]
+  emails?: [string, ...string[]]
+  eppns?: [string, ...string[]]
   lastModified?: string
 }
 
@@ -48,18 +48,22 @@ interface UserDetail extends Omit<UserSummary, 'role'> {
 }
 
 type UserForm = Omit<Required<UserDetail>, 'repositoryRoles' | 'groups'> & {
-  repositoryRoles: { id: string, label: string, userRole?: UserRole }[]
+  repositoryRoles: { value?: string, label?: string, userRole?: UserRole }[]
   groups: { id: string, label: string }[]
 }
 
 type UserCreateForm = Omit<UserForm, 'id' | 'created' | 'lastModified'>
 type UserCreatePayload = Omit<UserCreateForm, 'repositoryRoles' | 'groups'> & {
-  repositoryRoles: { id: string, userRole?: UserRole }[]
+  repositoryRoles: RepositoryRole[]
   groups: { id: string }[]
 }
+
+type UserUpdateForm = UserCreateForm
+type UserUpdatePayload = UserCreatePayload
 
 export { USER_ROLES, PREFERRED_LANGUAGE }
 export type {
   PreferredLanguage, UserRole, UserRoleValue, UserSummary, UserDetail,
   RepositoryRole, UserForm, UserCreateForm, UserCreatePayload,
+  UserUpdateForm, UserUpdatePayload,
 }

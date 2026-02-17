@@ -9,7 +9,7 @@ const properties = defineProps<Properties>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: RepositoryForm | RepositoryCreateForm]
-  'submit': [data: RepositoryUpdatePayload | RepositoryCreatePayload]
+  'submit': [data: RepositoryForm | RepositoryCreateForm]
   'error': [event: FormErrorEvent]
   'cancel': []
 }>()
@@ -33,7 +33,7 @@ const removeEntityId = (index: number) => {
 }
 
 const form = useTemplateRef('form')
-const onSubmit = (event: FormSubmitEvent<RepositoryUpdatePayload | RepositoryCreatePayload>) => {
+const onSubmit = (event: FormSubmitEvent<RepositoryForm | RepositoryCreateForm>) => {
   emit('submit', event.data)
 }
 const onError = (event: FormErrorEvent) => {

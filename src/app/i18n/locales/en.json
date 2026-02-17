@@ -109,7 +109,8 @@
       "repository-create": "You do not have permission to create a repository.",
       "repository-edit": "You do not have permission to modify information in this repository.",
       "user-access": "You do not have permission to access this user.",
-      "user-create": "You do not have permission to make users belong to the selected repository or group."
+      "user-create": "You do not have permission to make users belong to the selected repository or group.",
+      "user-edit": "You do not have permission to change this user's information."
     },
     "not-found": {
       "group": "No such group found.",
@@ -355,13 +356,17 @@
   },
   "toast": {
     "error": {
+      "bad-gateway": {
+        "description": "Communication with the server failed.",
+        "title": "Bad Gateway"
+      },
       "bad-request": {
         "description": "The server marked the request as invalid.",
         "title": "Bad Request"
       },
       "conflict": {
         "description": "There was a conflict in the input content.",
-        "title": "Conflict error"
+        "title": "Conflict Error"
       },
       "failed-search": {
         "title": "Search Error"
@@ -435,6 +440,9 @@
       },
       "user-created": {
         "description": "Successfully created user."
+      },
+      "user-updated": {
+        "description": "Successfully updated user information.\t"
       }
     }
   },

@@ -28,7 +28,7 @@ const normalizeRepositoriesQuery = (query: LocationQuery): RepositoriesSearchQue
     k: query.k ? pickSingle(query.k, { camel: true }) : undefined,
     d: query.d ? pickSingle(query.d) as SortOrder : undefined,
     p: Number(query.p) || 1,
-    l: Number(query.l) || pageSize.repositories?.[0],
+    l: Number(query.l) || pageSize.repositories[0],
   }
 }
 
@@ -45,7 +45,7 @@ const normalizeGroupsQuery = (query: LocationQuery): GroupsSearchQuery => {
     k: query.k ? pickSingle(query.k, { camel: true }) : undefined,
     d: query.d ? pickSingle(query.d) as SortOrder : undefined,
     p: Number(query.p) || 1,
-    l: Number(query.l) || pageSize.groups?.[0],
+    l: Number(query.l) || pageSize.groups[0],
   }
 }
 
@@ -65,7 +65,7 @@ const normalizeUsersQuery = (query: LocationQuery): UsersSearchQuery => {
     k: query.k ? pickSingle(query.k, { camel: true }) : undefined,
     d: query.d ? pickSingle(query.d) as SortOrder : undefined,
     p: Number(query.p) || 1,
-    l: Number(query.l) || pageSize.users?.[0],
+    l: Number(query.l) || pageSize.users[0],
   }
 }
 

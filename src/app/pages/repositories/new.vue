@@ -6,11 +6,15 @@ const { currentUser } = useAuth()
 const { stateAsCreate: state } = useRepositoryForm()
 
 const { handleFetchError } = useErrorHandling()
-const onSubmit = async (data: RepositoryCreatePayload) => {
+const onSubmit = async (data: RepositoryCreateForm) => {
+  const payload: RepositoryCreatePayload = {
+    ...data,
+    active: true,
+  }
   try {
     await $fetch('/api/repositories', {
       method: 'POST',
-      body: data,
+      body: payload,
     })
 
     toast.add({

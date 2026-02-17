@@ -4,7 +4,7 @@ type UseSelectMenuInfiniteScrollOptions<T> = {
   transform: (item: T) => { label: string, value: string }
   debounce?: number
   scrollDistance?: number
-  params?: Record<string, string | number | boolean>
+  query?: Record<string, string | number | boolean>
 }
 
 type UseSelectMenuInfiniteScrollReturn = {

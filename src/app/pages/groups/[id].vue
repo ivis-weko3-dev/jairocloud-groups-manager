@@ -68,11 +68,12 @@ watch(group, (newGroup: GroupDetail) => {
   } as GroupUpdateForm)
 }, { immediate: true })
 
-const onSubmit = async (data: GroupUpdatePayload) => {
+const onSubmit = async (data: GroupUpdateForm) => {
+  const { id, repository, created, ...payload } = data
   try {
     await $fetch(`/api/groups/${groupId.value}`, {
       method: 'PUT',
-      body: data,
+      body: payload as GroupUpdatePayload,
     })
 
     toast.add({
@@ -164,7 +165,7 @@ const onCancel = () => {
 
       <GroupForm
         v-model="state" :mode="mode"
-        @submit="onSubmit" @cancel="onCancel"
+        @submit="(data) => onSubmit(data as GroupUpdateForm)" @cancel="onCancel"
       />
     </UCard>
   </div>

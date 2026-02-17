@@ -6,6 +6,7 @@ import { UButton, UDropdownMenu, UIcon, ULink } from '#components'
 
 import type { ButtonProps, DropdownMenuItem, TableColumn, TableRow } from '@nuxt/ui'
 
+/** Composable for managing repositories table */
 const useRepositoriesTable = () => {
   const route = useRoute()
 
@@ -42,7 +43,7 @@ const useRepositoriesTable = () => {
   }))
 
   /** Returns action buttons for a repository entry */
-  const creationButtons = computed<ButtonProps[]>(() => [
+  const creationButtons = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-plus',
       label: $t('button.create-new'),
@@ -53,7 +54,7 @@ const useRepositoriesTable = () => {
   ])
 
   /** Actions to display when the list is empty */
-  const emptyActions = computed<ButtonProps[]>(() => [
+  const emptyActions = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-refresh-cw',
       label: $t('button.reload'),
@@ -218,21 +219,36 @@ const useRepositoriesTable = () => {
   }
 
   return {
+    /** Computed reference for the current query */
     query,
+    /** Update query parameters and push to router */
     updateQuery,
+    /** Criteria for filtering and sorting repositories */
     criteria: {
+      /** Reactive object for the search term */
       searchTerm,
+      /** Reactive object for the SP connector ID */
       spConnectorId,
+      /** Computed reference for the sort key */
       sortKey,
+      /** Computed reference for the sort order */
       sortOrder,
+      /** Reactive object for the current page number */
       pageNumber,
+      /** Reactive object for the number of items per page */
       pageSize,
     },
+    /** Button properties for creating new repositories */
     creationButtons,
+    /** Button properties for actions when the list is empty */
     emptyActions,
+    /** Column definitions for the table with translations */
     columns,
+    /** Column names for the table with translations */
     columnNames,
+    /** Reactive object for the visibility of columns */
     columnVisibility,
+    /** Make indicator for the page information */
     makePageInfo,
   }
 }

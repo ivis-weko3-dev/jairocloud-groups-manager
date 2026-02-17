@@ -40,11 +40,11 @@ const table = {
    * Options for page size selection in tables
    */
   pageSize: {
-    repositories: [20, 50, 100] as number[],
-    groups: [20, 50, 100] as number[],
-    users: [20, 50, 100] as number[],
-    history: [20, 50, 100] as number[],
-    bulks: [20, 50, 100] as number[],
+    repositories: [20, 50, 100] as [number, ...number[]],
+    groups: [20, 50, 100] as [number, ...number[]],
+    users: [20, 50, 100] as [number, ...number[]],
+    history: [20, 50, 100] as [number, ...number[]],
+    bulks: [20, 50, 100] as [number, ...number[]],
   },
 }
 

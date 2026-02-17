@@ -2,14 +2,14 @@
 import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 
 interface Properties {
-  modelValue: UserForm | UserCreateForm
+  modelValue: UserForm | UserCreateForm | UserUpdateForm
   mode: FormMode
 }
 const properties = defineProps<Properties>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: UserForm | UserCreateForm]
-  'submit': [data: UserCreatePayload]
+  'update:modelValue': [value: UserForm | UserCreateForm | UserUpdateForm]
+  'submit': [data: UserCreateForm | UserUpdateForm]
   'error': [event: FormErrorEvent]
   'cancel': []
 }>()
@@ -48,7 +48,7 @@ const {
 } = useSelectMenuInfiniteScroll<RepositorySummary>({
   url: '/api/repositories',
   limit: pageSize.repositories[0],
-  transform: (repository: RepositorySummary) => ({
+  transform: repository => ({
     label: repository.serviceName,
     value: repository.id,
   }),
@@ -65,7 +65,7 @@ const {
 } = useSelectMenuInfiniteScroll<GroupSummary>({
   url: '/api/groups',
   limit: pageSize.groups[0],
-  transform: (group: GroupSummary) => ({
+  transform: group => ({
     label: group.displayName,
     value: group.id,
   }),
@@ -84,7 +84,7 @@ const removeField = (name: MultipleField<UserForm | UserCreateForm>, index: numb
 }
 
 const addRepositoryRole = () => {
-  state.value.repositoryRoles.push({ id: '', label: '', userRole: undefined })
+  state.value.repositoryRoles.push({ value: undefined, label: undefined, userRole: undefined })
 }
 const removeRepositoryRole = (index: number) => {
   if (state.value.repositoryRoles.length > 1) {
@@ -102,7 +102,7 @@ const removeGroup = (index: number) => {
 }
 
 const form = useTemplateRef('form')
-const onSubmit = (event: FormSubmitEvent<UserCreatePayload>) => {
+const onSubmit = (event: FormSubmitEvent<UserCreateForm | UserUpdateForm>) => {
   emit('submit', event.data)
 }
 const onError = (event: FormErrorEvent) => {
@@ -119,7 +119,8 @@ const onCancel = () => {
   <UForm
     ref="form"
     :schema="schema" :state="state" class="space-y-6"
-    @submit="(event) => onSubmit(event as FormSubmitEvent<UserCreatePayload>)" @error="onError"
+    @submit="(event) => onSubmit(event as FormSubmitEvent<UserCreateForm | UserUpdateForm>)"
+    @error="onError"
   >
     <h3 class="text-lg font-semibold">
       {{ $t('user.details-basic-section') }}
@@ -252,7 +253,7 @@ const onCancel = () => {
         v-model="state.isSystemAdmin"
         variant="card" color="error" size="lg"
         :ui="{ root: 'py-2 px-3 w-fit', label: 'flex items-center gap-1.5' }"
-        :disabled="mode === 'view'"
+        :disabled="!currentUser?.isSystemAdmin"
       >
         <template #label>
           <UIcon name="i-lucide-shield-check" size="20" />
@@ -282,13 +283,13 @@ const onCancel = () => {
       </template>
 
       <div
-        v-for="(repository, index) in state.repositoryRoles" :key="index"
+        v-for="(repository, index) in state.repositoryRoles " :key="index"
         class="flex gap-2.5 items-center"
       >
         <USelectMenu
           ref="repositorySelect"
-          v-model="state.repositoryRoles[index]!.id"
-          v-model:search-term="repoSearchTerm" value-key="value" size="xl"
+          v-model="state.repositoryRoles[index] as { label: string, value: string }"
+          v-model:search-term="repoSearchTerm" size="xl"
           :placeholder="$t('user.placeholder.repository-name')"
           :items="repositoryNames" :loading="repoSearchStatus === 'pending'" ignore-filter
           class="flex-2"
@@ -368,7 +369,7 @@ const onCancel = () => {
       </div>
     </UFormField>
 
-    <div v-if="mode !== 'view'" class="flex justify-between items-center mt-2">
+    <div class="flex justify-between items-center mt-2">
       <UButton
         :label="$t('button.cancel')"
         icon="i-lucide-ban" color="neutral" variant="subtle"

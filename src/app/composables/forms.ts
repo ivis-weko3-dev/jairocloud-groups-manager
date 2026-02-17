@@ -15,6 +15,7 @@ const hasViewportReference = (
   )
 }
 
+/** Composable to make a select menu support infinite scroll */
 const useSelectMenuInfiniteScroll = <T>(
   options: UseSelectMenuInfiniteScrollOptions<T>,
 ): UseSelectMenuInfiniteScrollReturn => {
@@ -24,10 +25,10 @@ const useSelectMenuInfiniteScroll = <T>(
     transform,
     debounce = 300,
     scrollDistance = 10,
-    params: parameters = {},
+    query = {},
   } = options
 
-  const page = ref(0)
+  const page = ref(1)
   const hasMore = ref(true)
 
   const searchTerm = ref('')
@@ -36,11 +37,11 @@ const useSelectMenuInfiniteScroll = <T>(
   const items = ref<Array<{ label: string, value: string }>>([])
 
   const { data, status, execute } = useFetch<SearchResult<T>>(url, {
-    params: computed(() => ({
+    query: computed(() => ({
+      ...query,
       q: searchTermDebounced.value || undefined,
       p: page.value,
       l: limit,
-      ...parameters,
     })),
     lazy: true,
     immediate: false,
@@ -70,19 +71,18 @@ const useSelectMenuInfiniteScroll = <T>(
   const setupInfiniteScroll = (
     selectMenuReference: Ref<unknown>,
   ) => {
-    onMounted(() => {
-      // eslint-disable-next-line unicorn/consistent-function-scoping
-      const getViewportReference = () => {
-        const reference = selectMenuReference.value
-        if (Array.isArray(reference)) {
-          return reference[0]?.viewportRef
-        }
-        if (hasViewportReference(reference)) {
-          return reference.viewportRef
-        }
-        return
+    const getViewportReference = () => {
+      const reference = selectMenuReference.value
+      if (Array.isArray(reference)) {
+        return reference[0]?.viewportRef
       }
+      if (hasViewportReference(reference)) {
+        return reference.viewportRef
+      }
+      return
+    }
 
+    onMounted(() => {
       useInfiniteScroll(
         getViewportReference(),
         () => {
@@ -100,14 +100,20 @@ const useSelectMenuInfiniteScroll = <T>(
   }
 
   return {
+    /** Items for the select menu */
     items,
+    /** Search term for filtering items */
     searchTerm,
+    /** Status of the fetch request */
     status,
+    /** Callback for when the select menu is opened */
     onOpen,
+    /** Setup select menu infinite scroll */
     setupInfiniteScroll,
   }
 }
 
+/** Provides state and default data for repository forms */
 const useRepositoryForm = () => {
   const defaultData: Required<RepositoryDetail> = {
     id: '',
@@ -126,9 +132,17 @@ const useRepositoryForm = () => {
   const { id, spConnectorId, created, ...defaultCreateForm } = defaultForm
   const stateAsCreate = reactive<RepositoryCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, state, stateAsCreate }
+  return {
+    /** Default data for repository forms */
+    defaultData,
+    /** Reactive state for repository forms */
+    state,
+    /** Reactive state for create repository forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides schema for repository forms */
 const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
 
@@ -169,9 +183,15 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema, maxUrlLength }
+  return {
+    /** Schema for repository forms */
+    schema,
+    /** Maximum URL length for repository forms */
+    maxUrlLength,
+  }
 }
 
+/** Provides state and default data for group forms */
 const useGroupForm = () => {
   const defaultData: Required<GroupDetail> = {
     id: '',
@@ -198,9 +218,21 @@ const useGroupForm = () => {
   }
   const stateAsCreate = reactive<GroupCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, defaultForm, defaultCreateForm, state, stateAsCreate }
+  return {
+    /** Default data for group forms */
+    defaultData,
+    /** Default form state for group forms */
+    defaultForm,
+    /** Default create form state for group forms */
+    defaultCreateForm,
+    /** Reactive state for group forms */
+    state,
+    /** Reactive state for create group forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides options for group forms */
 const useGroupFormOptions = () => {
   const { t: $t } = useI18n()
 
@@ -229,9 +261,15 @@ const useGroupFormOptions = () => {
       return { label, value: visibility }
     }))
 
-  return { publicStatusOptions, visibilityOptions }
+  return {
+    /** Select menu items for public status */
+    publicStatusOptions,
+    /** Select menu items for member list visibility */
+    visibilityOptions,
+  }
 }
 
+/** Provides schema for group forms */
 const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
 
@@ -271,9 +309,15 @@ const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema, getMaxIdLength }
+  return {
+    /** Schema for group forms */
+    schema,
+    /** Get the maximum ID length based on the repository ID */
+    getMaxIdLength,
+  }
 }
 
+/** Provides reactive state and default data for user forms */
 const useUserForm = () => {
   const defaultData: Required<UserDetail> = {
     id: '',
@@ -290,7 +334,7 @@ const useUserForm = () => {
   const { repositoryRoles, groups, ..._defaultForm } = defaultData
   const defaultForm: UserForm = {
     ..._defaultForm,
-    repositoryRoles: [{ id: '', label: '', userRole: undefined }],
+    repositoryRoles: [{ value: undefined, label: undefined, userRole: undefined }],
     groups: [{ id: '', label: '' }],
   }
   const state = reactive<UserForm>({ ...defaultForm })
@@ -298,9 +342,21 @@ const useUserForm = () => {
   const { id, created, lastModified, ...defaultCreateForm } = defaultForm
   const stateAsCreate = reactive<UserCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, defaultForm, state, stateAsCreate }
+  return {
+    /** Default data for user forms */
+    defaultData,
+    /** Default form state for user forms */
+    defaultForm,
+    /** Default create form state for user forms */
+    defaultCreateForm,
+    /** Reactive state for user forms */
+    state,
+    /** Reactive state for create user forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides options for user forms */
 const useUserFormOptions = () => {
   const { t: $t } = useI18n()
 
@@ -330,9 +386,18 @@ const useUserFormOptions = () => {
     }))
   })
 
-  return { preferredLanguageOptions, userRoleOptions }
+  return {
+    /** Select menu items for preferred language */
+    preferredLanguageOptions,
+    /** Select menu items for user roles */
+    userRoleOptions,
+  }
 }
 
+/**
+ * Provides schema for user forms
+ * @param mode form mode to return the corresponding schema.
+ */
 const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
   const userRoles = Object.keys(USER_ROLES) as [string, ...string[]]
@@ -351,13 +416,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     }).optional(),
     isSystemAdmin: z.boolean().default(false),
     repositoryRoles: z.array(z.object({
-      id: z.string().optional().default(''),
+      value: z.string().optional(),
       userRole: z.enum(userRoles).optional(),
     })),
     groups: z.array(z.object({ id: z.string() })).optional(),
   }).superRefine((data, context) => {
     if (data.isSystemAdmin === true) {
-      const hasFilledRole = data.repositoryRoles.some(role => role.id || role.userRole)
+      const hasFilledRole = data.repositoryRoles.some(role => role.value || role.userRole)
       if (hasFilledRole) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -367,18 +432,9 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       }
     }
     else {
-      const hasValidRole = data.repositoryRoles.some(role => role.id && role.userRole)
-      if (!hasValidRole) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: $t('user.validation.repositoryRoles.at-least-one'),
-          path: ['repositoryRoles'],
-        })
-      }
-
       for (const [index, role] of data.repositoryRoles.entries()) {
-        if (role.id || role.userRole) {
-          if (!role.id || role.id.length === 0) {
+        if (role.value || role.userRole) {
+          if (!role.value || role.value.length === 0) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
               message: $t('user.validation.repositoryRoles.id.required'),
@@ -394,15 +450,22 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
           }
         }
       }
+
+      const hasValidRole = data.repositoryRoles.some(role => role.value && role.userRole)
+      if (!hasValidRole) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.repositoryRoles.at-least-one'),
+          path: ['repositoryRoles'],
+        })
+      }
     }
   }))
 
-  const updateSchema = computed(() => ({} as unknown))
+  const updateSchema = computed(() => createSchema.value)
 
   const getSchemaByMode = (m: FormMode) => {
-    return m === 'new'
-      ? createSchema.value
-      : updateSchema.value as Record<keyof UserCreatePayload, z.ZodTypeAny>
+    return m === 'new' ? createSchema.value : updateSchema.value
   }
 
   const schema = mode
@@ -412,9 +475,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema }
+  return {
+    /** Schema for user forms */
+    schema,
+  }
 }
 
+/** Provides form error handling */
 const useFormError = () => {
   const { t: $t } = useI18n()
   const toast = useToast()
@@ -431,6 +498,7 @@ const useFormError = () => {
   }
 
   return {
+    /** Show form error toast and focus the first error field */
     handleFormError,
   }
 }

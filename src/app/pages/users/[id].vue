@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { camelCase } from 'scule'
 
+import type { FetchError } from 'ofetch'
+
 const route = useRoute()
+const toast = useToast()
 
 const userId = computed(() => route.params.id as string)
 const mode = computed<'view' | 'edit'>(() => 'view')
@@ -9,7 +12,7 @@ const mode = computed<'view' | 'edit'>(() => 'view')
 const { defaultData, defaultForm, state } = useUserForm()
 
 const { handleFetchError } = useErrorHandling()
-const { data: user } = useFetch<UserDetail>(
+const { data: user, refresh } = useFetch<UserDetail>(
   `/api/users/${userId.value}`, {
     method: 'GET',
     server: false,
@@ -64,7 +67,74 @@ watch(user, (newUser: UserDetail) => {
     created: created ? dateFormatter.format(created) : defaultForm.created,
     lastModified: lastModified ? dateFormatter.format(lastModified) : defaultForm.lastModified,
   } as UserForm)
-})
+}, { immediate: true })
+
+const onSubmit = async (data: UserUpdateForm) => {
+  const payload: UserUpdatePayload = {
+    ...data,
+    repositoryRoles: data.repositoryRoles.map(item =>
+      ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
+    ),
+  }
+
+  try {
+    await $fetch(`/api/users/${userId.value}`, {
+      method: 'PUT',
+      body: payload,
+    })
+
+    toast.add({
+      title: $t('toast.success.updated.title'),
+      description: $t('toast.success.user-updated.description'),
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    await navigateTo('/users')
+  }
+  catch (error) {
+    switch ((error as FetchError).status) {
+      case 400: {
+        toast.add({
+          title: $t('toast.error.validation.title'),
+          description: $t('toast.error.validation.description'),
+          color: 'error',
+          icon: 'i-lucide-circle-x',
+        })
+        break
+      }
+      case 403: {
+        showError({
+          status: 403,
+          message: $t('error-page.forbidden.user-edit'),
+        })
+        break
+      }
+      case 409: {
+        toast.add({
+          title: $t('toast.error.conflict.title'),
+          description: $t('toast.error.conflict.description'),
+          color: 'error',
+          icon: 'i-lucide-circle-x',
+        })
+        break
+      }
+      default: {
+        handleFetchError({ response: (error as FetchError).response! })
+        break
+      }
+    }
+  }
+}
+
+const onCancel = () => {
+  refresh()
+
+  if (import.meta.client) {
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    })
+  }
+}
 </script>
 
 <template>
@@ -91,7 +161,10 @@ watch(user, (newUser: UserDetail) => {
         </div>
       </template>
 
-      <UserForm v-model="state" :mode="mode" />
+      <UserForm
+        v-model="state" :mode="mode"
+        @submit="(data) => onSubmit(data as UserUpdateForm)" @cancel="onCancel"
+      />
     </UCard>
   </div>
 </template>
