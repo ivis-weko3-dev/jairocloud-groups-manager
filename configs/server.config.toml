@@ -64,6 +64,13 @@ crt = "./certs/server.crt"
 key = "./certs/server.key"
 
 
+[repositories]
+# Maximum allowed length for repository URLs, expressed as a Python expression.
+# Built-in functions `len`, `max`, and `min` are available.
+# If you change this setting, you must also change setting `repositories.maxUrlLength`
+# in `app.config.ts` accordingly to keep them consistent.
+max_url_length = "50 - len('https://') - len('jc_') - 9"
+
 [repositories.id_patterns]
 # SP connecter ID pattern. It should include '{repository_id}' placeholder.
 # `repository_id` is the FQDN, with its dots and hyphens replaced by underscores.

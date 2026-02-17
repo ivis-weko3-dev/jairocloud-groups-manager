@@ -51,6 +51,8 @@ const repositories = {
   /**
    * Maximum length of the URL ID entered in the repository creation form \
    * (excluding “https://”, the “jc_” prefix assigned to the ID, and additional padding) \
+   * If you change this setting, you must also change setting `repositories.max_url_length`
+   * in `server.config.toml` accordingly to keep them consistent.
    * [Mandatory]
    */
   maxUrlLength: 50 - 'https://'.length - 'jc_'.length - 9,

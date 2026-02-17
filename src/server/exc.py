@@ -55,6 +55,20 @@ class OAuthTokenError(ServiceSettingsError):
     """
 
 
+class UnsafeOperationError(JAIROCloudGroupsManagerError):
+    """Exception for unsafe operations.
+
+    Errors caused by operations that are considered unsafe.
+    """
+
+
+class SystemAdminNotFound(JAIROCloudGroupsManagerError):  # noqa: N818
+    """Exception for system administrator not found.
+
+    Errors caused by the absence of a system administrator in the system.
+    """
+
+
 class DatabaseError(JAIROCloudGroupsManagerError):
     """Exception for database errors.
 

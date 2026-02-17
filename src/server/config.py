@@ -9,6 +9,8 @@ Provides validation, loading, and global access to runtime configuration.
 
 # ruff: noqa: S105, N802
 
+import ast
+import operator
 import typing as t
 
 from datetime import timedelta
@@ -19,6 +21,7 @@ from pydantic import (
     Field,
     StringConstraints,
     computed_field,
+    field_validator,
 )
 from pydantic_settings import (
     BaseSettings,
@@ -288,6 +291,31 @@ class RepositoriesConfig(BaseModel):
     id_patterns: RepositoriesIdPatternsConfig
     """Patterns for repository-related IDs."""
 
+    max_url_length: t.Annotated[int, "expression"] = 50
+    """Maximum allowed length for repository URLs, expressed as a Python expression."""
+
+    @field_validator("max_url_length", mode="before")
+    @classmethod
+    def validate_max_url_length(cls, value: str) -> int:
+        """Validate and evaluate the max_url_length expression.
+
+        Args:
+            value (str): The expression to evaluate for max_url_length.
+
+        Returns:
+            int: The evaluated max_url_length value.
+
+        Raises:
+            ValueError: If the expression is invalid or does not evaluate to an integer.
+        """
+        if not (pursed := safe_eval(value)) or not isinstance(pursed, int):
+            error = (
+                "max_url_length must be an expression that evaluates to an integer, "
+                f"got: {value}"
+            )
+            raise ValueError(error)
+        return pursed
+
 
 class RepositoriesIdPatternsConfig(BaseModel):
     """Schema for repository-related ID patterns."""
@@ -506,6 +534,50 @@ class DevAccountConfig(BaseModel):
 
     user_name: str
     """User name of the development account."""
+
+
+def safe_eval(expr: str) -> int | str:
+    """Safely evaluate a restricted arithmetic expression.
+
+    Supported:
+        - int / float literals
+        - str literals (for len)
+        - +, -, *, /
+        - len, max, min
+
+    Args:
+        expr (str): The expression to evaluate.
+
+    Returns:
+        int|str: The result of the evaluated expression.
+    """
+    ops = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.FloorDiv: operator.floordiv,
+    }
+
+    def _eval(node: ast.AST) -> int | str:
+        if isinstance(node, ast.Constant):
+            return node.value  # type: ignore[return-value]
+
+        if isinstance(node, ast.BinOp) and type(node.op) in ops:
+            return ops[type(node.op)](_eval(node.left), _eval(node.right))  # type: ignore[arg-type]
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            args = [_eval(a) for a in node.args]
+            if node.func.id == "len":
+                return len(args[0])  # type: ignore[arg-type]
+            if node.func.id == "max":
+                return max(args)
+            if node.func.id == "min":
+                return min(args)
+
+        error = f"Unsupported expression: {ast.dump(node)}"
+        raise ValueError(error)
+
+    return _eval(ast.parse(expr, mode="eval").body)
 
 
 def setup_config(path_or_obj: str | RuntimeConfig) -> RuntimeConfig:

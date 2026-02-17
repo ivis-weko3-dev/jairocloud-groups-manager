@@ -30,7 +30,7 @@ class RepositoryDetail(BaseModel):
     id: str | None = None
     """The unique identifier for the repository."""
 
-    service_name: str
+    service_name: str | None = None
     """The name of the repository. Alias to 'serviceName'."""
 
     service_url: HttpUrl | None = None
