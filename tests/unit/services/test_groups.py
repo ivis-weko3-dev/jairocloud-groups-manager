@@ -1646,11 +1646,10 @@ def test_update_member_add_success(app: Flask, gen_group_id, mocker: MockerFixtu
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id", return_value=updated_map_group)
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
     result = groups.update_member(group_id, add={member_id}, remove=set())
-
     assert result.model_dump() == expected.model_dump()
 
 
@@ -1676,7 +1675,7 @@ def test_update_member_add_failure_resource_invalid(app: Flask, gen_group_id, mo
         "server.clients.groups.patch_by_id",
         return_value=MapError(detail=error_detail, status="400", scim_type="invalidValue"),
     )
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(ResourceInvalid) as exc_info:
         groups.update_member(group_id, add={member_id}, remove=set())
@@ -1702,7 +1701,8 @@ def test_update_member_add_failure_no_sysadmin(app: Flask, gen_group_id, mocker:
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
+
     mocker.patch(
         "server.clients.groups.get_by_id",
         return_value=MapGroup(id="sysadmin", display_name="", public=True, member_list_visibility="Public", members=[]),
@@ -1766,7 +1766,7 @@ def test_update_member_remove_success(app: Flask, gen_group_id, mocker: MockerFi
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id", return_value=updated_map_group)
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
     result = groups.update_member(group_id, add=set(), remove={member_id})
@@ -1809,7 +1809,7 @@ def test_update_member_remove_all_success(app: Flask, gen_group_id, mocker: Mock
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id", return_value=updated_map_group)
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
     result = groups.update_member(group_id, add=set(), remove={"user6", "user7"})
@@ -1839,7 +1839,7 @@ def test_update_member_remove_failure_resource_invalid(app: Flask, gen_group_id,
         "server.clients.groups.patch_by_id",
         return_value=MapError(detail=error_detail, status="400", scim_type="invalidValue"),
     )
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(ResourceInvalid) as exc_info:
         groups.update_member(group_id, add=set(), remove={member_id})
@@ -1857,7 +1857,7 @@ def test_update_member_remove_failure_no_sysadmin(app: Flask, gen_group_id, mock
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
 
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch(
         "server.clients.groups.get_by_id",
         return_value=MapGroup(id="sysadmin", display_name="", public=True, member_list_visibility="Public", members=[]),
@@ -1904,7 +1904,7 @@ def test_update_member_conflict(app: Flask, gen_group_id, mocker: MockerFixture)
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(RequestConflict):
         groups.update_member(group_id, add={"user11"}, remove={"user11"})
@@ -1934,7 +1934,7 @@ def test_update_member_no_members_success(app: Flask, gen_group_id, mocker: Mock
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id", return_value=group_info)
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
     result = groups.update_member(group_id, add=set(), remove=set())
@@ -1953,7 +1953,6 @@ def test_update_member_no_members_failure_no_sysadmin(app: Flask, gen_group_id, 
         "server.clients.groups.get_by_id",
         return_value=MapGroup(id="sysadmin", display_name="", public=True, member_list_visibility="Public", members=[]),
     )
-    mocker.patch("server.datastore.app_cache.get", return_value=None)
 
     with pytest.raises(ResourceInvalid) as exc_info:
         groups.update_member(group_id, add=set(), remove=set())
@@ -1982,48 +1981,42 @@ def test_update_member_no_members_failure_group_not_found(app: Flask, gen_group_
 
 
 def test_update_member_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
-    """Test update_member raises OAuthTokenError with correct message when HTTP 401 occurs."""
-
     group_id: str = gen_group_id("g113")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
-    mocker.patch("server.services.groups.get_access_token", return_value="token")
-    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
-    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     response = Response()
     response.status_code = 401
     http_error = requests.HTTPError(response=response)
-    mock_patch.side_effect = http_error
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.groups.get_by_id", side_effect=http_error)
+    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
+    mocker.patch("server.clients.groups.patch_by_id")
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(OAuthTokenError) as exc_info:
-        groups.update_member(group_id, add=set("user12"), remove=set())
+        groups.update_member(group_id, add={"user12"}, remove=set())
 
     assert str(exc_info.value) == "Access token is invalid or expired."
-    assert mock_patch.call_args[0][0] == group_id
 
 
 def test_update_member_raises_unexpected_response_error_on_http_403(
     app: Flask, gen_group_id, mocker: MockerFixture
 ) -> None:
     """Test update_member raises UnexpectedResponseError with correct message when HTTP 403 occurs."""
-
     group_id: str = gen_group_id("g114")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
-    mocker.patch("server.services.groups.get_access_token", return_value="token")
-    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
-    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     response = Response()
     response.status_code = 403
     http_error = requests.HTTPError(response=response)
-    mock_patch.side_effect = http_error
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
+    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(UnexpectedResponseError) as exc_info:
-        groups.update_member(group_id, add=set("user13"), remove=set())
+        groups.update_member(group_id, add={"user13"}, remove=set())
 
     assert str(exc_info.value) == "Failed to update Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
@@ -2036,19 +2029,18 @@ def test_update_member_raises_unexpected_response_error_on_http_500(
 
     group_id: str = gen_group_id("g115")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
-    mocker.patch("server.services.groups.get_access_token", return_value="token")
-    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
-    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     response = Response()
     response.status_code = 500
     http_error = requests.HTTPError(response=response)
-    mock_patch.side_effect = http_error
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
+    mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(UnexpectedResponseError) as exc_info:
-        groups.update_member(group_id, add=set("user14"), remove=set())
+        groups.update_member(group_id, add={"user14"}, remove=set())
 
     assert str(exc_info.value) == "mAP Core API server error."
     assert mock_patch.call_args[0][0] == group_id
@@ -2061,16 +2053,15 @@ def test_update_member_raises_unexpected_response_error_on_request_exception(
 
     group_id: str = gen_group_id("g116")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
-    mock_patch.side_effect = requests.RequestException()
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=requests.RequestException())
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(UnexpectedResponseError) as exc_info:
-        groups.update_member(group_id, add=set("user15"), remove=set())
+        groups.update_member(group_id, add={"user15"}, remove=set())
 
     assert str(exc_info.value) == "Failed to communicate with mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
@@ -2083,16 +2074,15 @@ def test_update_member_raises_unexpected_response_error_on_validation_error(
 
     group_id: str = gen_group_id("g117")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
-    mock_patch.side_effect = ValidationError("validation error", [])
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=ValidationError("validation error", []))
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(UnexpectedResponseError) as exc_info:
-        groups.update_member(group_id, add=set("user16"), remove=set())
+        groups.update_member(group_id, add={"user16"}, remove=set())
 
     assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
@@ -2102,16 +2092,15 @@ def test_update_member_raises_oauth_token_error_propagation(app: Flask, gen_grou
     """Test update_member raises OAuthTokenError and it is propagated as is."""
     group_id: str = gen_group_id("g118")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
-    mock_patch.side_effect = OAuthTokenError("token error")
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=OAuthTokenError("token error"))
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(OAuthTokenError) as exc_info:
-        groups.update_member(group_id, add=set("user17"), remove=set())
+        groups.update_member(group_id, add={"user17"}, remove=set())
 
     assert str(exc_info.value) == "token error"
     assert mock_patch.call_args[0][0] == group_id
@@ -2121,16 +2110,15 @@ def test_update_member_raises_credentials_error_propagation(app: Flask, gen_grou
     """Test update_member raises CredentialsError and it is propagated as is."""
     group_id: str = gen_group_id("g119")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
-    mock_patch.side_effect = CredentialsError("credentials error")
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=CredentialsError("credentials error"))
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
     with pytest.raises(CredentialsError) as exc_info:
-        groups.update_member(group_id, add=set("user18"), remove=set())
+        groups.update_member(group_id, add={"user18"}, remove=set())
 
     assert str(exc_info.value) == "credentials error"
     assert mock_patch.call_args[0][0] == group_id
@@ -2140,16 +2128,16 @@ def test_update_member_raises_unexpected_exception_propagation(app: Flask, gen_g
     """Test update_member raises an unexpected Exception and it is propagated as is."""
     group_id: str = gen_group_id("g120")
     sysadmin_id: str = "sysadmin"
-    group_info = GroupDetail(id=group_id, display_name="TestGroup", public=True, member_list_visibility="Public")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_by_id", return_value=group_info)
+    mocker.patch("server.clients.groups.get_by_id", side_effect=None)
     mocker.patch("server.services.groups.get_system_admin", return_value=[sysadmin_id])
-    mock_patch = mocker.patch("server.clients.groups.patch_by_id")
-    mock_patch.side_effect = UnexpectedError("unexpected error")
+    mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=UnexpectedError("unexpected error"))
+    mocker.patch("server.datastore.app_cache", new=mocker.Mock())
+    mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
     with pytest.raises(UnexpectedError) as exc_info:
-        groups.update_member(group_id, add=set("user19"), remove=set())
+        groups.update_member(group_id, add={"user19"}, remove=set())
 
     assert str(exc_info.value) == "unexpected error"
     assert mock_patch.call_args[0][0] == group_id

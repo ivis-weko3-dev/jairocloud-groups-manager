@@ -285,7 +285,7 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     return RepositoryDetail.from_map_service(result)
 
 
-def update(repository: RepositoryDetail) -> RepositoryDetail:
+def update(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
     """Update an existing Repository resource.
 
     Args:
@@ -301,6 +301,10 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:
         ResourceNotFound: If the Repository resource does not exist.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    if repository.id is None:
+        error = "Repository ID must not be None"
+        raise ResourceInvalid(error)
+
     service_id = resolve_service_id(repository_id=repository.id)
     current = get_by_id(service_id)
     if current is None:
