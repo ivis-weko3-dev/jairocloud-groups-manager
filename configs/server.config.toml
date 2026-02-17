@@ -130,6 +130,9 @@ base_url = "https://sptest.cg.gakunin.jp"
 # Timeout (in seconds) for requests to mAP Core service.
 timeout = 20
 
+# Update strategy for mAP Core service. Possible values: "put" or "patch"
+update_strategy = "patch"
+
 
 [postgres]
 # Database user name for authentication.

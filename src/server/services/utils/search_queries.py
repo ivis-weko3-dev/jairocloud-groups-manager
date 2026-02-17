@@ -24,15 +24,12 @@ from server.const import (
 from server.entities.map_group import MapGroup
 from server.entities.map_service import MapService
 from server.entities.map_user import MapUser
-from server.entities.repository_detail import resolve_service_id
 from server.entities.search_request import SearchRequestParameter
 from server.exc import InvalidQueryError
 
-from . import (
-    detect_affiliations,
-    get_permitted_repository_ids,
-    is_current_user_system_admin,
-)
+from .affiliations import detect_affiliations
+from .permissions import get_permitted_repository_ids, is_current_user_system_admin
+from .resolvers import resolve_service_id
 
 
 if t.TYPE_CHECKING:

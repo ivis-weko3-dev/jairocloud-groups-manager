@@ -249,7 +249,8 @@ def put_by_id(
 
     payload = service.model_dump(
         mode="json",
-        exclude=set(exclude or ()),
+        include=include | {"id"} if include else None,
+        exclude=exclude,
         by_alias=True,
         exclude_unset=True,
     )
@@ -257,7 +258,7 @@ def put_by_id(
     attributes_params: dict[str, str] = {}
     if include:
         attributes_params[alias_generator("attributes")] = ",".join([
-            alias_generator(name) for name in include
+            alias_generator(name) for name in include | {"id"}
         ])
     if exclude:
         attributes_params[alias_generator("excluded_attributes")] = ",".join([
@@ -327,7 +328,7 @@ def patch_by_id(
     attributes_params: dict[str, str] = {}
     if include:
         attributes_params[alias_generator("attributes")] = ",".join([
-            alias_generator(name) for name in include
+            alias_generator(name) for name in include | {"id"}
         ])
     if exclude:
         attributes_params[alias_generator("excluded_attributes")] = ",".join([
