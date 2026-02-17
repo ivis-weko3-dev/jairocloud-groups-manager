@@ -230,6 +230,22 @@ class HistoryPublic(BaseModel):
     """Public status."""
 
 
+class OperatorQuery(BaseModel):
+    """Schema for operator query parameters."""
+
+    q: t.Annotated[str | None, "query"] = None
+    """Search term to filter operators."""
+
+    p: t.Annotated[int | None, "page"] = None
+    """Page number to retrieve."""
+
+    l: t.Annotated[int | None, "length"] = None  # noqa: E741
+    """Page size (number of items per page)."""
+
+    model_config = ignore_extra_config
+    """Configure to ignore extra fields."""
+
+
 class TargetRepository(BaseModel):
     """Schema for target repository."""
 

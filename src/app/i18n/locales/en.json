@@ -24,6 +24,7 @@
       "result_failed": "Failed to get execution results"
     },
     "file-format-error": "The file format is not supported. \nChoose TSV, CSV, or Excel file.",
+    "file-required": "Please select file",
     "file-validate-error": "File validation failed",
     "filter": "filter",
     "import": {
@@ -36,6 +37,7 @@
     },
     "missing_user": "User not included in file",
     "operator": "Execution user",
+    "repository-required": "Please select a repository",
     "select-repository": "Please select a repository",
     "select_all": "Select all",
     "start-at": "Start date and time",
@@ -202,20 +204,26 @@
     "logoAlt": "Header App Logo"
   },
   "history": {
+    "available": "Re-download",
     "cancel": "Number of cancellations",
     "description": "You can check the history of file uploads and downloads.",
+    "download": {
+      "date": "Download date and time"
+    },
     "empty": "No data matching your search criteria was found",
     "empty-data": "No data",
     "expired": "Expired",
     "failed": "failure",
     "failed-count": "Number of failures",
     "file": "file",
-    "filter": "filter",
+    "filter": {
+      "options_not_found": "Failed to get filter",
+      "title": "filter"
+    },
     "first-download": "First download",
     "group-count": "Number of groups",
     "more": "Show more",
     "operation": "Execution conditions",
-    "operation-date": "Execution date and time",
     "operator": "Execution user",
     "private": "make private",
     "progress": "Processing",
@@ -225,9 +233,13 @@
     "reset": "reset",
     "show-detail": "Show details",
     "status": "status",
-    "succes": "success",
+    "success": "success",
     "success-count": "Number of successes",
     "sum": "Total number of downloads | Total number of uploads",
+    "tab": {
+      "download": "Download history",
+      "upload": "Upload history"
+    },
     "table": {
       "column": {
         "download-date": "Download date and time",
@@ -241,7 +253,10 @@
     "table-title": "History list",
     "target": "Download target | Upload target",
     "title": "History",
-    "tub": "Download history | Upload history",
+    "unavailable": "Expired",
+    "upload": {
+      "date": "Upload date and time"
+    },
     "uploaded-at": "Upload date and time",
     "user-count": "Number of users",
     "view": "Number of items displayed"

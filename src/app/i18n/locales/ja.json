@@ -24,6 +24,7 @@
       "result_failed": "実行結果の取得に失敗しました"
     },
     "file-format-error": "対応していないファイル形式です。TSV、CSV、またはExcelファイルを選択してください。",
+    "file-required": "ファイルを選択してください",
     "file-validate-error": "ファイルの検証に失敗しました",
     "filter": "フィルター",
     "import": {
@@ -36,6 +37,7 @@
     },
     "missing_user": "ファイルに含まれていないユーザー",
     "operator": "実行ユーザー",
+    "repository-required": "リポジトリを選択してください",
     "select-repository": "リポジトリを選択してください",
     "select_all": "すべて選択",
     "start-at": "開始日時",
@@ -187,20 +189,25 @@
     "logoAlt": "ヘッダーロゴ"
   },
   "history": {
-    "cancel": "中止件数",
+    "available": "再ダウンロード",
     "description": "ファイルのアップロード・ダウウンロードの履歴を確認できます。",
+    "download": {
+      "date": "ダウンロード日時"
+    },
     "empty": "検索条件に一致するデータが見つかりませんでした",
     "empty-data": "データがありません",
     "expired": "期限切れ",
     "failed": "失敗",
     "failed-count": "失敗件数",
     "file": "ファイル",
-    "filter": "フィルター",
+    "filter": {
+      "options_not_found": "フィルターの取得に失敗しました",
+      "title": "フィルター"
+    },
     "first-download": "初回ダウンロード",
     "group-count": "グループ数",
     "more": "さらに表示",
     "operation": "実行条件",
-    "operation-date": "実行日時",
     "operator": "実行ユーザー",
     "private": "非公開にする",
     "progress": "処理中",
@@ -210,9 +217,13 @@
     "reset": "リセット",
     "show-detail": "詳細を表示",
     "status": "ステータス",
-    "succes": "成功",
+    "success": "成功",
     "success-count": "成功件数",
     "sum": "総ダウンロード回数 | 総アップロード回数",
+    "tab": {
+      "download": "ダウンロード履歴",
+      "upload": "アップロード履歴"
+    },
     "table": {
       "column": {
         "download-date": "ダウンロード日時",
@@ -226,7 +237,10 @@
     "table-title": "履歴一覧",
     "target": "ダウンロード対象 | アップロード対象",
     "title": "履歴",
-    "tub": "ダウンロード履歴 | アップロード履歴",
+    "unavailable": "期限切れ",
+    "upload": {
+      "date": "アップロード日時"
+    },
     "uploaded-at": "アップロード日時",
     "user-count": "ユーザー数",
     "view": "表示件数"
