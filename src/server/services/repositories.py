@@ -31,6 +31,7 @@ from server.exc import (
     OAuthTokenError,
     ResourceInvalid,
     ResourceNotFound,
+    SystemAdminNotFound,
     UnexpectedResponseError,
 )
 
@@ -229,13 +230,14 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
         CredentialsError: If the client credentials are invalid.
         InvalidFormError: If failed to prepare MapService from RepositoryDetail.
         ResourceInvalid: If the Repository resource data is invalid.
+        SystemAdminNotFound: If no system administrators are found in the system.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
     admins = get_system_admins()
 
     service = prepare_service(repository, admins)
     role_groups = prepare_role_groups(
-        t.cast("str", repository.id), repository.service_name, admins
+        t.cast("str", repository.id), t.cast("str", repository.service_name), admins
     )
     try:
         service = prepare_service(repository, admins)
@@ -275,7 +277,7 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
         error = "Failed to parse response from mAP Core API."
         raise UnexpectedResponseError(error) from exc
 
-    except OAuthTokenError, CredentialsError, InvalidFormError:
+    except OAuthTokenError, CredentialsError, InvalidFormError, SystemAdminNotFound:
         raise
 
     if isinstance(result, MapError):

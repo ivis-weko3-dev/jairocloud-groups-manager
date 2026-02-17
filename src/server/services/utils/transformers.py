@@ -18,7 +18,7 @@ from server.entities.map_service import (
     MapService,
     ServiceEntityID,
 )
-from server.exc import InvalidFormError
+from server.exc import InvalidFormError, SystemAdminNotFound
 
 
 if t.TYPE_CHECKING:
@@ -39,14 +39,31 @@ def prepare_service(
 
     Raises:
         InvalidFormError: If the repository cannot be converted to a MapService.
+        SystemAdminNotFound: If no administrators are provided.
     """
     repository_id = repository.id
+    service_url = repository.service_url
+
+    if repository.service_name is None:
+        error = "Service name is required to create a repository."
+        raise InvalidFormError(error)
+
+    if service_url is None:
+        error = "Service URL is required to create a repository."
+        raise InvalidFormError(error)
+
     if repository_id is None:
-        fqdn = repository.service_url.host if repository.service_url else None
+        fqdn = service_url.host
         repository_id = resolve_repository_id(fqdn=fqdn) if fqdn else None
 
     if repository_id is None:
-        error = "Failed to resolve repository ID."
+        error = "Service URL must contain a valid host."
+        raise InvalidFormError(error)
+
+    max_url_length = config.REPOSITORIES.max_url_length
+    without_scheme_url = str(service_url).replace(f"{service_url.scheme}://", "")
+    if len(without_scheme_url) > max_url_length:
+        error = "Service URL is too long."
         raise InvalidFormError(error)
 
     service = MapService(
@@ -56,10 +73,16 @@ def prepare_service(
     )
     if repository.active is not None:
         service.suspended = repository.active is False
-    if repository.entity_ids:
-        service.entity_ids = [
-            ServiceEntityID(value=eid) for eid in repository.entity_ids
-        ]
+
+    if not repository.entity_ids:
+        error = "At least one entity ID is required to create a repository."
+        raise InvalidFormError(error)
+
+    service.entity_ids = [ServiceEntityID(value=eid) for eid in repository.entity_ids]
+
+    if not administrators:
+        error = "At least one administrator is required to create a repository."
+        raise SystemAdminNotFound(error)
 
     service.administrators = [
         Administrator(value=user_id) for user_id in administrators

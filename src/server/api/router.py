@@ -14,7 +14,12 @@ from flask import Blueprint
 from flask_pydantic import validate
 
 from server.auth import login_manager, refresh_session
-from server.exc import CredentialsError, JAIROCloudGroupsManagerError, OAuthTokenError
+from server.exc import (
+    CredentialsError,
+    JAIROCloudGroupsManagerError,
+    OAuthTokenError,
+    SystemAdminNotFound,
+)
 
 from .schemas import ErrorResponse
 
@@ -50,9 +55,10 @@ def create_api_blueprint() -> Blueprint:
 
     @bp_api.errorhandler(OAuthTokenError)
     @bp_api.errorhandler(CredentialsError)
+    @bp_api.errorhandler(SystemAdminNotFound)
     @validate()
     def handle_service_settings_error(
-        error: CredentialsError | OAuthTokenError,
+        error: CredentialsError | OAuthTokenError | SystemAdminNotFound,
     ) -> tuple[ErrorResponse, int]:
         """Handle service settings errors for the API.
 
