@@ -4,6 +4,8 @@
 
 """Services to provide resource transformers for entities."""
 
+# ruff: noqa: SLF001
+
 import typing as t
 
 from server.config import config
@@ -18,11 +20,12 @@ from server.entities.map_service import (
     MapService,
     ServiceEntityID,
 )
+from server.entities.repository_detail import RepositoryDetail
 from server.exc import InvalidFormError, SystemAdminNotFound
 
-
-if t.TYPE_CHECKING:
-    from server.entities.repository_detail import RepositoryDetail
+from .affiliations import detect_affiliation
+from .resolvers import resolve_repository_id, resolve_service_id
+from .search_queries import make_criteria_object
 
 
 def prepare_service(
@@ -38,47 +41,10 @@ def prepare_service(
         MapService: The converted MapService instance.
 
     Raises:
-        InvalidFormError: If the repository cannot be converted to a MapService.
         SystemAdminNotFound: If no administrators are provided.
     """
-    repository_id = repository.id
-    service_url = repository.service_url
-
-    if repository.service_name is None:
-        error = "Service name is required to create a repository."
-        raise InvalidFormError(error)
-
-    if service_url is None:
-        error = "Service URL is required to create a repository."
-        raise InvalidFormError(error)
-
-    if repository_id is None:
-        fqdn = service_url.host
-        repository_id = resolve_repository_id(fqdn=fqdn) if fqdn else None
-
-    if repository_id is None:
-        error = "Service URL must contain a valid host."
-        raise InvalidFormError(error)
-
-    max_url_length = config.REPOSITORIES.max_url_length
-    without_scheme_url = str(service_url).replace(f"{service_url.scheme}://", "")
-    if len(without_scheme_url) > max_url_length:
-        error = "Service URL is too long."
-        raise InvalidFormError(error)
-
-    service = MapService(
-        id=repository.service_id or resolve_service_id(repository_id=repository_id),
-        service_name=repository.service_name,
-        service_url=repository.service_url,
-    )
-    if repository.active is not None:
-        service.suspended = repository.active is False
-
-    if not repository.entity_ids:
-        error = "At least one entity ID is required to create a repository."
-        raise InvalidFormError(error)
-
-    service.entity_ids = [ServiceEntityID(value=eid) for eid in repository.entity_ids]
+    service = validate_repository_to_map_service(repository)
+    repository_id = resolve_repository_id(service_id=service.id)
 
     if not administrators:
         error = "At least one administrator is required to create a repository."
@@ -130,67 +96,129 @@ def prepare_role_groups(
     return role_groups
 
 
-@t.overload
-def resolve_repository_id(*, fqdn: str) -> str: ...
-@t.overload
-def resolve_repository_id(*, service_id: str) -> str: ...
-
-
-def resolve_repository_id(
-    *, fqdn: str | None = None, service_id: str | None = None
-) -> str:
-    """Resolve the repository ID from either FQDN or service ID.
+def make_repository_detail(
+    service: MapService, *, more_detail: bool = False
+) -> RepositoryDetail:
+    """Convert a MapService instance to a RepositoryDetail instance.
 
     Args:
-        fqdn (str): The fully qualified domain name.
-        service_id (str): The service ID.
+        service (MapService): The MapService instance to convert.
+        more_detail (bool): Whether to include more details such as groups and users.
 
     Returns:
-        str: The corresponding repository ID.
-
-    Raises:
-        ValueError: If neither `fqdn` nor `resource_id` is provided.
+        RepositoryDetail: The converted RepositoryDetail instance.
     """
-    pattern = config.REPOSITORIES.id_patterns.sp_connecter
-    prefix = pattern.split("{repository_id}")[0]
-    suffix = pattern.split("{repository_id}")[1]
+    repository_id = resolve_repository_id(service_id=service.id)
 
-    if fqdn is not None:
-        return fqdn.replace(".", "_").replace("-", "_")
-    if service_id is not None:
-        return service_id.removeprefix(prefix).removesuffix(suffix)
+    entity_ids = None
+    if service.entity_ids:
+        entity_ids = [eid.value for eid in service.entity_ids]
 
-    error = "Either 'fqdn' or 'resource_id' must be provided."
-    raise ValueError(error)
+    repository = RepositoryDetail(
+        id=repository_id,
+        service_id=service.id,
+        service_name=service.service_name,
+        service_url=service.service_url,
+        active=not service.suspended if service.suspended is not None else None,
+        entity_ids=entity_ids,
+    )
+
+    if not more_detail or not service.groups:
+        return repository
+
+    from server.services import users  # noqa: PLC0415
+
+    valid_groups = [
+        (g.value, detected)
+        for g in service.groups
+        if (detected := detect_affiliation(g.value)) is not None
+    ]
+    detected_rolegroups = [i for i, g in valid_groups if g.type == "role"]
+    detected_groups = [i for i, g in valid_groups if g.type == "group"]
+
+    groups_count = len(detected_groups)
+    users_count = users.count(make_criteria_object("users", g=detected_groups))
+
+    repository.groups_count = groups_count
+    repository.users_count = users_count
+    repository.created = service.meta.created if service.meta else None
+    repository._groups = detected_groups
+    repository._rolegroups = detected_rolegroups
+    repository._admins = (
+        [admin.value for admin in service.administrators]
+        if service.administrators
+        else None
+    )
+
+    return repository
 
 
-@t.overload
-def resolve_service_id(*, fqdn: str) -> str: ...
-@t.overload
-def resolve_service_id(*, repository_id: str) -> str: ...
-
-
-def resolve_service_id(
-    *, fqdn: str | None = None, repository_id: str | None = None
-) -> str:
-    """Resolve the service ID from either FQDN or repository ID.
+def validate_repository_to_map_service(repository: RepositoryDetail) -> MapService:
+    """Validate the RepositoryDetail instance and convert it to a MapService instance.
 
     Args:
-        repository_id (str): The repository ID.
-        fqdn (str): The fully qualified domain name.
+        repository (RepositoryDetail): The RepositoryDetail instance to convert.
 
     Returns:
-        str: The corresponding service ID.
+        MapService: The converted MapService instance.
 
     Raises:
-        ValueError: If neither `fqdn` nor `repository_id` is provided.
+        InvalidFormError:  If the repository cannot be converted to a MapService.
     """
-    pattern = config.REPOSITORIES.id_patterns.sp_connecter
+    repository_id = repository.id
+    service_url = repository.service_url
 
-    if fqdn is not None:
-        repository_id = resolve_repository_id(fqdn=fqdn)
-    if repository_id is not None:
-        return pattern.format(repository_id=repository_id)
+    if repository.service_name is None:
+        error = "Service name is required to create a repository."
+        raise InvalidFormError(error)
 
-    error = "Either 'fqdn' or 'repository_id' must be provided."
-    raise ValueError(error)
+    if service_url is None:
+        error = "Service URL is required to create a repository."
+        raise InvalidFormError(error)
+
+    if repository_id is None:
+        fqdn = service_url.host
+        repository_id = resolve_repository_id(fqdn=fqdn) if fqdn else None
+
+    if repository_id is None:
+        error = "Service URL must contain a valid host."
+        raise InvalidFormError(error)
+
+    max_url_length = config.REPOSITORIES.max_url_length
+    without_scheme_url = str(service_url).replace(f"{service_url.scheme}://", "")
+    if len(without_scheme_url) > max_url_length:
+        error = "Service URL is too long."
+        raise InvalidFormError(error)
+
+    if not repository.entity_ids:
+        error = "At least one entity ID is required to create a repository."
+        raise InvalidFormError(error)
+
+    repository.service_id = resolve_service_id(repository_id=repository_id)
+    return make_map_service(repository)
+
+
+def make_map_service(repository: RepositoryDetail) -> MapService:
+    """Convert a RepositoryDetail instance to a MapService instance.
+
+    Args:
+        repository (RepositoryDetail): The RepositoryDetail instance to convert.
+
+    Returns:
+        MapService: The converted MapService instance.
+    """
+    service_id = repository.service_id or resolve_service_id(
+        repository_id=t.cast("str", repository.id)
+    )
+    service = MapService(
+        id=service_id,
+        service_name=repository.service_name,
+        service_url=repository.service_url,
+    )
+    if repository.active is not None:
+        service.suspended = repository.active is False
+    if repository.entity_ids:
+        service.entity_ids = [
+            ServiceEntityID(value=eid) for eid in repository.entity_ids
+        ]
+    return service

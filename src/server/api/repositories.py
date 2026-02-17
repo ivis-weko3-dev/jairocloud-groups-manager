@@ -109,7 +109,7 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
 
-    result = repositories.get_by_id(repository_id)
+    result = repositories.get_by_id(repository_id, more_detail=True)
     if result is None:
         return ErrorResponse(code="", message="repository not found"), 404
 
@@ -141,6 +141,8 @@ def id_put(
     body.id = repository_id
     try:
         updated = repositories.update(body)
+    except InvalidFormError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
     except ResourceNotFound as exc:
         return ErrorResponse(code="", message=str(exc)), 404
     except ResourceInvalid as exc:

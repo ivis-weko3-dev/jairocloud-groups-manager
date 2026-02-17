@@ -417,3 +417,60 @@ def get_system_admins(*, raw: bool = False) -> set[str] | list[MapUser]:
         return result.resources
 
     return {t.cast("str", user.id) for user in result.resources}
+
+
+def count(criteria: UsersCriteria) -> int:
+    """Search for users based on given criteria.
+
+    Args:
+        criteria (UsersCriteria): Search criteria for filtering users.
+
+    Returns:
+        int: The count of users matching the given criteria.
+
+    Raises:
+        InvalidQueryError: If the query construction is invalid.
+        OAuthTokenError: If the access token is invalid or expired.
+        CredentialsError: If the client credentials are invalid.
+        UnexpectedResponseError: If response from mAP Core API is unexpected.
+    """
+    criteria.l = -1
+    try:
+        query = build_search_query(criteria)
+        access_token = get_access_token()
+        client_secret = get_client_secret()
+        results: UsersSearchResponse = users.search(
+            query,
+            include={"id"},
+            access_token=access_token,
+            client_secret=client_secret,
+        )
+    except requests.HTTPError as exc:
+        code = exc.response.status_code
+        if code == HTTPStatus.UNAUTHORIZED:
+            error = "Access token is invalid or expired."
+            raise OAuthTokenError(error) from exc
+
+        if code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            error = "mAP Core API server error."
+            raise UnexpectedResponseError(error) from exc
+
+        error = "Failed to search User resources from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except requests.RequestException as exc:
+        error = "Failed to communicate with mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except ValidationError as exc:
+        error = "Failed to parse User resources from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except InvalidQueryError, OAuthTokenError, CredentialsError:
+        raise
+
+    if isinstance(results, MapError):
+        current_app.logger.info(results.detail)
+        raise InvalidQueryError(results.detail)
+
+    return results.total_results

@@ -390,6 +390,9 @@ class MapCoreConfig(BaseModel):
     timeout: t.Annotated[int, "seconds"] = 10
     """Timeout (in seconds) for requests to mAP Core service."""
 
+    update_strategy: t.Literal["put", "patch"] = "patch"
+    """Update strategy for mAP Core service."""
+
 
 class PostgresConfig(BaseModel):
     """Schema for PostgreSQL database configuration."""
