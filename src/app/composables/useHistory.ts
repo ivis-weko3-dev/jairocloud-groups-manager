@@ -60,10 +60,10 @@ const useHistory = () => {
     return fileExistsCache.value.get(data.fileId) ?? true
   }
 
-  const uploadColumns: TableColumn<UploadHistoryData, unknown>[] = [
+  const uploadColumns = computed<TableColumn<UploadHistoryData>[]>(() => [
     {
       accessorKey: 'timestamp',
-      header: $t('history.upload.date'),
+      header: () => sortableHeader('timestamp'),
       cell: ({ row }) => {
         const timestamp = new Date(row.original.timestamp)
         return dateFormatter.format(timestamp)
@@ -124,12 +124,12 @@ const useHistory = () => {
           ),
         ),
     },
-  ]
+  ])
 
-  const downloadColumns: TableColumn<DownloadHistoryData, unknown>[] = [
+  const downloadColumns = computed<TableColumn<DownloadHistoryData>[]>(() => [
     {
       accessorKey: 'timestamp',
-      header: $t('history.download.date'),
+      header: () => sortableHeader('timestamp'),
       cell: ({ row }) => {
         const timestamp = new Date(row.original.timestamp)
         return dateFormatter.format(timestamp)
@@ -196,7 +196,35 @@ const useHistory = () => {
           ),
         ),
     },
-  ]
+  ])
+
+  function sortableHeader(key: 'timestamp') {
+    const label = key === 'timestamp'
+      ? (tab.value === 'download' ? $t('history.download.date') : $t('history.upload.date'))
+      : ''
+    const iconSet = {
+      asc: 'i-lucide-arrow-down-a-z',
+      desc: 'i-lucide-arrow-up-a-z',
+      none: 'i-lucide-arrow-up-down',
+    } as const
+
+    type SortDirection = keyof typeof iconSet
+    const sortDirection = sortOrder.value as SortDirection | undefined
+
+    return h(UButton, {
+      color: sortDirection ? 'primary' : 'neutral',
+      variant: 'ghost',
+      size: 'xs',
+      label,
+      icon: sortDirection ? iconSet[sortDirection] : iconSet.none,
+      class: 'font-medium cursor-pointer',
+      onClick() {
+        if (sortDirection === 'asc') updateQuery({ d: 'desc' })
+        else if (sortDirection === 'desc') updateQuery({ d: undefined })
+        else updateQuery({ d: 'asc' })
+      },
+    })
+  }
 
   function getActionItems(
     row: Row<UploadHistoryData>,
