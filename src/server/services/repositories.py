@@ -295,7 +295,9 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
     """Update an existing Repository resource.
 
     Args:
-        repository (RepositoryDetail): The Repository resource to update.
+        repository (RepositoryDetail):
+            The Repository data to update.
+            The `id` field is required to identify the resource to update.
 
     Returns:
         RepositoryDetail: The updated Repository resource.
@@ -318,10 +320,14 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
         error = f"Repository '{repository_id}' Not Found"
         raise ResourceNotFound(error)
 
+    if validated.service_url and validated.service_url != current.service_url:
+        error = "Service URL could not be updated."
+        raise ResourceInvalid(error)
+
     operations: list[PatchOperation[MapService]] = build_patch_operations(
         current.to_map_service(),
         validated,
-        include={"service_name", "service_url", "suspended", "entity_ids"},
+        include={"service_name", "suspended", "entity_ids"},
     )
     try:
         access_token = get_access_token()
@@ -368,7 +374,7 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
     return RepositoryDetail.from_map_service(result)
 
 
-def update_put(repository: RepositoryDetail) -> RepositoryDetail:
+def update_put(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
     """Update an existing Repository resource (replace with PUT).
 
     Args:
@@ -388,6 +394,16 @@ def update_put(repository: RepositoryDetail) -> RepositoryDetail:
         return update(repository)
 
     validated = validate_repository_to_map_service(repository)
+
+    repository_id = resolve_service_id(repository_id=t.cast("str", repository.id))
+    current = get_by_id(repository_id)
+    if current is None:
+        error = f"Repository '{repository_id}' Not Found"
+        raise ResourceNotFound(error)
+
+    if validated.service_url and validated.service_url != current.service_url:
+        error = "Service URL could not be updated."
+        raise ResourceInvalid(error)
 
     try:
         access_token = get_access_token()

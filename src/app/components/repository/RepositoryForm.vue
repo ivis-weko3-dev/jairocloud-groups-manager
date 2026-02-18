@@ -63,22 +63,30 @@ const onCancel = () => {
       :ui="{ wrapper: 'mb-2' }" :required="mode !== 'view'"
     >
       <UInput
+        v-if="mode !== 'view'"
         v-model="state.serviceName" size="xl"
         :placeholder="$t('repository.placeholders.service-name')"
-        :ui="{ root: 'w-full' }" :disabled="mode === 'view'"
+        :ui="{ root: 'w-full' }"
       />
+      <div
+        v-else
+        class="f-ful mt-1 px-3 py-2 text-base"
+      >
+        {{ state.serviceName || '-' }}
+      </div>
     </UFormField>
 
     <UFormField
       name="serviceUrl"
       :label="$t('repository.service-url')"
       :description="$t('repository.service-url-description')"
-      :ui="{ wrapper: 'mb-2' }" :required="mode !== 'view'"
+      :ui="{ wrapper: 'mb-2' }" :required="mode === 'new'"
     >
       <UInput
+        v-if="mode === 'new'"
         v-model="state.serviceUrl" size="xl"
         :placeholder="$t('repository.placeholders.service-url')"
-        :ui="{ root: 'w-full', base: 'pl-17' }" :disabled="mode === 'view'"
+        :ui="{ root: 'w-full', base: 'pl-17' }"
       >
         <template #leading>
           <span class="text-base">https://</span>
@@ -88,6 +96,12 @@ const onCancel = () => {
           {{ state.serviceUrl.length }} / {{ maxUrlLength }}
         </template>
       </UInput>
+      <div
+        v-else
+        class="f-ful mt-1 px-3 py-2 text-base"
+      >
+        https://{{ state.serviceUrl || '-' }}
+      </div>
     </UFormField>
 
     <UFormField
@@ -110,20 +124,28 @@ const onCancel = () => {
         />
       </template>
 
-      <UInput
-        v-for="(entityId, index) in state.entityIds"
-        :key="index" v-model="state.entityIds[index]" size="xl"
-        :placeholder="$t('repository.placeholders.entity-ids')"
-        :ui="{ root: 'w-full' }" :disabled="mode === 'view'"
-      >
-        <template v-if="mode !== 'view' && state.entityIds.length > 1" #trailing>
-          <UButton
-            icon="i-lucide-x" variant="ghost" color="neutral" size="sm"
-            :ui="{ base: 'p-0' }"
-            @click="removeEntityId(index)"
-          />
-        </template>
-      </UInput>
+      <template v-for="(entityId, index) in state.entityIds" :key="index">
+        <UInput
+          v-if="mode !== 'view'"
+          v-model="state.entityIds[index]" size="xl"
+          :placeholder="$t('repository.placeholders.entity-ids')"
+          :ui="{ root: 'w-full' }"
+        >
+          <template v-if="state.entityIds.length > 1" #trailing>
+            <UButton
+              icon="i-lucide-x" variant="ghost" color="neutral" size="sm"
+              :ui="{ base: 'p-0' }"
+              @click="removeEntityId(index)"
+            />
+          </template>
+        </UInput>
+        <div
+          v-else
+          class="f-ful mt-1 px-3 py-2 text-base"
+        >
+          {{ entityId }}
+        </div>
+      </template>
     </UFormField>
 
     <h3 v-if="mode !== 'new'" class="text-lg font-semibold mt-2">
