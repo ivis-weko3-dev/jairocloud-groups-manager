@@ -263,7 +263,7 @@ def prepare_group(
         GroupAdministrator(value=user_id) for user_id in administrators
     ]
     map_group.services = [
-        GroupService(value=config.SP.connecter_id),
+        GroupService(value=config.SP.connector_id),
         GroupService(value=service_id),
     ]
 

@@ -275,7 +275,7 @@ class LocalStorageConfig(BaseModel):
 class SpConfig(BaseModel):
     """Schema for Service Provider configuration."""
 
-    connecter_id: str
+    connector_id: str
     """SP Connecter ID for this application."""
 
     entity_id: str
@@ -323,8 +323,8 @@ class RepositoriesConfig(BaseModel):
 class RepositoriesIdPatternsConfig(BaseModel):
     """Schema for repository-related ID patterns."""
 
-    sp_connecter: HasRepoId
-    """SP Connecter ID pattern. It should include `{repository_id}` placeholder."""
+    sp_connector: HasRepoId
+    """SP Connector ID pattern. It should include `{repository_id}` placeholder."""
 
 
 class GroupsConfig(BaseModel):

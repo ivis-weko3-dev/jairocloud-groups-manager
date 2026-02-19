@@ -41,6 +41,7 @@ def test_config():
             "level": "INFO",
         },
         "SP": {
+            "connector_id": "jairocloud-groups-manager_test",
             "entity_id": "https://test/shibboleth-sp",
             "crt": "/test/server.crt",
             "key": "/test/server.key",
@@ -51,7 +52,7 @@ def test_config():
         },
         "REPOSITORIES": {
             "id_patterns": {
-                "sp_connecter": "jc_{repository_id}_test",
+                "sp_connector": "jc_{repository_id}_test",
             },
         },
         "GROUPS": {
