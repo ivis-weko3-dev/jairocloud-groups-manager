@@ -22,6 +22,15 @@ from server.entities.auth import ClientCredentials, OAuthToken
 
 
 if t.TYPE_CHECKING:
+    import logging
+
+
+def get_logger() -> logging.Logger:
+    """Returns the Flask application logger."""
+    return current_app.logger
+
+
+if t.TYPE_CHECKING:
     from .types import _ClientCreds, _SpCerts
 
 
@@ -101,7 +110,7 @@ def check_token_validity(access_token: str) -> bool:
 
     if response.status_code == HTTPStatus.UNAUTHORIZED:
         description = response.json().get("error_description")
-        current_app.logger.info(description)
+        get_logger().info(description)
         return False
 
     response.raise_for_status()
