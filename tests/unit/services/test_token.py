@@ -16,7 +16,7 @@ if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def test_get_access_token(mocker: MockerFixture) -> None:
+def test_get_access_token(app: Flask, mocker: MockerFixture) -> None:
     """Test that get_access_token returns the correct access token value for a typical OAuthToken."""
     token_obj = OAuthToken(
         access_token="token_main",
@@ -27,6 +27,7 @@ def test_get_access_token(mocker: MockerFixture) -> None:
     )
     expected = "token_main"
     mocker.patch("server.services.token.get_oauth_token", return_value=token_obj)
+    mocker.patch("server.clients.auth.requests.post")
 
     actual = token.get_access_token()
 
