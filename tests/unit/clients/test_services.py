@@ -4,6 +4,8 @@ import json
 import time
 import typing as t
 
+from unittest.mock import Mock
+
 import pytest
 
 from requests.exceptions import HTTPError
@@ -13,7 +15,7 @@ from server.config import config
 from server.const import MAP_SERVICES_ENDPOINT
 from server.entities.map_error import MapError
 from server.entities.map_service import MapService
-from server.entities.patch_request import ReplaceOperation
+from server.entities.patch_request import PatchOperation, ReplaceOperation
 from server.entities.search_request import SearchRequestParameter, SearchResponse
 from tests.helpers import load_json_data
 
@@ -483,13 +485,17 @@ def test_post_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> N
 
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
-    mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
-    mocker.patch("server.clients.decoraters.app_cache.get", return_value=None)
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
     mock_post = mocker.patch("server.clients.services.requests.post")
     mock_post.return_value.text = json.dumps(response_data)
     mock_post.return_value.status_code = 200
 
-    result = services.post(
+    original_func = inspect.unwrap(services.post)
+    result = original_func(
         service_obj,
         include=None,
         exclude=exclude,
@@ -516,12 +522,17 @@ def test_post_not_found(app: Flask, mocker: MockerFixture, service_data) -> None
     json_data = load_json_data("data/map_error.json")
     mock_post = mocker.patch("server.clients.services.requests.post")
     mock_post.return_value.text = json.dumps(json_data)
-    mocker.patch("server.clients.decoraters.app_cache.get", return_value=None)
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
     mock_post.return_value.status_code = 404
     _, service = service_data
 
     service_obj: MapService = service
-    result = services.post(
+    original_func = inspect.unwrap(services.post)
+    result = original_func(
         service_obj,
         include=None,
         exclude=None,
@@ -535,20 +546,28 @@ def test_post_not_found(app: Flask, mocker: MockerFixture, service_data) -> None
 
 def test_post_http_error(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data = load_json_data("data/map_error.json")
+
     mock_post = mocker.patch("server.clients.services.requests.post")
-    mocker.patch("server.clients.decoraters.app_cache.get", return_value=None)
+
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
+
     mock_post.return_value.text = json.dumps(json_data)
     mock_post.return_value.raise_for_status.side_effect = HTTPError("401 Unauthorized")
     mock_post.return_value.status_code = 401
     json_data, service = service_data
 
     service_obj: MapService = service
+    original_func = inspect.unwrap(services.post)
     with pytest.raises(HTTPError, match="401 Unauthorized"):
-        services.post(service_obj, access_token="token", client_secret="secret")
+        original_func(service_obj, access_token="token", client_secret="secret")
 
 
 # --- put_by_id ---
-def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:
+def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
     json_data, service = service_data
     service_obj: MapService = service
     expected_service = MapService.model_validate(json_data)
@@ -556,6 +575,11 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> N
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{json_data['id']}"
     expected_headers = {"Authorization": "Bearer token"}
     expected_timeout = config.MAP_CORE.timeout
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
 
     mocker.patch("server.clients.services.get_time_stamp", return_value=str(int(time.time())))
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
@@ -600,6 +624,12 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data)
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{json_data['id']}"
 
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
+
     mocker.patch.object(services, "alias_generator", side_effect=lambda x: x)
     mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
@@ -642,11 +672,16 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data)
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{json_data['id']}"
 
+    mock_app_cache_decoraters = mocker.patch("server.clients.decoraters.app_cache", new_callable=Mock)
+    mock_app_cache_decoraters.scan.return_value = (0, [])
+
+    mock_app_cache_datastore = mocker.patch("server.datastore.app_cache", new_callable=Mock)
+    mock_app_cache_datastore.scan.return_value = (0, [])
     mocker.patch.object(services, "alias_generator", side_effect=lambda x: x)
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_put = mocker.patch("server.clients.services.requests.put")
-    mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
+
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
 
@@ -706,13 +741,13 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) ->
     expected_headers = {"Authorization": "Bearer token"}
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{service_id}"
-
+    mock_app_cache = mocker.patch("server.datastore.app_cache")
+    mock_app_cache.scan.return_value = (0, [])
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_patch = mocker.patch("server.clients.services.requests.patch")
     mock_patch.return_value.text = json.dumps(json_data)
     mock_patch.return_value.status_code = 200
-    mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
 
     mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
     original_func = inspect.unwrap(services.patch_by_id)
@@ -760,7 +795,8 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_dat
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_patch = mocker.patch("server.clients.services.requests.patch")
-    mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
+    mock_app_cache = mocker.patch("server.datastore.app_cache")
+    mock_app_cache.scan.return_value = (0, [])
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
 
@@ -811,14 +847,13 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_dat
     expected_headers = {"Authorization": "Bearer token"}
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_SERVICES_ENDPOINT}/{service_id}"
+    mocker.patch("server.clients.decoraters.app_cache", autospec=True)
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_patch = mocker.patch("server.clients.services.requests.patch")
     mocker.patch.object(services, "alias_generator", side_effect=lambda x: x)
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
-    mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
-
     mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
     original_func = inspect.unwrap(services.patch_by_id)
     result = original_func(
@@ -862,7 +897,7 @@ def test_patch_by_id_not_found(app: Flask, mocker: MockerFixture) -> None:
 
 def test_patch_by_id_http_error(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, _ = service_data
-    operations: list[ReplaceOperation] = [ReplaceOperation(op="replace", path="serviceName", value="NewName")]
+    operations: list[PatchOperation] = [ReplaceOperation(op="replace", path="serviceName", value="NewName")]
     service_id = json_data["id"]
     mock_patch = mocker.patch("server.clients.services.requests.patch")
     mock_patch.return_value.text = json.dumps(json_data)
