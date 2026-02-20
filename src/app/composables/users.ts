@@ -84,7 +84,7 @@ const useUsersTable = () => {
     {
       icon: 'i-lucide-file-up',
       label: $t('button.upload'),
-      to: '/upload',
+      to: '/bulk',
       color: 'primary',
       variant: 'solid',
     },
@@ -229,7 +229,7 @@ const useUsersTable = () => {
       header: () => sortableHeader('lastModified'),
       cell: ({ row }) =>
         row.original.lastModified
-          ? dateFormatter.format(new Date(row.original.lastModified))
+          ? datetimeFormatter.format(new Date(row.original.lastModified))
           : undefined,
     },
     {
