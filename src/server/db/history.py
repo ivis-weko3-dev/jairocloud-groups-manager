@@ -32,20 +32,20 @@ from .base import db
 class _FileContent(t.TypedDict):
     """Definition for json data of `Files.file_content`."""
 
-    repositories: list[dict]
+    repositories: list[dict[str, str]]
     """Repositories contained in the file."""
 
-    groups: list[dict]
+    groups: list[dict[str, str]]
     """Groups contained in the file."""
 
-    users: list[dict]
+    users: list[dict[str, str]]
     """Users contained in the file."""
 
 
 class _ResultData(t.TypedDict):
     """Definition for json data of `UploadHistory.results`."""
 
-    summary: dict
+    summary: dict[str, int]
     """Summary of execution results or check results."""
 
     items: list[dict]

@@ -63,8 +63,6 @@ def post(
         timeout=config.MAP_CORE.timeout,
     )
 
-    response.raise_for_status()
-
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 

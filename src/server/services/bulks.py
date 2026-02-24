@@ -96,125 +96,6 @@ def validate_upload_data(
     )
 
 
-def _get_missing_users(
-    repository_member: RepositoryMember, file_users_id: set[str]
-) -> list[UserDetail]:
-    missing_user_ids = list(repository_member.users - file_users_id)
-    user_list = users.search(
-        utils.make_criteria_object("users", i=missing_user_ids), raw=True
-    ).resources
-    return [UserDetail.from_map_user(u) for u in user_list]
-
-
-def _get_repo_user_by_id(
-    repository_member: RepositoryMember, file_users_id: set[str]
-) -> dict[str, UserDetail]:
-    update_users_ids = list(repository_member.users & file_users_id)
-    user_list = users.search(
-        utils.make_criteria_object("users", i=update_users_ids), raw=True
-    ).resources
-    repo_users = [UserDetail.from_map_user(u) for u in user_list]
-    return {repo_user.id: repo_user for repo_user in repo_users if repo_user.id}
-
-
-def _build_check_results(
-    update_users: list[UserDetail],
-    create_users: list[UserDetail],
-    repository_member: RepositoryMember,
-    repo_user_by_id: dict[str, UserDetail],
-) -> tuple[list[CheckResult], HistorySummary]:
-    count_create = 0
-    count_update = 0
-    count_delete = 0
-    count_skip = 0
-    count_error = 0
-    check_results: list[CheckResult] = []
-    for u in create_users:
-        code = None
-        user_group_ids = {g.id for g in u.groups} if u.groups else set()
-
-        if not user_group_ids.issubset(repository_member.groups):
-            code = "Group ID does not exist"
-            check_results.append(
-                CheckResult(
-                    id=u.id,
-                    eppn=u.eppns or [],
-                    user_name=u.user_name,
-                    email=u.emails or [],
-                    groups=user_group_ids,
-                    status="error",
-                    code=code,
-                )
-            )
-            count_error += 1
-            continue
-
-        if not check_value(u):
-            code = "Invalid user data"
-            check_results.append(
-                CheckResult(
-                    id=u.id,
-                    eppn=u.eppns or [],
-                    user_name=u.user_name,
-                    groups=user_group_ids,
-                    email=u.emails or [],
-                    status="error",
-                    code=code,
-                )
-            )
-            count_error += 1
-            continue
-
-    for u in update_users:
-        if u.id is None:
-            continue
-        user_group_ids = {g.id for g in u.groups} if u.groups else set()
-        repo_user = repo_user_by_id.get(u.id)
-        code = None
-        if repo_user is None:
-            check_results.append(
-                CheckResult(
-                    id=u.id,
-                    eppn=u.eppns or [],
-                    user_name=u.user_name,
-                    groups=user_group_ids,
-                    email=u.emails or [],
-                    status="create",
-                    code=code,
-                )
-            )
-            count_create += 1
-            continue
-
-        repo_group_ids = {g.id for g in repo_user.groups} if repo_user.groups else set()
-        if repo_group_ids != user_group_ids:
-            status = "update"
-            count_update += 1
-        else:
-            status = "skip"
-            count_skip += 1
-        code = check_immutable_attributes(repo_user, u)
-        check_results.append(
-            CheckResult(
-                id=u.id,
-                eppn=repo_user.eppns or [],
-                user_name=repo_user.user_name,
-                email=u.emails or [],
-                groups=user_group_ids,
-                status=status,
-                code=code,
-            )
-        )
-    summary = HistorySummary(
-        create=count_create,
-        update=count_update,
-        delete=count_delete,
-        skip=count_skip,
-        error=count_error,
-    )
-    return check_results, summary
-
-
 def get_repository_member(repository_id: str) -> RepositoryMember:
     """Get the members of the specified repository from mAP Core API.
 
@@ -235,41 +116,6 @@ def get_repository_member(repository_id: str) -> RepositoryMember:
     return RepositoryMember(groups=group_ids, users=user_ids)
 
 
-def read_file(file_path: str) -> t.Generator:
-    """Read a user data file and return a list of `UserDetail` instances.
-
-    Args:
-        file_path (str): Path to the inpatch file containing user data.
-
-
-    Raises:
-        ResourceNotFound: If the file does not exist.
-        ResourceInvalid : If the format is unsupported or parsing fails.
-    """
-    path = Path(file_path)
-    if not path.exists():
-        error = f"{path}: File not found."
-        raise ResourceNotFound(error)
-
-    iterator = None
-    suffix = path.suffix.lower()
-    if suffix in {".csv", ".tsv"}:
-        delimiter = "," if suffix == ".csv" else "\t"
-        with path.open("r", encoding="utf-8-sig", newline="") as f:
-            iterator = csv.reader(f, delimiter=delimiter)
-            yield iterator
-    elif suffix == ".xlsx":
-        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-        ws = wb.active
-        if ws:
-            iterator = ws.iter_rows(values_only=True)
-    if iterator is None:
-        error = f"{path.suffix}: Unsupported file format."
-        raise ResourceInvalid(error)
-
-    yield iterator
-
-
 def build_user_from_file(
     file_path: str,
 ) -> tuple[dict[str, dict[str, list[str]]], dict[str, dict[str, list[str]]]]:
@@ -288,7 +134,7 @@ def build_user_from_file(
         ResourceNotFound: If the file does not exist.
     """
     try:
-        gen = read_file(file_path)
+        gen = _read_file(file_path)
     except (ResourceInvalid, ResourceNotFound) as e:
         current_app.logger.error(e)
         raise ResourceNotFound(str(e)) from e
@@ -322,6 +168,41 @@ def build_user_from_file(
             if col != "id":
                 bucket[col].append(r[j])
     return dict(data), dict(new_data)
+
+
+def _read_file(file_path: str) -> t.Generator:
+    """Read a user data file and return a list of `UserDetail` instances.
+
+    Args:
+        file_path (str): Path to the input file containing user data.
+
+
+    Raises:
+        ResourceNotFound: If the file does not exist.
+        ResourceInvalid : If the format is unsupported or parsing fails.
+    """
+    path = Path(file_path)
+    if not path.exists():
+        error = f"{path}: File not found."
+        raise ResourceNotFound(error)
+
+    iterator = None
+    suffix = path.suffix.lower()
+    if suffix in {".csv", ".tsv"}:
+        delimiter = "," if suffix == ".csv" else "\t"
+        with path.open("r", encoding="utf-8-sig", newline="") as f:
+            iterator = csv.reader(f, delimiter=delimiter)
+            yield iterator
+    elif suffix == ".xlsx":
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        ws = wb.active
+        if ws:
+            iterator = ws.iter_rows(values_only=True)
+    if iterator is None:
+        error = f"{path.suffix}: Unsupported file format."
+        raise ResourceInvalid(error)
+
+    yield iterator
 
 
 def build_user_detail_from_dict(
@@ -448,7 +329,133 @@ def build_user_detail_from_dict_by_name(
     return UserAggregated(root=users)
 
 
-def check_value(user: UserDetail) -> bool:
+def _get_missing_users(
+    repository_member: RepositoryMember, file_users_id: set[str]
+) -> list[UserDetail]:
+    missing_user_ids = list(repository_member.users - file_users_id)
+    if not missing_user_ids:
+        return []
+    user_list = users.search(
+        utils.make_criteria_object("users", i=missing_user_ids), raw=True
+    ).resources
+    return [UserDetail.from_map_user(u) for u in user_list]
+
+
+def _get_repo_user_by_id(
+    repository_member: RepositoryMember, file_users_id: set[str]
+) -> dict[str, UserDetail]:
+    update_users_ids = list(repository_member.users & file_users_id)
+    if not update_users_ids:
+        return {}
+    user_list = users.search(
+        utils.make_criteria_object("users", i=update_users_ids), raw=True
+    ).resources
+    return {
+        user.id: user
+        for user in (UserDetail.from_map_user(u) for u in user_list)
+        if user.id
+    }
+
+
+def _build_check_results(
+    update_users: list[UserDetail],
+    create_users: list[UserDetail],
+    repository_member: RepositoryMember,
+    repo_user_by_id: dict[str, UserDetail],
+) -> tuple[list[CheckResult], HistorySummary]:
+    count_create = 0
+    count_update = 0
+    count_delete = 0
+    count_skip = 0
+    count_error = 0
+    check_results: list[CheckResult] = []
+    for u in create_users:
+        code = None
+        user_group_ids = {g.id for g in u.groups} if u.groups else set()
+
+        if not user_group_ids.issubset(repository_member.groups):
+            code = "Group ID does not exist"
+            check_results.append(
+                CheckResult(
+                    id=u.id,
+                    eppn=u.eppns or [],
+                    user_name=u.user_name,
+                    email=u.emails or [],
+                    groups=user_group_ids,
+                    status="error",
+                    code=code,
+                )
+            )
+            count_error += 1
+            continue
+
+        if not _check_value(u):
+            code = "Invalid user data"
+            check_results.append(
+                CheckResult(
+                    id=u.id,
+                    eppn=u.eppns or [],
+                    user_name=u.user_name,
+                    groups=user_group_ids,
+                    email=u.emails or [],
+                    status="error",
+                    code=code,
+                )
+            )
+            count_error += 1
+            continue
+
+        check_results.append(
+            CheckResult(
+                id=u.id,
+                eppn=u.eppns or [],
+                user_name=u.user_name,
+                groups=user_group_ids,
+                email=u.emails or [],
+                status="create",
+                code=code,
+            )
+        )
+        count_create += 1
+
+    for u in update_users:
+        if u.id is None:
+            continue
+        repo_user = repo_user_by_id.get(u.id)
+        if repo_user is None:
+            continue
+        repo_group_ids = {g.id for g in repo_user.groups} if repo_user.groups else set()
+        user_group_ids = {g.id for g in u.groups} if u.groups else set()
+
+        if repo_group_ids != user_group_ids:
+            status = "update"
+            count_update += 1
+        else:
+            status = "skip"
+            count_skip += 1
+        code = _check_immutable_attributes(repo_user, u)
+        check_results.append(
+            CheckResult(
+                id=u.id,
+                eppn=repo_user.eppns or [],
+                user_name=repo_user.user_name,
+                email=u.emails or [],
+                groups=user_group_ids,
+                status=status,
+                code=code,
+            )
+        )
+    summary = HistorySummary(
+        create=count_create,
+        update=count_update,
+        delete=count_delete,
+        skip=count_skip,
+        error=count_error,
+    )
+    return check_results, summary
+
+
+def _check_value(user: UserDetail) -> bool:
     """Check if the user detail has valid values.
 
     Args:
@@ -464,7 +471,7 @@ def check_value(user: UserDetail) -> bool:
     return len(user.user_name) <= ValidationEntity.USER_NAME_MAX_LENGTH
 
 
-def check_immutable_attributes(
+def _check_immutable_attributes(
     original: UserDetail, update_user: UserDetail
 ) -> str | None:
     """Verify whether the immutable attribute is indeed immutable.
@@ -521,14 +528,14 @@ def get_validate_result(
 
 @shared_task()
 def update_users(
-    task_id: str, temp_file_id: UUID, delete_users: list[UserDetail]
+    history_id: UUID, temp_file_id: UUID, delete_users: list[str] | None
 ) -> UUID:
     """Perform bulk update of users based on the validation results.
 
     Args:
-        task_id (str): The ID of the validation task.
+        history_id (UUID): The ID of the upload history.
         temp_file_id (UUID): The ID of the temporary file.
-        delete_users (list[UserDetail]): The list of user detail to be deleted.
+        delete_users (list[str] | None): The list of user IDs to be deleted.
 
     Returns:
         UUID: The ID of the upload history record.
@@ -540,18 +547,20 @@ def update_users(
         OAuthTokenError: If there is an issue with the access token.
         UnexpectedResponseError: If there is an unexpected response from mAP Core API.
         ResourceInvalid: If there is an invalid resource error from mAP Core API.
-        ValueError:
+        ValueError: If there are errors in the validation results.
     """
-    history_id = current_app.extensions["celery"].AsyncResult(task_id).result
     upload_data = history_table.get_upload_by_id(history_id)
     if not upload_data:
         error = f"History not found: {history_id}"
+        current_app.logger.error(error)
         raise ResourceNotFound(error)
     repository_id = upload_data.file.file_content["repositories"][0]["id"]
     check_results: list[CheckResult] = upload_data.results.get("results", [])
     summary = upload_data.results.get("summary", {})
-    if t.cast("int", summary.get("error", 0)) > 0:
-        raise ValueError
+    if t.cast("int", summary.get("error", 1)) > 0:
+        error = "There are errors in the validation results."
+        current_app.logger.error(error)
+        raise ValueError(error)
     bulk_ops, count_delete = _build_bulk_operations_from_check_results(
         repository_id, check_results, delete_users
     )
@@ -672,25 +681,6 @@ def build_map_user_from_check_result(user: CheckResult) -> MapUser:
     )
 
 
-def build_user_detail_from_check_result(user: CheckResult) -> UserDetail:
-    """Build UserDetail from CheckResult.
-
-    Args:
-        user (CheckResult): The check result containing user information.
-
-    Returns:
-        UserDetail: The user detail built from the check result.
-    """
-    user_groups = [GroupSummary(id=group_id) for group_id in user.groups]
-    return UserDetail(
-        id=user.id,
-        user_name=user.user_name,
-        emails=user.email,
-        eppns=user.eppn,
-        groups=user_groups,
-    )
-
-
 def build_remove_user_path(user: UserDetail, repository_id: str) -> BulkOperation:
     """Remove the user from the group belong to the repository.
 
@@ -720,7 +710,7 @@ def build_remove_user_path(user: UserDetail, repository_id: str) -> BulkOperatio
 
 
 def _build_bulk_operations_from_check_results(
-    repository_id: str, check_results: list[CheckResult], delete_users: list[UserDetail]
+    repository_id: str, check_results: list[CheckResult], delete_users: list[str] | None
 ) -> tuple[list[BulkOperation], int]:
     repository_member = get_repository_member(repository_id)
 
@@ -733,24 +723,24 @@ def _build_bulk_operations_from_check_results(
     group_user_ops: dict[str, dict[str, set[str]]] = {}
 
     for user in check_results:
-        if user.status == "update" and user.id is not None:
-            original = repo_user_by_id.get(user.id)
-            if not original:
-                continue
-            original_group_ids = (
-                {g.id for g in original.groups} if original.groups else set()
+        if user.status != "update" or user.id is None:
+            continue
+        original = repo_user_by_id.get(user.id)
+        if not original:
+            continue
+        original_group_ids = {g.id for g in original.groups or []}
+        new_group_ids = set(user.groups)
+        add_groups = new_group_ids - original_group_ids
+        remove_groups = original_group_ids - new_group_ids
+        for gid in add_groups:
+            group_user_ops.setdefault(gid, {"add": set(), "remove": set()})["add"].add(
+                user.id
             )
-            new_group_ids = set(user.groups)
-            add_groups = new_group_ids - original_group_ids
-            remove_groups = original_group_ids - new_group_ids
-            for gid in add_groups:
-                if gid not in group_user_ops:
-                    group_user_ops[gid] = {"add": set(), "remove": set()}
-                group_user_ops[gid]["add"].add(user.id)
-            for gid in remove_groups:
-                if gid not in group_user_ops:
-                    group_user_ops[gid] = {"add": set(), "remove": set()}
-                group_user_ops[gid]["remove"].add(user.id)
+        for gid in remove_groups:
+            group_user_ops.setdefault(gid, {"add": set(), "remove": set()})[
+                "remove"
+            ].add(user.id)
+
     bulk_ops: list[BulkOperation] = _build_groups_update_bulk_operations(group_user_ops)
     bulk_ops.extend([
         BulkOperation(
@@ -762,9 +752,21 @@ def _build_bulk_operations_from_check_results(
         if user.status == "create"
     ])
 
-    for user in delete_users:
-        bulk_op = build_remove_user_path(user, repository_id)
-        bulk_ops.append(bulk_op)
+    delete_user_list = users.search(
+        utils.make_criteria_object("users", i=delete_users), raw=True
+    ).resources
+
+    group_user_ops = {}
+    for map_user in delete_user_list:
+        user = UserDetail.from_map_user(map_user)
+        if not user.id:
+            continue
+        user_groups = [g.id for g in user.groups] if user.groups else []
+        group_list = utils.detect_affiliations(user_groups).groups
+        for gid in group_list:
+            group_user_ops.setdefault(gid.group_id, {"add": set(), "remove": set()})[
+                "remove"
+            ].add(user.id)
         check_results.append(
             CheckResult(
                 id=user.id,
@@ -777,6 +779,7 @@ def _build_bulk_operations_from_check_results(
             )
         )
         count_delete += 1
+    bulk_ops.extend(_build_groups_update_bulk_operations(group_user_ops))
     return bulk_ops, count_delete
 
 
@@ -861,7 +864,10 @@ def delete_temporary_file(temp_id: str) -> None:
         temp_id(str): delete file id
     """
     temp_file_id = UUID(temp_id)
-    file_path = history_table.get_file_by_id(temp_file_id).file_path
-    if file_path and Path(file_path).exists():
+    try:
+        file_path = history_table.get_file_by_id(temp_file_id).file_path
+    except RecordNotFound:
+        return
+    if Path(file_path).exists():
         Path(file_path).unlink()
-        history_table.delete_file_by_id(temp_file_id)
+    history_table.delete_file_by_id(temp_file_id)

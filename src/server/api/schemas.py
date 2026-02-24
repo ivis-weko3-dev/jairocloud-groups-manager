@@ -16,7 +16,6 @@ from pydantic import BaseModel, ConfigDict
 from werkzeug.datastructures import FileStorage
 
 from server.entities.common import camel_case_config
-from server.entities.user_detail import UserDetail
 
 
 ignore_extra_config = ConfigDict(
@@ -288,16 +287,13 @@ class BulkBody(BaseModel):
 class ExcuteRequest(BaseModel):
     """Schema for requset body of bulk upload execution."""
 
-    temp_file_id: UUID | None = None
+    temp_file_id: UUID
     """Temporary ID for the upload session."""
 
     repository_id: str | None = None
     """ID of the target repository."""
 
-    task_id: str | None = None
-    """Task ID associated with the upload."""
-
-    delete_users: list[UserDetail] | None = None
+    delete_users: list[str] | None = None
     """List of users whose files are to be deleted."""
 
     model_config = camel_case_config

@@ -229,7 +229,6 @@ const useValidation = ({ taskId, selectedRepository }: { taskId: Ref<string | un
       const results = await $fetch<BulkProcessingStatus>(url, {
         method: 'POST',
         body: {
-          taskId: taskId.value,
           tempFileId: temporaryFileId.value,
           repositoryId: selectedRepository.value,
           deleteUsers:

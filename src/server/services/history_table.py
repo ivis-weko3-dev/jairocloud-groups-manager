@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 
 from server.db import db
 from server.db.history import Files, UploadHistory
-from server.exc import InvalidQueryError, RecordNotFound
+from server.exc import InvalidQueryError, InvalidRecordError, RecordNotFound
 
 
 def get_upload_by_id(history_id: UUID) -> UploadHistory | None:
@@ -105,13 +105,23 @@ def create_upload(
 
     Returns:
         UUID: The ID of the newly created upload history record.
+
+    Raises:
+        InvalidRecordError: If the results dictionary is missing required keys.
     """
     history_record = UploadHistory()
     history_record.file_id = file_id
+    summary = results.get("summary")
+    items = results.get("results")
+    missing_users = results.get("missing_users", [])
+    if summary is None or items is None:
+        error_message = "Results must include 'summary' and 'results' keys"
+        raise InvalidRecordError(error_message)
+
     history_record.results = {
-        "summary": results.get("summary", {}),
-        "items": results.get("results", []),
-        "missing_users": results.get("missing_users", []),
+        "summary": summary,
+        "items": items,
+        "missing_users": missing_users,
     }
     history_record.operator_id = operator_id
     history_record.operator_name = operator_name
@@ -168,7 +178,7 @@ def get_history_by_file_id(file_id: UUID) -> UploadHistory:
         UploadHistory: The history record.
 
     Raises:
-        RecordNotFound: If no history record is found for the given file ID.
+        RecordNotFound: If no history record is found for the file ID.
     """
     result = db.session.query(UploadHistory).filter_by(file_id=file_id).one_or_none()
     if result is None:
@@ -186,8 +196,16 @@ def get_file_by_id(file_id: UUID) -> Files:
 
     Returns:
         Files: The file record.
+
+    Raises:
+        RecordNotFound: If no file record is found for the file ID.
     """
-    return db.session.query(Files).filter_by(id=file_id).one()
+    result = db.session.query(Files).filter_by(id=file_id).one_or_none()
+    if result is None:
+        error = f"File not found for file_id: {file_id}"
+        current_app.logger.error(error)
+        raise RecordNotFound(error)
+    return result
 
 
 def delete_file_by_id(file_id: UUID) -> None:

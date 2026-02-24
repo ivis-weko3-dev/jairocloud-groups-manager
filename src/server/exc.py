@@ -83,6 +83,13 @@ class RecordNotFound(DatabaseError):  # noqa: N818
     """
 
 
+class InvalidRecordError(DatabaseError):
+    """Exception for invalid record errors.
+
+    Errors caused by invalid record data or structure.
+    """
+
+
 class DatastoreError(JAIROCloudGroupsManagerError):
     """Exception for datastore errors.
 

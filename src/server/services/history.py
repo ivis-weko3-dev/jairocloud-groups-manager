@@ -6,7 +6,7 @@
 
 import typing as t
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from types import SimpleNamespace
 from uuid import UUID
 
@@ -135,7 +135,12 @@ def _build_filters_for_history(
         filters.append(history_model.operator_id.in_(criteria.o))
 
     if criteria.s and criteria.e:
-        filters.append(history_model.timestamp.between(criteria.s, criteria.e))
+        start = criteria.s
+        end = datetime.combine(criteria.e, time.max)
+        filters.extend((
+            history_model.timestamp >= start,
+            history_model.timestamp < end,
+        ))
     elif criteria.s and not criteria.e:
         start = criteria.s
         end = start + timedelta(days=1)

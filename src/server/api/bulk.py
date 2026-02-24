@@ -153,18 +153,14 @@ def execute(body: ExcuteRequest) -> tuple[BulkBody | ErrorResponse, int]:
         BulkBody: The response containing task ID
         ErrorResponse: The response containing task ID or error message
     """
-    task = bulks.update_users.apply_async(
-        kwargs={
-            "task_id": body.task_id,
-            "temp_file_id": body.temp_file_id,
-            "delete_users": body.delete_users,
-        },
-    )
     try:
-        history_id = (
-            history_table.get_history_by_file_id(body.temp_file_id).id
-            if body.temp_file_id
-            else None
+        history_id = history_table.get_history_by_file_id(body.temp_file_id).id
+        task = bulks.update_users.apply_async(
+            kwargs={
+                "history_id": history_id,
+                "temp_file_id": body.temp_file_id,
+                "delete_users": body.delete_users,
+            },
         )
     except RecordNotFound as exc:
         return ErrorResponse(code="", message=str(exc)), 404
