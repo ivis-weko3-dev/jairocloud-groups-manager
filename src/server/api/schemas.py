@@ -187,6 +187,13 @@ class UsersQuery(BaseModel):
     """Configure to ignore extra fields."""
 
 
+class RepositoryDeleteQuery(BaseModel):
+    """Schema for repository deletion query parameters."""
+
+    confirmation: str
+    """Confirmation string to prevent accidental deletion."""
+
+
 class GroupPatchRequest(BaseModel):
     """Schema for patching group information."""
 

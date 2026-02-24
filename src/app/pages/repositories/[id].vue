@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { FormSubmitEvent } from '@nuxt/ui'
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -21,6 +23,7 @@ const { data: repository, refresh } = useFetch<RepositoryDetail>(
         case 403: {
           showError({
             status: 403,
+            statusText: 'Forbidden',
             message: $t('error-page.forbidden.repository-access'),
           })
           break
@@ -93,6 +96,7 @@ const onSubmit = async (data: RepositoryForm) => {
           case 403: {
             showError({
               status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.repository-edit'),
             })
             break
@@ -137,6 +141,56 @@ const onCancel = () => {
     })
   }
 }
+
+const deleteForm = useTemplateRef('deleteForm')
+const deleteFormState = reactive({
+  serviceName: undefined as string | undefined,
+})
+
+const onDelete = async (event: FormSubmitEvent<typeof deleteFormState>) => {
+  try {
+    await $fetch(`/api/repositories/${repositoryId.value}`, {
+      method: 'DELETE',
+      query: { confirmation: event.data.serviceName },
+      onResponseError: ({ response }) => {
+        switch (response.status) {
+          case 400: {
+            toast.add({
+              title: $t('toast.error.validation.title'),
+              description: $t('toast.error.validation.description'),
+              color: 'error',
+              icon: 'i-lucide-circle-x',
+            })
+            break
+          }
+          case 403: {
+            showError({
+              status: 403,
+              statusText: 'Forbidden',
+              message: $t('error-page.forbidden.repository-delete'),
+            })
+            break
+          }
+          default: {
+            handleFetchError({ response })
+            break
+          }
+        }
+      },
+    })
+
+    toast.add({
+      title: $t('toast.success.deleted.title'),
+      description: $t('toast.success.repository-deleted.description'),
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    router.push('/repositories')
+  }
+  catch {
+    // Already handled in onResponseError
+  }
+}
 </script>
 
 <template>
@@ -162,13 +216,65 @@ const onCancel = () => {
             {{ $t('repository.details-title') }}
           </h2>
 
-          <UButton
+          <UModal
             v-if="mode === 'edit'"
-            :label="$t('button.delete')"
-            icon="i-lucide-trash"
-            variant="subtle"
-            color="error"
-          />
+            :title="$t('modal.delete-repository.title')"
+            :description="$t('modal.delete-repository.description')"
+            :close="false" :ui="{ footer: 'justify-between', body: 'space-y-4' }"
+          >
+            <UButton
+              :label="$t('button.delete')"
+              icon="i-lucide-trash"
+              variant="subtle"
+              color="error"
+            />
+
+            <template #body>
+              <div>
+                <div class="text-xl font-semibold text-highlighted">
+                  {{ repository.serviceName }}
+                </div>
+                <div class="text-xs text-muted mt-1">
+                  {{ repository.id }}
+                </div>
+              </div>
+
+              <UAlert
+                :description="$t('modal.delete-repository.warning')"
+                color="warning" icon="i-lucide-alert-triangle" variant="subtle"
+              />
+
+              <UForm ref="deleteForm" :state="deleteFormState" @submit="onDelete">
+                <UFormField
+                  name="serviceName"
+                  :description="
+                    $t('modal.delete-repository.confirmation', { name: repository.serviceName })
+                  "
+                  :ui="{ wrapper: 'mb-2' }"
+                >
+                  <UInput
+                    v-model="deleteFormState.serviceName"
+                    :ui="{ root: 'w-full' }"
+                  />
+                </UFormField>
+              </UForm>
+            </template>
+
+            <template #footer="{ close }">
+              <UButton
+                :label="$t('button.cancel')"
+                icon="i-lucide-ban" color="neutral" variant="subtle"
+                @click="close"
+              />
+              <UButton
+                :label="$t('button.delete')"
+                icon="i-lucide-trash" color="error" variant="solid"
+                :disabled="deleteFormState.serviceName !== repository.serviceName"
+                loading-auto
+                @click="async () => { await deleteForm!.submit(); close(); }"
+              />
+            </template>
+          </UModal>
         </div>
       </template>
 

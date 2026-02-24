@@ -153,6 +153,10 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     serviceUrl: z.string()
       .min(1, $t('repository.validation.serviceUrl.required'))
       .max(maxUrlLength, $t('repository.validation.serviceUrl.max-length', { max: maxUrlLength }))
+      .regex(
+        /^(?!-)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/,
+        $t('repository.validation.serviceUrl.invalid'),
+      )
       .transform(value => `https://${value}`)
       .pipe(z.string().url($t('repository.validation.serviceUrl.invalid'))),
     entityIds: z.array(z.string().min(1, $t('repository.validation.entityIds.required')))
@@ -161,12 +165,9 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   }))
 
   const updateSchema = computed(() => z.object({
-    id: z.string().min(1, $t('repository.validation.id.required')),
+    id: z.string(),
     serviceName: z.string().min(1, $t('repository.validation.serviceName.required')),
-    serviceUrl: z.string()
-      .min(1, $t('repository.validation.serviceUrl.required'))
-      .transform(value => `https://${value}`)
-      .pipe(z.string().url($t('repository.validation.serviceUrl.invalid'))),
+    serviceUrl: z.string(),
     entityIds: z.array(z.string().min(1, $t('repository.validation.entityIds.required')))
       .nonempty($t('repository.validation.entityIds.at-least-one')),
     active: z.boolean(),

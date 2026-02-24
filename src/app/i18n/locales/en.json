@@ -188,6 +188,14 @@
     "management": "Management",
     "other": "Other"
   },
+  "modal": {
+    "delete-repository": {
+      "confirmation": "To confirm, type \"{name}\" in the box below.",
+      "description": "Once the SP connector is deleted, it cannot be restored.",
+      "title": "Are you sure to delete the SP connector for this repository?\n",
+      "warning": "This action also deletes any groups created in the repository."
+    }
+  },
   "repositories": {
     "actions": {
       "copy-sp-connector-id": "Copy SP Connecter ID to clipboard\t"
@@ -235,7 +243,7 @@
     "sp-connector-description": "Identifier of the SP connector associated with the repository",
     "suspended": "Operating condition",
     "suspended-active": "Active",
-    "suspended-description": "Grant the system administrator role to the user. This requires that the user does not belong to any repository.",
+    "suspended-description": "SP connector operating status.",
     "suspended-inactive": "Suspended",
     "validation": {
       "entityIds": {
@@ -335,8 +343,14 @@
       }
     },
     "success": {
+      "copy-entity-id": {
+        "description": "EntityID has been copied to the clipboard."
+      },
       "copy-group-id": {
         "description": "The group ID has been copied to the clipboard."
+      },
+      "copy-service-url": {
+        "description": "The repository URL has been copied to the clipboard."
       },
       "copy-sp-connector-id": {
         "description": "The selected repository's URL has been copied to the clipboard."
@@ -350,8 +364,11 @@
       "copy-user-id": {
         "description": "The user ID has been copied to the clipboard."
       },
-      "creation": {
+      "created": {
         "title": "Create successful"
+      },
+      "deleted": {
+        "title": "Delete successful"
       },
       "group-created": {
         "description": "Successfully created group."
@@ -361,6 +378,9 @@
       },
       "repository-created": {
         "description": "Successfully created SP connector for repository."
+      },
+      "repository-deleted": {
+        "description": "Successfully deleted SP connector for repository."
       },
       "repository-updated": {
         "description": "Successfully updated repository information."
