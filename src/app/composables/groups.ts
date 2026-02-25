@@ -67,13 +67,15 @@ const useGroupsTable = () => {
     }
   }
   const isAllPageRowsSelected = (table: Table<GroupSummary>) => {
-    const pageRowIds = table.getRowModel().rows.map(row => row.original.id)
-    return pageRowIds.every(id => selectedMap.value[id] !== undefined)
+    const pageRows = table.getRowModel().rows
+    return pageRows.length > 0 && pageRows.every(
+      row => selectedMap.value[row.original.id] !== undefined,
+    )
   }
   const isSomePageRowsSelected = (table: Table<GroupSummary>) => {
-    const pageRowIds = table.getRowModel().rows.map(row => row.original.id)
-    const selectedCount = pageRowIds.filter(id => selectedMap.value[id] !== undefined).length
-    return selectedCount > 0 && selectedCount < pageRowIds.length
+    const pageRows = table.getRowModel().rows
+    const selectedRows = pageRows.filter(row => selectedMap.value[row.original.id] !== undefined)
+    return selectedRows.length > 0 && selectedRows.length < pageRows.length
   }
 
   const getSelected = (): { id: string, displayName: string }[] => {
