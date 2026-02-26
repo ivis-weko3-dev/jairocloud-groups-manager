@@ -787,7 +787,7 @@ def _build_groups_update_bulk_operations(
     group_user_ops: dict[str, dict[str, set[str]]],
 ) -> list[BulkOperation]:
     bulk_ops: list[BulkOperation] = []
-    system_user_id = groups.get_system_admins()
+    system_user_id = users.get_system_admins()
     for gid, ops in group_user_ops.items():
         target = groups.get_by_id(gid, raw=True)
         user_list = set()
