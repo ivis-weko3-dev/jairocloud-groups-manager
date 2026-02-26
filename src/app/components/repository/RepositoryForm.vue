@@ -89,7 +89,7 @@ const onCancel = () => {
       />
       <div
         v-else
-        class="f-ful mt-1 px-3 py-2 text-base"
+        class="mt-1 px-3 py-2 text-base"
       >
         {{ state.serviceName || '-' }}
       </div>
@@ -118,7 +118,7 @@ const onCancel = () => {
       </UInput>
       <div
         v-else
-        class="f-ful mt-1 px-3 py-2 text-base"
+        class="mt-1 px-3 py-2 text-base"
       >
         https://{{ state.serviceUrl || '-' }}
         <UButton
@@ -157,17 +157,18 @@ const onCancel = () => {
           :placeholder="$t('repository.placeholders.entity-ids')"
           :ui="{ root: 'w-full' }"
         >
-          <template v-if="state.entityIds.length > 1" #trailing>
+          <template #trailing>
             <UButton
               icon="i-lucide-x" variant="ghost" color="neutral" size="sm"
               :ui="{ base: 'p-0' }"
+              :disabled="state.entityIds.length <= 1"
               @click="removeEntityId(index)"
             />
           </template>
         </UInput>
         <div
           v-else
-          class="f-ful mt-1 px-3 py-2 text-base"
+          class="mt-1 px-3 py-2 text-base"
         >
           {{ entityId }}
           <UButton
@@ -189,7 +190,7 @@ const onCancel = () => {
       :description="$t('repository.sp-connector-description')"
       :ui="{ wrapper: 'mb-2' }"
     >
-      <div class="f-ful mt-1 px-3 py-2 text-base">
+      <div class="mt-1 px-3 py-2 text-base">
         {{ stateAsEdit.spConnectorId }}
       </div>
     </UFormField>
@@ -215,7 +216,7 @@ const onCancel = () => {
       v-if="mode !== 'new'"
       :label="$t('repository.created')" :ui="{ wrapper: 'mb-2' }"
     >
-      <div class="f-ful mt-1 px-3 py-2 text-base">
+      <div class="mt-1 px-3 py-2 text-base">
         {{ stateAsEdit.created || '-' }}
       </div>
     </UFormField>
