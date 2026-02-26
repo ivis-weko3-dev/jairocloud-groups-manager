@@ -4,7 +4,7 @@ import typing as t
 from pydantic import HttpUrl
 
 from server.api import repositories
-from server.api.schemas import ErrorResponse, RepositoriesQuery
+from server.api.schemas import ErrorResponse, RepositoriesQuery, RepositoryDeleteQuery
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResult
 from server.exc import InvalidFormError, InvalidQueryError, ResourceInvalid, ResourceNotFound
@@ -155,6 +155,12 @@ def test_id_get_success(app, test_config, mocker: MockerFixture) -> None:
 def test_id_get_permission_error(app, mocker: MockerFixture) -> None:
     """Test: /repositories/<id> GET returns 403 error for permission denied."""
     expected_status = 403
+
+    dummy_repo = RepositoryDetail(
+        id="repo1",
+        service_name="repo1",
+    )
+    mocker.patch("server.services.repositories.get_by_id", return_value=dummy_repo)
     mocker.patch("server.api.repositories.has_permission", return_value=False)
     original_func = inspect.unwrap(repositories.id_get)
     response = original_func("repo1")
@@ -314,9 +320,10 @@ def test_id_put_resource_invalid_error(app, test_config, mocker: MockerFixture) 
 def test_id_delete_success(app, mocker: MockerFixture) -> None:
     """Test: /repositories/<id> DELETE deletes repository successfully."""
     expected_status = 204
+    query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", return_value=None)
     original_func = inspect.unwrap(repositories.id_delete)
-    response = original_func("repo1")
+    response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
     assert not data
@@ -325,9 +332,10 @@ def test_id_delete_success(app, mocker: MockerFixture) -> None:
 def test_id_delete_not_found_error(app, mocker: MockerFixture) -> None:
     """Test: /repositories/<id> DELETE returns 404 error for not found."""
     expected_status = 404
+    query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", side_effect=ResourceNotFound("not found"))
     original_func = inspect.unwrap(repositories.id_delete)
-    response = original_func("repo1")
+    response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
     assert isinstance(data, ErrorResponse)
@@ -338,9 +346,10 @@ def test_id_delete_not_found_error(app, mocker: MockerFixture) -> None:
 def test_id_delete_resource_invalid_error(app, mocker: MockerFixture) -> None:
     """Test: /repositories/<id> DELETE returns 400 error for resource invalid."""
     expected_status = 400
+    query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", side_effect=ResourceInvalid("resource invalid"))
     original_func = inspect.unwrap(repositories.id_delete)
-    response = original_func("repo1")
+    response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
     assert isinstance(data, ErrorResponse)

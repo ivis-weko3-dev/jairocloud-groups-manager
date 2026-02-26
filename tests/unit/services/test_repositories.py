@@ -209,7 +209,7 @@ def test_search_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtu
 def test_search_returns_raw_response(app, mocker: MockerFixture, test_config) -> None:
     """Tests that the raw SearchResponse is returned when raw=True is specified."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id="repo1")
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -239,7 +239,7 @@ def test_search_returns_raw_response(app, mocker: MockerFixture, test_config) ->
 def test_get_by_id_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful retrieval of a repository by ID with raw response."""
 
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id="repo1")
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -347,7 +347,7 @@ def test_get_by_id_raises_credentials_error_direct(mocker: MockerFixture) -> Non
 def test_get_by_id_returns_raw_response(app, mocker: MockerFixture, test_config) -> None:
     """Tests that the raw MapService is returned when raw=True is specified for get_by_id."""
 
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id="repo1")
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -371,7 +371,7 @@ def test_get_by_id_returns_raw_response(app, mocker: MockerFixture, test_config)
 def test_get_by_id_returns_repository_detail(app, mocker: MockerFixture, test_config) -> None:
     """Tests that get_by_id returns RepositoryDetail when raw is False (default)."""
     repository_id = "repo1"
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id="repo1")
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -399,7 +399,7 @@ def test_get_by_id_returns_repository_detail(app, mocker: MockerFixture, test_co
 def test_get_by_id_more_detail(app, mocker: MockerFixture, test_config) -> None:
     """Tests that get_by_id returns RepositoryDetail with more_detail=True."""
     repository_id = "repo1"
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id=repository_id)
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id=repository_id)
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -425,7 +425,7 @@ def test_get_by_id_more_detail(app, mocker: MockerFixture, test_config) -> None:
 
 def test_get_by_id_returns_none_on_map_error(app, mocker: MockerFixture, test_config) -> None:
     """Tests that get_by_id returns None when MapError is returned."""
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id="repo1")
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     map_error = MapError(detail="not found", status="404", scim_type="invalidSyntax")
     mocker.patch("server.services.repositories.resolve_service_id", return_value=service_id)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -459,7 +459,7 @@ def test_create_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful creation of a repository and validates the returned RepositoryDetail."""
 
     repository_id = "repo1"
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id=repository_id)
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id=repository_id)
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -688,7 +688,7 @@ def test_update_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful update of a repository and validates the returned RepositoryDetail."""
 
     repository_id = "repo1"
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id=repository_id)
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id=repository_id)
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -933,7 +933,7 @@ def test_update_put_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful update (PUT) of a repository and validates the returned RepositoryDetail."""
 
     repository_id = "repo1"
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connecter.format(repository_id=repository_id)
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id=repository_id)
     service_name = test_config.SP.entity_id
     service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/{repository_id}")
     service_schema = const.MAP_SERVICE_SCHEMA
@@ -1184,21 +1184,32 @@ def test_update_put_calls_update_when_strategy_patch(app, mocker: MockerFixture,
     assert mock_update.called
 
 
-def test_delete_by_id_success(mocker: MockerFixture) -> None:
+def test_delete_by_id_success(app, test_config, mocker: MockerFixture) -> None:
     """Tests successful deletion of a repository by ID and verifies the correct call arguments."""
+
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
 
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mock_delete = mocker.patch("server.clients.services.delete_by_id", return_value=None)
 
-    repositories.delete_by_id("repo1")
+    repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     mock_delete.assert_called_once_with("repo1", access_token="token", client_secret="secret")
 
 
-def test_delete_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_oauth_token_error_on_unauthorized(app, test_config, mocker: MockerFixture) -> None:
     """Tests that OAuthTokenError is raised when delete_by_id receives an unauthorized response."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
@@ -1208,13 +1219,20 @@ def test_delete_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFix
     mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
 
     with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_unexpected_response_error_on_internal_server_error(
+    app, test_config, mocker: MockerFixture
+) -> None:
     """Tests that UnexpectedResponseError is raised on internal server error during delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
@@ -1224,25 +1242,34 @@ def test_delete_by_id_raises_unexpected_response_error_on_internal_server_error(
     mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
 
     with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_unexpected_response_error_on_request_exception(
+    app, test_config, mocker: MockerFixture
+) -> None:
     """Tests that UnexpectedResponseError is raised on request exception during delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=requests.RequestException("fail"))
 
     with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_unexpected_response_error_on_validation_error(
+    app, test_config, mocker: MockerFixture
+) -> None:
     """Tests that UnexpectedResponseError is raised on validation error during delete_by_id."""
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
@@ -1250,40 +1277,54 @@ def test_delete_by_id_raises_unexpected_response_error_on_validation_error(mocke
     mocker.patch("server.clients.services.delete_by_id", side_effect=ValidationError("fail", []))
 
     with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_oauth_token_error_direct(app, test_config, mocker: MockerFixture) -> None:
     """Tests that OAuthTokenError is raised directly from delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=repositories.OAuthTokenError("token error"))
 
     with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "token error" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_credentials_error_direct(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_credentials_error_direct(app, test_config, mocker: MockerFixture) -> None:
     """Tests that CredentialsError is raised directly from delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=repositories.CredentialsError("cred error"))
 
     with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "cred error" in str(excinfo.value)
 
 
-def test_delete_by_id_raises_resource_not_found_on_map_error(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_resource_not_found_on_map_error(app, test_config, mocker: MockerFixture) -> None:
     """Tests that ResourceNotFound is raised when MapError indicates not found during delete_by_id."""
-
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
@@ -1291,13 +1332,18 @@ def test_delete_by_id_raises_resource_not_found_on_map_error(mocker: MockerFixtu
     mocker.patch("server.clients.services.delete_by_id", return_value=map_error)
 
     with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "not found" in str(excinfo.value).lower()
 
 
-def test_delete_by_id_raises_resource_invalid_on_map_error(mocker: MockerFixture) -> None:
+def test_delete_by_id_raises_resource_invalid_on_map_error(app, test_config, mocker: MockerFixture) -> None:
     """Tests that ResourceInvalid is raised when MapError indicates invalid during delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.clients.services.get_by_id", return_value=dummy_map_service)
 
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
@@ -1306,6 +1352,6 @@ def test_delete_by_id_raises_resource_invalid_on_map_error(mocker: MockerFixture
     mocker.patch("server.clients.services.delete_by_id", return_value=map_error)
 
     with pytest.raises(repositories.ResourceInvalid) as excinfo:
-        repositories.delete_by_id("repo1")
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "invalid" in str(excinfo.value)

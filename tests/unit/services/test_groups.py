@@ -265,6 +265,7 @@ def test_create_success(app, gen_group_id, mocker: MockerFixture) -> None:
         created=None,
         last_modified=None,
         users_count=5,
+        type="group",
     )
     expected_group = GroupDetail(
         id=gen_group_id("g2"),
@@ -277,6 +278,7 @@ def test_create_success(app, gen_group_id, mocker: MockerFixture) -> None:
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     expected_map_group = MapGroup(
         id=gen_group_id("g2"),
@@ -288,7 +290,7 @@ def test_create_success(app, gen_group_id, mocker: MockerFixture) -> None:
         services=[Service(value=service_name)],
     )
 
-    mocker.patch("server.services.groups.get_system_admins", return_value=["sysadmin"])
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
     mocker.patch("server.services.groups.get_access_token", return_value="token")
@@ -327,6 +329,7 @@ def test_create_raises_unexpected_response_error_when_no_sysadmin(
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     mocker.patch(
@@ -343,7 +346,7 @@ def test_create_raises_unexpected_response_error_when_no_sysadmin(
     mocker.patch("server.services.utils.detect_affiliation", return_value=None)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.services.groups.get_system_admins", return_value=["sysadmin"])
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.clients.groups.post")
     mocker.patch(
@@ -371,6 +374,7 @@ def test_create_raises_oauth_token_error_on_http_401(gen_group_id, mocker: Mocke
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
@@ -378,7 +382,7 @@ def test_create_raises_oauth_token_error_on_http_401(gen_group_id, mocker: Mocke
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
     mocker.patch("server.services.utils.detect_affiliation", return_value=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -409,13 +413,14 @@ def test_create_raises_unexpected_response_error_on_http_403(gen_group_id, mocke
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
 
-    mocker.patch("server.services.groups.get_system_admins", return_value=["sysadmin"])
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -446,13 +451,14 @@ def test_create_raises_unexpected_response_error_on_http_500(gen_group_id, mocke
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -483,13 +489,14 @@ def test_create_raises_unexpected_response(gen_group_id, mocker: MockerFixture) 
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -516,13 +523,14 @@ def test_create_raises_unexpected_response_error_on_validation_error(gen_group_i
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -549,13 +557,14 @@ def test_create_raises_oauth_token_error_propagation(gen_group_id, mocker: Mocke
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -582,6 +591,7 @@ def test_create_raises_credentials_error_propagation(gen_group_id, mocker: Mocke
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
@@ -589,7 +599,7 @@ def test_create_raises_credentials_error_propagation(gen_group_id, mocker: Mocke
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
     mocker.patch("server.services.utils.detect_affiliation", return_value=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -617,6 +627,7 @@ def test_create_raises_unexpected_exception_propagation(gen_group_id, mocker: Mo
         created=None,
         last_modified=None,
         users_count=2,
+        type="group",
     )
 
     sysadmin_id = "sysadmin"
@@ -624,7 +635,7 @@ def test_create_raises_unexpected_exception_propagation(gen_group_id, mocker: Mo
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
     mocker.patch("server.services.utils.detect_affiliation", return_value=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mock_post = mocker.patch("server.clients.groups.post")
@@ -651,6 +662,7 @@ def test_get_by_id_success(app: Flask, gen_group_id, mocker: MockerFixture) -> N
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
 
     map_group = MapGroup(
@@ -835,6 +847,7 @@ def test_update_success(app: Flask, gen_group_id, mocker: MockerFixture) -> None
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     map_group = MapGroup(
         id=group_id,
@@ -871,6 +884,7 @@ def test_update_raises_resource_invalid_and_logs(app: Flask, gen_group_id, mocke
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     error_detail = "Update failed due to invalid data."
     mocker.patch("server.services.groups.get_access_token", return_value="token")
@@ -904,6 +918,7 @@ def test_update_raises_resource_not_found(app: Flask, gen_group_id, mocker: Mock
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -931,6 +946,7 @@ def test_update_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, m
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -962,6 +978,7 @@ def test_update_raises_unexpected_response_error_on_http_403(app: Flask, gen_gro
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -993,6 +1010,7 @@ def test_update_raises_unexpected_response_error_on_http_500(app: Flask, gen_gro
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1026,6 +1044,7 @@ def test_update_raises_unexpected_response_error_on_request_exception(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1056,6 +1075,7 @@ def test_update_raises_unexpected_response_error_on_validation_error(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1084,6 +1104,7 @@ def test_update_raises_oauth_token_error_propagation(app: Flask, gen_group_id, m
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1112,6 +1133,7 @@ def test_update_raises_credentials_error_propagation(app: Flask, gen_group_id, m
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1140,6 +1162,7 @@ def test_update_raises_unexpected_exception_propagation(app: Flask, gen_group_id
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1548,11 +1571,12 @@ def test_update_member_add_success(app: Flask, gen_group_id, mocker: MockerFixtu
         public=True,
         member_list_visibility="Public",
         users_count=2,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", return_value=group_info)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id", return_value=updated_map_group)
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
@@ -1580,7 +1604,7 @@ def test_update_member_raises_oauth_token_error_on_http_401(app: Flask, gen_grou
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=http_error)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.clients.groups.patch_by_id")
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1602,7 +1626,7 @@ def test_update_member_raises_unexpected_response_error_on_http_403(
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1626,7 +1650,7 @@ def test_update_member_raises_unexpected_response_error_on_http_500(
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1647,7 +1671,7 @@ def test_update_member_raises_unexpected_response_error_on_request_exception(
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=requests.RequestException())
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1668,7 +1692,7 @@ def test_update_member_raises_unexpected_response_error_on_validation_error(
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=ValidationError("validation error", []))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1686,7 +1710,7 @@ def test_update_member_raises_oauth_token_error_propagation(app: Flask, gen_grou
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=OAuthTokenError("token error"))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1704,7 +1728,7 @@ def test_update_member_raises_credentials_error_propagation(app: Flask, gen_grou
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=CredentialsError("credentials error"))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
@@ -1722,7 +1746,7 @@ def test_update_member_raises_unexpected_exception_propagation(app: Flask, gen_g
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.get_by_id", side_effect=None)
-    mocker.patch("server.services.groups.get_system_admins", return_value=[sysadmin_id])
+    mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=UnexpectedError("unexpected error"))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
@@ -1748,6 +1772,7 @@ def test_update_put_success(app: Flask, gen_group_id, mocker: MockerFixture) -> 
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     map_group = MapGroup(
         id=group_id,
@@ -1787,6 +1812,7 @@ def test_update_put_failure_resource_invalid_and_logs(app: Flask, gen_group_id, 
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     error_detail = "PUT update failed due to invalid data."
     mocker.patch("server.services.groups.get_access_token", return_value="token")
@@ -1819,6 +1845,7 @@ def test_update_put_raises_oauth_token_error_on_http_401(app: Flask, gen_group_i
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1852,6 +1879,7 @@ def test_update_put_raises_unexpected_response_error_on_http_403(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1885,6 +1913,7 @@ def test_update_put_raises_unexpected_response_error_on_http_500(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1918,6 +1947,7 @@ def test_update_put_raises_unexpected_response_error_on_request_exception(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1948,6 +1978,7 @@ def test_update_put_raises_unexpected_response_error_on_validation_error(
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -1976,6 +2007,7 @@ def test_update_put_raises_oauth_token_error_propagation(app: Flask, gen_group_i
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -2004,6 +2036,7 @@ def test_update_put_raises_credentials_error_propagation(app: Flask, gen_group_i
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -2032,6 +2065,7 @@ def test_update_put_raises_unexpected_exception_propagation(app: Flask, gen_grou
         created=None,
         last_modified=None,
         users_count=1,
+        type="group",
     )
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
