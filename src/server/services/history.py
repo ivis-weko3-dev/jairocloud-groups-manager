@@ -11,7 +11,8 @@ from types import SimpleNamespace
 from uuid import UUID
 
 from flask import current_app
-from sqlalchemy import func, or_, select
+from sqlalchemy import cast, func, or_, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import SQLAlchemyError
 
 from server.const import DEFAULT_SEARCH_COUNT
@@ -53,6 +54,7 @@ def get_upload_history_data(
 
     base_stmt = select(UploadHistory, Files).join(UploadHistory.file).filter(*filters)
     count_stmt = select(func.count()).select_from(base_stmt.subquery())
+
     total = db.session.execute(count_stmt).scalar_one()
 
     if criteria.d == "desc":
@@ -100,7 +102,7 @@ def _build_filters_for_history(
     if is_current_user_system_admin():
         filters.append(
             or_(*[
-                Files.file_content["repositories"].contains([{"id": rid}])
+                Files.file_content["repositories"].op("@>")(cast([{"id": rid}], JSONB))
                 for rid in criteria.r or []
             ])
         )
@@ -110,7 +112,7 @@ def _build_filters_for_history(
         target_repositories = permitted & set(criteria.r) if criteria.r else permitted
         filters.append(
             or_(*[
-                Files.file_content["repositories"].contains([{"id": rid}])
+                Files.file_content["repositories"].op("@>")(cast([{"id": rid}], JSONB))
                 for rid in target_repositories
             ])
         )
@@ -118,7 +120,7 @@ def _build_filters_for_history(
     if criteria.g:
         filters.append(
             or_(*[
-                Files.file_content["groups"].contains([{"id": gid}])
+                Files.file_content["groups"].op("@>")(cast([{"id": gid}], JSONB))
                 for gid in criteria.g
             ])
         )
@@ -126,7 +128,7 @@ def _build_filters_for_history(
     if criteria.u:
         filters.append(
             or_(*[
-                Files.file_content["users"].contains([{"id": uid}])
+                Files.file_content["users"].op("@>")(cast([{"id": uid}], JSONB))
                 for uid in criteria.u
             ])
         )
