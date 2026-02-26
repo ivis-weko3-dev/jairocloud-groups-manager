@@ -26,7 +26,7 @@ from server.services.utils import (
 )
 
 from .helpers import roles_required
-from .schemas import ErrorResponse, RepositoriesQuery
+from .schemas import ErrorResponse, RepositoriesQuery, RepositoryDeleteQuery
 
 
 bp = Blueprint("repositories", __name__)
@@ -68,7 +68,7 @@ def post(
     """Create repository endpoint.
 
     Args:
-        body(RepositoryDetail): Repository information
+        body (RepositoryDetail): Repository information to create.
 
     Returns:
         - If succeeded in creating repository, repository information
@@ -98,7 +98,7 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
     """Get information of repository endpoint.
 
     Args:
-        repository_id(str): Repository id
+        repository_id(str): Repository id to get.
 
     Returns:
         - If succeeded in getting repository information,
@@ -106,12 +106,12 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
         - If logged-in user does not have permission, status code 403
         - If repository not found, status code 404
     """
-    if not has_permission(repository_id):
-        return ErrorResponse(code="", message="not has permission"), 403
-
     result = repositories.get_by_id(repository_id, more_detail=True)
     if result is None:
         return ErrorResponse(code="", message="repository not found"), 404
+
+    if not has_permission(repository_id):
+        return ErrorResponse(code="", message="not has permission"), 403
 
     return result, 200
 
@@ -126,8 +126,8 @@ def id_put(
     """Update repository endpoint.
 
     Args:
-        repository_id(str): Repository id
-        body(RepositoryDetail): Repository information
+        repository_id(str): Repository id to update.
+        body(RepositoryDetail): Repository information to update.
 
     Returns:
         - If succeeded in updating repository, repository information
@@ -156,19 +156,22 @@ def id_put(
 @roles_required(USER_ROLES.SYSTEM_ADMIN)
 @validate(response_by_alias=True)
 def id_delete(
-    repository_id: str,
+    repository_id: str, query: RepositoryDeleteQuery
 ) -> tuple[t.Literal[""], int] | tuple[ErrorResponse, int]:
     """Delete repository endpoint.
 
     Args:
-        repository_id(str): Repository id
+        repository_id(str): Repository id to delete.
+        query(RepositoryDeleteQuery): Query parameters for deletion.
 
     Returns:
         - If succeeded in deleting repository, status code 204
         - If repository not found, status code 404
     """
     try:
-        repositories.delete_by_id(repository_id)
+        repositories.delete_by_id(repository_id, query.confirmation)
+    except InvalidFormError as exc:
+        return ErrorResponse(code="", message=str(exc)), 400
     except ResourceNotFound as exc:
         return ErrorResponse(code="", message=str(exc)), 404
     except ResourceInvalid as exc:

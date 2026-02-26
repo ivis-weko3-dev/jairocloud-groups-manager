@@ -92,7 +92,7 @@ const pageInfo = makePageInfo(searchResult)
     <div class="col-span-2 flex gap-4">
       <div class="flex flex-1 justify-end items-center space-x-4">
         <div class="flex items-center">
-          <label class="text-sm text-gray-600">{{ $t('table.page-size-label') }}</label>
+          <label class="text-sm text-gray-600 mr-1">{{ $t('table.page-size-label') }}</label>
           <USelect
             v-model="pageSize" :items="pageOptions"
             class="w-24"
@@ -177,6 +177,13 @@ const pageInfo = makePageInfo(searchResult)
         </p>
       </template>
     </UPageCard>
+
+    <UEmpty
+      v-if="!searchResult?.resources.length"
+      :title="$t('repositories.table.no-repositories-title')"
+      :description="$t('repositories.table.no-repositories-description')"
+      :actions="emptyActions" :ui="{ root: 'col-span-3' }"
+    />
   </div>
 
   <div class="flex justify-center mt-4">

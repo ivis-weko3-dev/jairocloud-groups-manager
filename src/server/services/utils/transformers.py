@@ -86,7 +86,16 @@ def prepare_role_groups(
 
     Returns:
         list[MapGroup]: A list of MapGroup instances representing the role groups.
+
+    Raises:
+        SystemAdminNotFound: If no administrators are provided.
     """
+    service_id = resolve_service_id(repository_id=repository_id)
+
+    if not administrators:
+        error = "At least one administrator is required to create a repository."
+        raise SystemAdminNotFound(error)
+
     role_groups = []
     for role in USER_ROLES:
         if role == USER_ROLES.SYSTEM_ADMIN:
@@ -98,10 +107,13 @@ def prepare_role_groups(
             MapGroup(
                 id=id_pattern.format(repository_id=repository_id),
                 display_name=name_pattern.format(repository_name=service_name),
-                public=False,
-                member_list_visibility="Private",
+                public=GROUP_DEFAULT_PUBLIC,
+                member_list_visibility=GROUP_DEFAULT_MEMBER_LIST_VISIBILITY,
                 administrators=[
                     GroupAdministrator(value=user_id) for user_id in administrators
+                ],
+                services=[
+                    GroupService(value=service_id),
                 ],
             )
         )
@@ -263,7 +275,6 @@ def prepare_group(
         GroupAdministrator(value=user_id) for user_id in administrators
     ]
     map_group.services = [
-        GroupService(value=config.SP.connecter_id),
         GroupService(value=service_id),
     ]
 
@@ -280,10 +291,7 @@ def make_group_detail(group: MapGroup, *, more_detail: bool = False) -> GroupDet
     Returns:
         GroupDetail: The created GroupDetail instance.
     """
-    users, user_count = None, None
-    if group.members:
-        users = [member for member in group.members if member.type == "User"]
-        user_count = len(users)
+    detected = detect_affiliation(group.id or "")
 
     detail = GroupDetail(
         id=group.id,
@@ -291,6 +299,7 @@ def make_group_detail(group: MapGroup, *, more_detail: bool = False) -> GroupDet
         description=group.description,
         public=group.public,
         member_list_visibility=group.member_list_visibility,
+        type=detected.type if detected else "group",
     )
 
     if group.members:

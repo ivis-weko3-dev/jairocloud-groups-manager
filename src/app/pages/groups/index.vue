@@ -2,7 +2,7 @@
 const toast = useToast()
 const {
   query, updateQuery, criteria, creationButtons, emptyActions,
-  toggleSelection, selectedCount, selectedGroupsActions,
+  toggleSelection, selectedCount, getSelected, clearSelection, selectedGroupsActions,
   columns, columnNames, columnVisibility, makeAttributeFilters, makePageInfo,
 } = useGroupsTable()
 
@@ -52,11 +52,54 @@ const { repositoryFilter, filters: statusFilters } = makeAttributeFilters(filter
   repositorySelect: { ref: repositorySelect, url: '/api/repositories' },
 })
 const pageInfo = makePageInfo(searchResult)
+
+const modals = reactive({
+  delete: false,
+})
+const selectedGroups = ref<{ id: string, displayName: string }[]>([])
+selectedGroupsActions.value[0].onSelect = () => modals.delete = true
+
+const onDelete = async () => {
+  try {
+    await $fetch('/api/groups/delete', {
+      method: 'POST',
+      body: { groupIds: selectedGroups.value.map(group => group.id) },
+      onResponseError: ({ response }) => {
+        switch (response.status) {
+          case 403: {
+            showError({
+              status: 403,
+              statusText: 'Forbidden',
+              message: $t('error-page.forbidden.group-delete'),
+            })
+            break
+          }
+          default: {
+            handleFetchError({ response })
+            break
+          }
+        }
+      },
+    })
+
+    toast.add({
+      title: $t('toast.success.deleted.title'),
+      description: $t('toast.success.group-deleted.description'),
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    clearSelection()
+    await refresh()
+  }
+  catch {
+    // Error handling is done in onResponseError, so we can ignore errors here
+  }
+}
 </script>
 
 <template>
   <UPageHeader
-    :title="$t('groups.title')"
+    :title="$t('groups.table.title')"
     :description="$t('groups.description')"
     :ui="{ root: 'py-2 mb-6', description: 'mt-4' }"
   />
@@ -64,15 +107,14 @@ const pageInfo = makePageInfo(searchResult)
   <div class="flex justify-between items-center my-4">
     <div class="flex space-x-2">
       <UButton
-        v-for="(button, index) in creationButtons"
-        :key="index"
+        v-for="(button, index) in creationButtons" :key="index"
         :icon="button.icon" :label="button.label"
         :to="button.to" :color="button.color" :variant="button.variant"
         :ui="{ base: 'gap-1' }"
       />
     </div>
 
-    <UDropdownMenu :items="selectedGroupsActions">
+    <UDropdownMenu :items="selectedGroupsActions" :content="{ align: 'end' }">
       <UButton
         :label="$t('groups.button.selected-groups-actions')"
         color="warning" variant="subtle"
@@ -109,7 +151,7 @@ const pageInfo = makePageInfo(searchResult)
 
       <div class="flex flex-1 justify-end items-center space-x-4">
         <div class="flex items-center">
-          <label class="text-sm text-gray-600">{{ $t('table.page-size-label') }}</label>
+          <label class="text-sm text-gray-600 mr-1">{{ $t('table.page-size-label') }}</label>
           <USelect
             v-model="pageSize" :items="pageOptions"
             class="w-24"
@@ -200,4 +242,38 @@ const pageInfo = makePageInfo(searchResult)
     </div>
     <div class="flex-1" />
   </div>
+
+  <UModal
+    v-model:open="modals.delete"
+    :title="$t('modal.delete-groups.title')"
+    :description="$t('modal.delete-groups.description')"
+    :close="false" :ui="{ footer: 'justify-between', body: 'max-h-85 space-y-2' }"
+  >
+    <template #body>
+      <div v-for="group in (selectedGroups = getSelected())" :key="group.id" class="group">
+        <div class="text-lg font-semibold text-highlighted">
+          {{ group.displayName }}
+        </div>
+        <div class="text-xs text-muted mt-1">
+          {{ group.id }}
+        </div>
+
+        <USeparator class="my-1 group-last:hidden" />
+      </div>
+    </template>
+
+    <template #footer="{ close }">
+      <UButton
+        :label="$t('button.cancel')"
+        icon="i-lucide-ban" color="neutral" variant="subtle"
+        @click="close"
+      />
+      <UButton
+        :label="$t('button.delete')"
+        icon="i-lucide-trash" color="error" variant="solid"
+        loading-auto
+        @click="async () => { await onDelete(); close(); }"
+      />
+    </template>
+  </UModal>
 </template>

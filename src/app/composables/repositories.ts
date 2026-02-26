@@ -94,12 +94,17 @@ const useRepositoriesTable = () => {
           ? h(ULink, {
               to: url,
               target: '_blank',
-              class: 'hover:underline inline-flex items-center gap-1 max-w-xs',
+              class: 'hover:underline inline-flex items-center gap-1 w-full',
             }, () => [
               h('span', { class: 'truncate' }, url),
               h(UIcon, { name: 'i-lucide-external-link', class: 'size-3 shrink-0' }),
             ])
           : undefined
+      },
+      meta: {
+        class: {
+          td: 'max-w-xs',
+        },
       },
     },
     {

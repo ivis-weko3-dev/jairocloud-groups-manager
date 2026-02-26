@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const route = useRoute()
-const router = useRouter()
 const toast = useToast()
 
 const groupId = computed(() => route.params.id as string)
@@ -19,6 +18,7 @@ const { data: group, refresh } = useFetch<GroupDetail>(
         case 403: {
           showError({
             status: 403,
+            statusText: 'Forbidden',
             message: $t('error-page.forbidden.group-access'),
           })
           break
@@ -60,6 +60,7 @@ watch(group, (newGroup: GroupDetail) => {
     repository: newGroup.repository
       ? { value: newGroup.repository.id, label: newGroup.repository.serviceName }
       : defaultForm.repository,
+    type: newGroup.type || defaultForm.type,
     public: newGroup.public ?? defaultForm.public,
     memberListVisibility: newGroup.memberListVisibility || defaultForm.memberListVisibility,
     created: created ? datetimeFormatter.format(created) : defaultForm.created,
@@ -67,7 +68,7 @@ watch(group, (newGroup: GroupDetail) => {
 }, { immediate: true })
 
 const onSubmit = async (data: GroupUpdateForm) => {
-  const { id, repository, created, ...payload } = data
+  const { id, repository, type, created, ...payload } = data
 
   try {
     await $fetch(`/api/groups/${groupId.value}`, {
@@ -86,7 +87,8 @@ const onSubmit = async (data: GroupUpdateForm) => {
           }
           case 403: {
             showError({
-              statusCode: 403,
+              status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.group-edit'),
             })
             break
@@ -114,7 +116,7 @@ const onSubmit = async (data: GroupUpdateForm) => {
       color: 'success',
       icon: 'i-lucide-circle-check',
     })
-    await router.replace({ name: 'groups-id', params: { id: groupId.value } })
+    await navigateTo('/groups')
   }
   catch {
   // Already handled in onResponseError
@@ -128,6 +130,41 @@ const onCancel = () => {
     nextTick(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     })
+  }
+}
+
+const onDelete = async () => {
+  try {
+    await $fetch(`/api/groups/${groupId.value}`, {
+      method: 'DELETE',
+      onResponseError: ({ response }) => {
+        switch (response.status) {
+          case 403: {
+            showError({
+              status: 403,
+              statusText: 'Forbidden',
+              message: $t('error-page.forbidden.group-delete'),
+            })
+            break
+          }
+          default: {
+            handleFetchError({ response })
+            break
+          }
+        }
+      },
+    })
+
+    toast.add({
+      title: $t('toast.success.deleted.title'),
+      description: $t('toast.success.group-deleted.description'),
+      color: 'success',
+      icon: 'i-lucide-circle-check',
+    })
+    await navigateTo('/groups')
+  }
+  catch {
+    // Already handled in onResponseError
   }
 }
 </script>
@@ -155,13 +192,40 @@ const onCancel = () => {
             {{ $t('group.details-title') }}
           </h2>
 
-          <UButton
-            v-if="mode === 'edit'"
-            :label="$t('button.delete')"
-            icon="i-lucide-trash"
-            variant="subtle"
-            color="error"
-          />
+          <UModal
+            :title="$t('modal.delete-group.title')"
+            :description="$t('modal.delete-group.description')"
+            :close="false" :ui="{ footer: 'justify-between' }"
+          >
+            <UButton
+              :label="$t('button.delete')"
+              icon="i-lucide-trash" variant="subtle" color="error"
+              :disabled="group.type === 'role'"
+            />
+
+            <template #body>
+              <div class="text-xl font-semibold text-highlighted">
+                {{ group.displayName }}
+              </div>
+              <div class="text-xs text-muted mt-1">
+                {{ group.id }}
+              </div>
+            </template>
+
+            <template #footer="{ close }">
+              <UButton
+                :label="$t('button.cancel')"
+                icon="i-lucide-ban" color="neutral" variant="subtle"
+                @click="close"
+              />
+              <UButton
+                :label="$t('button.delete')"
+                icon="i-lucide-trash" color="error" variant="solid"
+                :disabled="group.type === 'role'" loading-auto
+                @click="async () => { await onDelete(); close(); }"
+              />
+            </template>
+          </UModal>
         </div>
       </template>
 

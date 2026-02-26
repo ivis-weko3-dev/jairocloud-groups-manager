@@ -27,6 +27,7 @@ const onSubmit = async (data: RepositoryCreateForm) => {
           case 403: {
             showError({
               status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.repository-create'),
             })
             break
@@ -49,7 +50,7 @@ const onSubmit = async (data: RepositoryCreateForm) => {
     })
 
     toast.add({
-      title: $t('toast.success.creation.title'),
+      title: $t('toast.success.created.title'),
       description: $t('toast.success.repository-created.description'),
       color: 'success',
       icon: 'i-lucide-circle-check',
@@ -65,6 +66,7 @@ onMounted(() => {
   if (!currentUser.value?.isSystemAdmin) {
     showError({
       status: 403,
+      statusText: 'Forbidden',
       message: $t('error-page.forbidden.repository-create'),
     })
   }

@@ -29,7 +29,6 @@ from server.exc import InvalidQueryError
 
 from .affiliations import detect_affiliations
 from .permissions import get_permitted_repository_ids, is_current_user_system_admin
-from .resolvers import resolve_service_id
 
 
 if t.TYPE_CHECKING:
@@ -88,9 +87,9 @@ def build_repositories_search_query(
         # partial match search on id, service_name and service_url
         filter_expr.append(
             " or ".join([
-                f'({path("id")} co "{criteria.q}")',
                 f'({path("service_name")} co "{criteria.q}")',
                 f'({path("service_url")} co "{criteria.q}")',
+                f'({path("entity_ids.value")} co "{criteria.q}")',
             ])
         )
 
@@ -100,7 +99,9 @@ def build_repositories_search_query(
 
     specified = set(criteria.i or [])
     if getattr(criteria, "super", False) or is_current_user_system_admin():
-        pass  # no additional filter for system admin
+        prefix = _get_id_prefix()
+        filter_expr.append(f'{path("id")} sw "{prefix}"')
+        # no additional filter for system admin
     elif permitted := get_permitted_repository_ids():
         # force filter by logged-in user's permitted repository IDs
         specified = permitted.intersection(specified) if specified else permitted
@@ -111,9 +112,10 @@ def build_repositories_search_query(
         filter_expr.append(_empty_filter(path("id")))
 
     if specified:
+        pattern = config.GROUPS.id_patterns.repository_admin
         filter_expr.append(
             " or ".join([
-                f'{path("id")} eq "{resolve_service_id(repository_id=repo_id)}"'
+                f'{path("groups.value")} eq "{pattern.format(repository_id=repo_id)}"'
                 for repo_id in specified
             ])
         )
@@ -441,11 +443,15 @@ def _all_repository_specified_role_filter(path: str, roles: list[USER_ROLES]) ->
     a repository.
     """
     id_patterns = _get_id_patterns()
-    return " or ".join([
-        f'{path} sw "{prefix}" and {path} ew "{suffix}"'
-        for role in roles
-        for prefix, suffix in [id_patterns[role]]
-    ])
+    filters: list[str] = []
+    for role in roles:
+        if role == USER_ROLES.SYSTEM_ADMIN:
+            filters.append(f'{path} eq "{config.GROUPS.id_patterns.system_admin}"')
+            continue
+        prefix, suffix = id_patterns[role]
+        filters.append(f'{path} sw "{prefix}" and {path} ew "{suffix}"')
+
+    return " or ".join(filters)
 
 
 def _all_repository_specified_group_filter(path: str, group_ids: list[str]) -> str:
@@ -489,13 +495,19 @@ def _specified_repository_specified_role_filter(
 
     Filter by exact match for role-type group IDs within specified repositories.
     """
-    id_patterns = _get_id_patterns()
-    return " or ".join([
-        f'{path} eq "{prefix}{repo_id}{suffix}"'
-        for repo_id in repository_ids
-        for role in roles
-        for prefix, suffix in [id_patterns[role]]
-    ])
+    filters: list[str] = []
+    for role in roles:
+        if role == USER_ROLES.SYSTEM_ADMIN:
+            # System admin groups do not belong to any repository
+            filters.append(_empty_filter(path))
+            continue
+        pattern = config.GROUPS.id_patterns[role]
+        filters.extend(
+            f'{path} eq "{pattern.format(repository_id=repo_id)}"'
+            for repo_id in repository_ids
+        )
+
+    return " or ".join(filters)
 
 
 def _specified_repository_specified_group_filter(
@@ -540,6 +552,25 @@ def _empty_filter(path: str) -> str:
 
 
 @cache
+def _get_id_prefix() -> str:
+    """Get group ID prefix for user-defined groups.
+
+    The return value of this is cached.
+
+    Returns:
+        str: The group ID prefix for user-defined groups.
+    """
+    id_pattern = config.REPOSITORIES.id_patterns.sp_connector
+    match = re.match(r"(.*)\{repository_id\}(.*)", id_pattern)
+    if not match:
+        error = "Invalid user-defined group ID pattern"
+        current_app.logger.error(error)
+        raise InvalidQueryError(error)
+
+    return match.group(1)
+
+
+@cache
 def _get_prefix_patterns() -> set[str]:
     """Get group ID prefix patterns for all group types.
 
@@ -552,26 +583,30 @@ def _get_prefix_patterns() -> set[str]:
     pattern = r"(.*)\{repository_id\}(.*)"
     return {
         match.group(1)
-        for group_types in id_patterns.model_fields_set
-        if (match := re.match(pattern, getattr(id_patterns, group_types)))
+        for group_types in t.cast(
+            "set[USER_ROLES | t.Literal['user_defined']]", id_patterns.model_fields_set
+        )
+        if (match := re.match(pattern, id_patterns[group_types]))
     }
 
 
 @cache
 def _get_id_patterns() -> dict[str, tuple[str, str]]:
-    """Get group ID patterns for each group type.
+    """Get group ID patterns for each group type without sytem admin.
 
     The return value of this is cached.
 
     Returns:
         dict: A dictionary mapping group types to their (prefix, suffix) patterns.
     """
-    patterns = config.GROUPS.id_patterns
+    id_patterns = config.GROUPS.id_patterns
     pattern = r"(.*)\{repository_id\}(.*)"
     return {
         group_types: (match.group(1), match.group(2))
-        for group_types in patterns.model_fields_set
-        if (match := re.match(pattern, getattr(patterns, group_types))) and match
+        for group_types in t.cast(
+            "set[USER_ROLES | t.Literal['user_defined']]", id_patterns.model_fields_set
+        )
+        if (match := re.match(pattern, id_patterns[group_types]))
     }
 
 

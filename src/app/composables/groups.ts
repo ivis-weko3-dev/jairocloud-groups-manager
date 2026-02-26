@@ -4,7 +4,7 @@
 
 import { UButton, UCheckbox, UDropdownMenu, ULink } from '#components'
 
-import type { Row } from '@tanstack/table-core'
+import type { Row, Table } from '@tanstack/table-core'
 import type { ButtonProps, DropdownMenuItem, TableColumn, TableRow } from '@nuxt/ui'
 
 /** Composable for managing groups table */
@@ -39,17 +39,52 @@ const useGroupsTable = () => {
     return JSON.stringify(filters)
   })
 
-  const selectedMap = useState<Record<string, boolean>>(
+  const selectedMap = useState<Record<string, string | undefined>>(
     `selection-groups:${searchIdentityKey.value}`, () => ({}),
   )
 
   const selectedCount = computed(() => {
-    return Object.values(selectedMap.value).filter(value => value === true).length
+    return Object.values(selectedMap.value).filter(value => value !== undefined).length
   })
   /** Toggle the selection of a group */
   const toggleSelection = (event: Event | undefined, row: Row<GroupSummary>) => {
-    selectedMap.value[row.id] = !selectedMap.value[row.id]
-    row.toggleSelected(selectedMap.value[row.id])
+    selectedMap.value[row.original.id]
+      = selectedMap.value[row.original.id] ? undefined : row.original.displayName
+  }
+  const toggleAllPageRows = (table: Table<GroupSummary>) => {
+    const pageRows = table.getRowModel().rows
+    const allSelected = pageRows.every(row => selectedMap.value[row.original.id] !== undefined)
+
+    if (allSelected) {
+      for (const row of pageRows) {
+        selectedMap.value[row.original.id] = undefined
+      }
+    }
+    else {
+      for (const row of pageRows) {
+        selectedMap.value[row.original.id] = row.original.displayName
+      }
+    }
+  }
+  const isAllPageRowsSelected = (table: Table<GroupSummary>) => {
+    const pageRows = table.getRowModel().rows
+    return pageRows.length > 0 && pageRows.every(
+      row => selectedMap.value[row.original.id] !== undefined,
+    )
+  }
+  const isSomePageRowsSelected = (table: Table<GroupSummary>) => {
+    const pageRows = table.getRowModel().rows
+    const selectedRows = pageRows.filter(row => selectedMap.value[row.original.id] !== undefined)
+    return selectedRows.length > 0 && selectedRows.length < pageRows.length
+  }
+
+  const getSelected = (): { id: string, displayName: string }[] => {
+    return Object.entries(selectedMap.value)
+      .filter(([_, displayName]) => displayName !== undefined)
+      .map(([id, displayName]) => ({ id, displayName: displayName! }))
+  }
+  const clearSelection = () => {
+    selectedMap.value = {}
   }
 
   /** Column names with translations */
@@ -99,9 +134,8 @@ const useGroupsTable = () => {
     {
       icon: 'i-lucide-trash',
       label: $t('groups.delete-selected-button'),
-      onClick: () => {
-        // TODO: Delete selected groups
-      },
+      color: 'error',
+      onSelect: () => {}, // Placeholder for delete action
     },
   ])
 
@@ -111,15 +145,15 @@ const useGroupsTable = () => {
       id: 'select',
       header: ({ table }) =>
         h(UCheckbox, {
-          'modelValue': table.getIsSomePageRowsSelected()
+          'modelValue': isSomePageRowsSelected(table)
             ? 'indeterminate'
-            : table.getIsAllPageRowsSelected(),
-          'onUpdate:modelValue': value => table.toggleAllPageRowsSelected(!!value),
+            : isAllPageRowsSelected(table),
+          'onUpdate:modelValue': () => toggleAllPageRows(table),
           'aria-label': 'Select all',
         }),
       cell: ({ row }) =>
         h(UCheckbox, {
-          'modelValue': row.getIsSelected(),
+          'modelValue': selectedMap.value[row.original.id] !== undefined,
           'onUpdate:modelValue': () => toggleSelection(undefined, row),
           'aria-label': 'Select row',
         }),
@@ -137,7 +171,7 @@ const useGroupsTable = () => {
         return h(ULink, {
           to: `/groups/${row.original.id}`,
           class: 'font-bold hover:underline inline-flex items-center',
-        }, [
+        }, () => [
           h('span', name),
         ])
       },
@@ -377,6 +411,10 @@ const useGroupsTable = () => {
     selectedCount,
     /** Toggle selection of a group */
     toggleSelection,
+    /** Get selected groups as an array of id and displayName */
+    getSelected,
+    /** Clear all selections */
+    clearSelection,
     /** Dropdown items of actions for the selected groups */
     selectedGroupsActions,
     /** Button properties for creating a new group */

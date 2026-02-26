@@ -39,6 +39,9 @@ class GroupDetail(BaseModel):
     repository: Repository | None = None
     """The repository the group belongs to."""
 
+    type: t.Literal["group", "role"]
+    """The type of the group, either 'group' or 'role'."""
+
     created: datetime | None = None
     """The creation timestamp of the group."""
 
@@ -56,9 +59,6 @@ class GroupDetail(BaseModel):
 
     _services: list[Service] | None = PrivateAttr(None)
     """The services associated with the group."""
-
-    _type: t.Literal["group", "role"] | None = PrivateAttr("group")
-    """The type of the group, either 'group' or 'role'."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""

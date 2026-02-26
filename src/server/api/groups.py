@@ -23,6 +23,7 @@ from server.exc import (
 from server.services import groups
 from server.services.filter_options import search_groups_options
 from server.services.utils import (
+    detect_affiliations,
     filter_permitted_group_ids,
     is_current_user_system_admin,
 )
@@ -72,7 +73,7 @@ def post(
     """Create group endpoint.
 
     Args:
-        body(GroupDetail): Group information
+        body (GroupDetail): Group information to create.
 
     Returns:
         - If succeeded in creating group, group information
@@ -106,7 +107,7 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
     """Get information of group endpoint.
 
     Args:
-        group_id(str): Group id
+        group_id (str): Group id to get.
 
     Returns:
         - If succeeded in getting group information,
@@ -132,8 +133,8 @@ def id_put(group_id: str, body: GroupDetail) -> tuple[GroupDetail | ErrorRespons
     """Update group information endpoint.
 
     Args:
-        group_id(str): Group id
-        body(GroupDetail): Group information
+        group_id (str): Group id to update.
+        body (GroupDetail): Group information to update.
 
     Returns:
         - If succeeded in updating group informaion,
@@ -166,11 +167,14 @@ def id_put(group_id: str, body: GroupDetail) -> tuple[GroupDetail | ErrorRespons
 def id_patch(
     group_id: str, body: GroupPatchRequest
 ) -> tuple[GroupDetail | ErrorResponse, int]:
-    """Update group member endpoint.
+    """Update group endpoint.
+
+    It supports adding and removing group members,
+    but does not support updating other group information.
 
     Args:
-        group_id(str): Group id
-        body(GroupPatchRequest): Group member information
+        group_id(str): Group id to update.
+        body(GroupPatchRequest): Group member information to update.
 
     Returns:
         - If succeeded in updating group member,
@@ -185,7 +189,7 @@ def id_patch(
     adding = set()
     removing = set()
     for operation in body.operations:
-        if operation.path != "member":
+        if operation.path != "members":
             error = f"Unsupported attribute to update: {operation.path}"
             return ErrorResponse(code="", message=error), 400
 
@@ -212,17 +216,26 @@ def id_delete(group_id: str) -> tuple[t.Literal[""], int] | tuple[ErrorResponse,
     """Single group deletion endpoint.
 
     Args:
-        group_id(str): Group id
+        group_id(str): Group id to delete.
 
     Returns:
-        - If succeeded in delete group ,
-          status code 204
+        - If succeeded in delete group, status code 204
+        - If group is role-type group, status code 400
         - If logged-in user does not have permission, status code 403
+        - If group not found, status code 404
     """
+    rolegroups, _ = detect_affiliations(list(group_id))
+    if rolegroups:
+        return ErrorResponse(code="", message="Cannot delete role-type group."), 400
+
     if not has_permission(group_id):
         return ErrorResponse(code="", message=""), 403
 
-    groups.delete_by_id(group_id)
+    try:
+        groups.delete_by_id(group_id)
+    except ResourceNotFound as ex:
+        return ErrorResponse(code="", message=str(ex)), 404
+
     return "", 204
 
 
@@ -236,21 +249,28 @@ def delete_post(
     """The multiple group deletion endpoint.
 
     Args:
-        body(DeleteGroupsRequest): Group id for delte
+        body (DeleteGroupsRequest): Group ids to delete.
 
     Returns:
-        - If succeeded in delete group ,
-          status code 204
+        - If any of groups failed to delete,
+            status code 202 and error message with failed group list
+        - If succeeded in delete group, status code 204
+        - If any of the groups is role-type group, status code 400
+          (In this case, no group will be deleted.)
         - If logged-in user does not have permission, status code 403
     """
-    group_ids = body.group_ids
+    rolegroups, _ = detect_affiliations(list(group_ids := body.group_ids))
+
+    if rolegroups:
+        return ErrorResponse(code="", message="Cannot delete role-type group."), 400
+
     if not has_permission(*group_ids):
         return ErrorResponse(code="", message=""), 403
 
     group_list = groups.delete_multiple(group_ids)
     if group_list:
         message = f"{group_list} is failed"
-        return ErrorResponse(code="", message=message), 500
+        return ErrorResponse(code="", message=message), 202
     return "", 204
 
 
@@ -282,4 +302,4 @@ def has_permission(*group_id: str) -> bool:
     if is_current_user_system_admin():
         return True
 
-    return bool(filter_permitted_group_ids(*group_id))
+    return filter_permitted_group_ids(*group_id) == set(group_id)

@@ -106,6 +106,7 @@
     "forbidden": {
       "group-access": "You do not have permission to access this group.",
       "group-create": "You do not have permission to create groups in the selected repository.",
+      "group-delete": "You do not have permission to delete this group.",
       "group-edit": "You do not have permission to change information for this group.",
       "repository-access": "You do not have permission to access this repository.",
       "repository-create": "You do not have permission to create a repository.",
@@ -156,11 +157,13 @@
     },
     "repository": "@:repositories.title",
     "repository-description": "Select repository to create group",
+    "type-role": "Role type Group",
     "validation": {
       "displayName": {
         "required": "Display name is required field."
       },
       "groupId": {
+        "invalid-format": "Group IDs must consist of half-width alphanumeric characters and symbols (.-_).",
         "max-length": "Group ID must be less than or equal to {max} characters.",
         "required": "Group ID is a required field."
       },
@@ -201,7 +204,8 @@
         "public": "Public Status",
         "users-count": "Users"
       },
-      "search-placeholder": "Seach..."
+      "search-placeholder": "Seach...",
+      "title": "Groups List"
     },
     "title": "Groups"
   },
@@ -278,6 +282,22 @@
     "management": "Management",
     "other": "Other"
   },
+  "modal": {
+    "delete-group": {
+      "description": "Once a group is deleted, it cannot be restored.",
+      "title": "Are you sure to delete this group?"
+    },
+    "delete-groups": {
+      "description": "Once groups are deleted, they cannot be restored.",
+      "title": "Are you sure to delete these groups?"
+    },
+    "delete-repository": {
+      "confirmation": "To confirm, type \"{name}\" in the box below.",
+      "description": "Once the SP connector is deleted, it cannot be restored.",
+      "title": "Are you sure to delete the SP connector for this repository?\n",
+      "warning": "This action also deletes any groups created in the repository."
+    }
+  },
   "repositories": {
     "actions": {
       "copy-sp-connector-id": "Copy SP Connecter ID to clipboard\t"
@@ -325,7 +345,7 @@
     "sp-connector-description": "Identifier of the SP connector associated with the repository",
     "suspended": "Operating condition",
     "suspended-active": "Active",
-    "suspended-description": "Grant the system administrator role to the user. This requires that the user does not belong to any repository.",
+    "suspended-description": "SP connector operating status.",
     "suspended-inactive": "Suspended",
     "validation": {
       "entityIds": {
@@ -425,8 +445,14 @@
       }
     },
     "success": {
+      "copy-entity-id": {
+        "description": "EntityID has been copied to the clipboard."
+      },
       "copy-group-id": {
         "description": "The group ID has been copied to the clipboard."
+      },
+      "copy-service-url": {
+        "description": "The repository URL has been copied to the clipboard."
       },
       "copy-sp-connector-id": {
         "description": "The selected repository's URL has been copied to the clipboard."
@@ -440,17 +466,26 @@
       "copy-user-id": {
         "description": "The user ID has been copied to the clipboard."
       },
-      "creation": {
+      "created": {
         "title": "Create successful"
+      },
+      "deleted": {
+        "title": "Delete successful"
       },
       "group-created": {
         "description": "Successfully created group."
+      },
+      "group-deleted": {
+        "description": "Successfully deleted group."
       },
       "group-updated": {
         "description": "Successfully updated group information."
       },
       "repository-created": {
         "description": "Successfully created SP connector for repository."
+      },
+      "repository-deleted": {
+        "description": "Successfully deleted SP connector for repository."
       },
       "repository-updated": {
         "description": "Successfully updated repository information."

@@ -27,6 +27,7 @@ const onSubmit = async (data: GroupCreateForm) => {
           case 403: {
             showError({
               status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.group-create'),
             })
             break
@@ -49,7 +50,7 @@ const onSubmit = async (data: GroupCreateForm) => {
     })
 
     toast.add({
-      title: $t('toast.success.creation.title'),
+      title: $t('toast.success.created.title'),
       description: $t('toast.success.group-created.description'),
       color: 'success',
       icon: 'i-lucide-circle-check',

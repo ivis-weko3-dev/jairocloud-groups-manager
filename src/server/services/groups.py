@@ -34,8 +34,8 @@ from server.exc import (
 )
 from server.services.utils import validate_group_to_map_group
 
+from . import users
 from .token import get_access_token, get_client_secret
-from .users import get_system_admins
 from .utils import (
     GroupsCriteria,
     build_patch_operations,
@@ -232,7 +232,7 @@ def create(group: GroupDetail) -> GroupDetail:
         InvalidFormError: If failed to validate group form data for creation.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
-    admins = get_system_admins()
+    admins = users.get_system_admins()
 
     try:
         map_group = prepare_group(group, administrators=admins)
@@ -559,7 +559,7 @@ def update_member(group_id: str, add: set[str], remove: set[str]) -> GroupDetail
         user_list: set[str] = {
             u.value for u in (target.members or []) if u.type == "User"
         }
-        system_admins = get_system_admins()
+        system_admins = users.get_system_admins()
         operations = build_update_member_operations(
             add=add, remove=remove, user_list=user_list, system_admins=system_admins
         )

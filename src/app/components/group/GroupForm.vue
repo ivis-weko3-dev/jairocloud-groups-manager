@@ -54,7 +54,10 @@ const {
 })
 setupRepoScroll(repositorySelect)
 
-const maxIdLength = computed(() => getMaxIdLength(state.value.repository.value || ''),
+const maxIdLength = computed(() =>
+  stateAsCreate.value.repository.value
+    ? getMaxIdLength(state.value.repository.value || '')
+    : 0,
 )
 
 const form = useTemplateRef('form')
@@ -91,7 +94,7 @@ const onCancel = () => {
         v-if="mode === 'new'"
         ref="repositorySelect"
         v-model="state.repository as { label: string, value: string }"
-        :search-term="repoSearchTerm" size="xl"
+        v-model:search-term="repoSearchTerm" size="xl"
         :placeholder="$t('group.placeholder.repository')"
         :items="repositoryNames" :loading="repoSearchStatus === 'pending'" ignore-filter
         :ui="{ base: 'w-full' }" :disabled="mode !== 'new'"
@@ -125,10 +128,16 @@ const onCancel = () => {
           {{ stateAsCreate.userDefinedId.length }} / {{ maxIdLength }}
         </template>
       </UInput>
+
       <div
         v-else
         class="f-ful mt-1 px-3 py-2 text-base"
       >
+        <UBadge
+          v-if="stateAsEdit.type === 'role'"
+          :label="$t('group.type-role')" color="warning" variant="outline"
+          :ui="{ base: 'mr-2' }"
+        />
         {{ stateAsEdit.id || '-' }}
         <UButton
           icon="i-lucide-copy" variant="ghost" color="neutral"

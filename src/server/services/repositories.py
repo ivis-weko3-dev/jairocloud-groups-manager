@@ -452,19 +452,30 @@ def update_put(repository: RepositoryDetail) -> RepositoryDetail:  # noqa: C901
     return RepositoryDetail.from_map_service(result)
 
 
-def delete_by_id(repository_id: str) -> None:
+def delete_by_id(repository_id: str, service_name: str) -> None:  # noqa: C901
     """Delete a Repository resource by its ID.
 
     Args:
         repository_id (str): ID of the Repository resource to delete.
+        service_name (str):
+            Name of the service associated with the Repository resource to confirm.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
         ResourceNotFound: If the Repository resource does not exist.
+        InvalidFormError: If the service name to confirm does not match.
         ResourceInvalid: If the Repository resource cannot be deleted.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    if not (repository := get_by_id(repository_id)):
+        error = f"Repository '{repository_id}' Not Found"
+        raise ResourceNotFound(error)
+
+    if repository.service_name != service_name:
+        error = "Service name does not match the repository's service."
+        raise InvalidFormError(error)
+
     service_id = resolve_service_id(repository_id=repository_id)
     try:
         access_token = get_access_token()

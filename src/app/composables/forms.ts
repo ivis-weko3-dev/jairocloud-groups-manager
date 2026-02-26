@@ -153,6 +153,10 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     serviceUrl: z.string()
       .min(1, $t('repository.validation.serviceUrl.required'))
       .max(maxUrlLength, $t('repository.validation.serviceUrl.max-length', { max: maxUrlLength }))
+      .regex(
+        /^(?!-)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/,
+        $t('repository.validation.serviceUrl.invalid'),
+      )
       .transform(value => `https://${value}`)
       .pipe(z.string().url($t('repository.validation.serviceUrl.invalid'))),
     entityIds: z.array(z.string().min(1, $t('repository.validation.entityIds.required')))
@@ -161,12 +165,9 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   }))
 
   const updateSchema = computed(() => z.object({
-    id: z.string().min(1, $t('repository.validation.id.required')),
+    id: z.string(),
     serviceName: z.string().min(1, $t('repository.validation.serviceName.required')),
-    serviceUrl: z.string()
-      .min(1, $t('repository.validation.serviceUrl.required'))
-      .transform(value => `https://${value}`)
-      .pipe(z.string().url($t('repository.validation.serviceUrl.invalid'))),
+    serviceUrl: z.string(),
     entityIds: z.array(z.string().min(1, $t('repository.validation.entityIds.required')))
       .nonempty($t('repository.validation.entityIds.at-least-one')),
     active: z.boolean(),
@@ -199,6 +200,7 @@ const useGroupForm = () => {
     displayName: '',
     description: '',
     repository: { id: '', serviceName: '' },
+    type: 'group',
     public: false,
     memberListVisibility: 'Private',
     usersCount: 0,
@@ -277,7 +279,9 @@ const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const getMaxIdLength = (repositoryId: string) => maxIdLength - repositoryId.length
 
   const createSchema = computed(() => z.object({
-    userDefinedId: z.string().min(1, $t('group.validation.groupId.required')),
+    userDefinedId: z.string()
+      .min(1, $t('group.validation.groupId.required'))
+      .regex(/^[a-zA-Z0-9._-]+$/, $t('group.validation.groupId.invalid-format')),
     displayName: z.string().min(1, $t('group.validation.displayName.required')),
     description: z.string().optional(),
     repository: z.object({

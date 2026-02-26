@@ -94,7 +94,6 @@ class MemberUser(BaseModel):
             ...,
             # NOTE: not using `alias` because it changes the constructor arguments.
             validation_alias="$ref",
-            exclude=True,
         ),
     ] = None
     """URI of the corresponding User resource. Alias for '$ref'."""
@@ -124,7 +123,6 @@ class MemberGroup(BaseModel):
             ...,
             # NOTE: not using `alias` because it changes the constructor arguments.
             validation_alias="$ref",
-            exclude=True,
         ),
     ] = None
     """URI of the corresponding Group resource. Alias for '$ref'."""
@@ -151,7 +149,6 @@ class Administrator(BaseModel):
             ...,
             # NOTE: not using `alias` because it changes the constructor arguments.
             validation_alias="$ref",
-            exclude=True,
         ),
     ] = None
     """URI of the corresponding User resource. Alias for '$ref'."""
@@ -175,7 +172,6 @@ class Service(BaseModel):
             ...,
             # NOTE: not using `alias` because it changes the constructor arguments.
             validation_alias="$ref",
-            exclude=True,
         ),
     ] = None
     """URI of the corresponding Service resource. Alias for '$ref'."""

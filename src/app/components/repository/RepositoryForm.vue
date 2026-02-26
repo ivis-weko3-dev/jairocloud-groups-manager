@@ -14,6 +14,7 @@ const emit = defineEmits<{
   'cancel': []
 }>()
 
+const { currentUser } = useAuth()
 const { schema, maxUrlLength } = useRepositorySchema(() => properties.mode)
 const { handleFormError } = useFormError()
 
@@ -22,6 +23,27 @@ const state = computed({
   set: value => emit('update:modelValue', value),
 })
 const stateAsEdit = computed(() => properties.modelValue as RepositoryForm)
+
+const toast = useToast()
+const { copy } = useClipboard()
+const copyUrl = (url: string) => {
+  copy(url)
+  toast.add({
+    title: $t('toast.success.title'),
+    description: $t('toast.success.copy-service-url.description'),
+    color: 'success',
+    icon: 'i-lucide-circle-check',
+  })
+}
+const copyEntityId = (id: string) => {
+  copy(id)
+  toast.add({
+    title: $t('toast.success.title'),
+    description: $t('toast.success.copy-entity-id.description'),
+    color: 'success',
+    icon: 'i-lucide-circle-check',
+  })
+}
 
 const addEntityId = () => {
   state.value.entityIds.push('')
@@ -83,6 +105,7 @@ const onCancel = () => {
         v-if="mode === 'new'"
         v-model="state.serviceUrl" size="xl"
         :placeholder="$t('repository.placeholders.service-url')"
+        :maxlength="maxUrlLength"
         :ui="{ root: 'w-full', base: 'pl-17' }"
       >
         <template #leading>
@@ -98,6 +121,12 @@ const onCancel = () => {
         class="f-ful mt-1 px-3 py-2 text-base"
       >
         https://{{ state.serviceUrl || '-' }}
+        <UButton
+          v-if="state.serviceUrl"
+          icon="i-lucide-copy" variant="ghost" color="neutral"
+          :ui="{ base: 'p-0 ml-2', leadingIcon: 'size-3' }"
+          @click="copyUrl('https://' + state.serviceUrl)"
+        />
       </div>
     </UFormField>
 
@@ -141,6 +170,11 @@ const onCancel = () => {
           class="f-ful mt-1 px-3 py-2 text-base"
         >
           {{ entityId }}
+          <UButton
+            icon="i-lucide-copy" variant="ghost" color="neutral"
+            :ui="{ base: 'p-0 ml-2', leadingIcon: 'size-3' }"
+            @click="copyEntityId(entityId)"
+          />
         </div>
       </template>
     </UFormField>
@@ -161,7 +195,7 @@ const onCancel = () => {
     </UFormField>
 
     <UFormField
-      v-if="mode !== 'new'"
+      v-if="mode !== 'new' && currentUser?.isSystemAdmin"
       name="active"
       :label="$t('repository.suspended')"
       :description="$t('repository.suspended-description')"

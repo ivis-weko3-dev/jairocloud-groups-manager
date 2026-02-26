@@ -17,9 +17,10 @@ interface GroupSummary {
 
 /** Group detailed information */
 interface GroupDetail extends GroupSummary {
+  type: 'group' | 'role'
   userDefinedId?: string
-  description?: string
-  repository?: { id: string, serviceName: string }
+  description: string
+  repository: { id: string, serviceName: string }
   created?: string
 }
 
@@ -28,7 +29,7 @@ type GroupForm = Omit<Required<GroupDetail>, 'repository'> & {
 }
 
 type GroupCreateForm = Omit<GroupForm, 'id' | 'created' | 'usersCount'>
-type GroupCreatePayload = Omit<GroupCreateForm, 'repository'> & {
+type GroupCreatePayload = Omit<GroupCreateForm, 'repository' | 'type'> & {
   repository: { id: string }
 }
 
