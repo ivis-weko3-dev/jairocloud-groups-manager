@@ -106,10 +106,10 @@
       "copy-id": "Copy ID to clipboard"
     },
     "button": {
-      "selected-groups-actions": "Actions for selected users"
     },
     "delete-selected-button": "Delete groups",
     "description": "You can manage groups in your repository.",
+    "selected-groups-actions": "Selected groups",
     "table": {
       "cell": {
         "public": {

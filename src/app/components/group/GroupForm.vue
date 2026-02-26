@@ -102,7 +102,7 @@ const onCancel = () => {
       />
       <div
         v-else
-        class="f-ful mt-1 px-3 py-2 text-base"
+        class="mt-1 px-3 py-2 text-base"
       >
         {{ state.repository.label || '-' }}
       </div>
@@ -131,7 +131,7 @@ const onCancel = () => {
 
       <div
         v-else
-        class="f-ful mt-1 px-3 py-2 text-base"
+        class="mt-1 px-3 py-2 text-base"
       >
         <UBadge
           v-if="stateAsEdit.type === 'role'"
@@ -176,7 +176,7 @@ const onCancel = () => {
       v-if="mode !== 'new'"
       :label="$t('user.created')" :ui="{ wrapper: 'mb-2' }"
     >
-      <div class="f-ful mt-1 px-3 py-2 text-base">
+      <div class="mt-1 px-3 py-2 text-base">
         {{ stateAsEdit.created || '-' }}
       </div>
     </UFormField>

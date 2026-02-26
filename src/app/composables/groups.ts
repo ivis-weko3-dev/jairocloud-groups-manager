@@ -87,6 +87,10 @@ const useGroupsTable = () => {
     selectedMap.value = {}
   }
 
+  const modals = reactive({
+    delete: false,
+  })
+
   /** Column names with translations */
   const columnNames = computed<Record<keyof GroupSummary, string>>(() => ({
     id: '#',
@@ -132,10 +136,15 @@ const useGroupsTable = () => {
   /** Actions for selected groups */
   const selectedGroupsActions = computed<[DropdownMenuItem, ...DropdownMenuItem[]]>(() => [
     {
+      type: 'label' as const,
+      label: $t('groups.selected-groups-actions'),
+    },
+    {
       icon: 'i-lucide-trash',
       label: $t('groups.delete-selected-button'),
       color: 'error',
-      onSelect: () => {}, // Placeholder for delete action
+      onSelect: () => modals.delete = true,
+      disabled: selectedCount.value === 0,
     },
   ])
 
@@ -429,6 +438,8 @@ const useGroupsTable = () => {
     makeAttributeFilters,
     /** Make indicator for the page information */
     makePageInfo,
+    /** Reactive object for the state of modals */
+    modals,
   }
 }
 

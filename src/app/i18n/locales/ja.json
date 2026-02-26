@@ -92,10 +92,10 @@
       "copy-id": "グループ ID をコピー"
     },
     "button": {
-      "selected-groups-actions": "選択したグループへのアクション"
     },
     "delete-selected-button": "グループを削除",
     "description": "あなたのリポジトリにあるグループを管理できます。",
+    "selected-groups-actions": "選択したグループ",
     "table": {
       "cell": {
         "public": {

@@ -3,7 +3,7 @@ const toast = useToast()
 const {
   query, updateQuery, criteria, creationButtons, emptyActions,
   toggleSelection, selectedCount, getSelected, clearSelection, selectedGroupsActions,
-  columns, columnNames, columnVisibility, makeAttributeFilters, makePageInfo,
+  columns, columnNames, columnVisibility, makeAttributeFilters, makePageInfo, modals,
 } = useGroupsTable()
 
 const { searchTerm, pageNumber, pageSize } = criteria
@@ -53,12 +53,7 @@ const { repositoryFilter, filters: statusFilters } = makeAttributeFilters(filter
 })
 const pageInfo = makePageInfo(searchResult)
 
-const modals = reactive({
-  delete: false,
-})
 const selectedGroups = ref<{ id: string, displayName: string }[]>([])
-selectedGroupsActions.value[0].onSelect = () => modals.delete = true
-
 const onDelete = async () => {
   try {
     await $fetch('/api/groups/delete', {
@@ -113,15 +108,19 @@ const onDelete = async () => {
         :ui="{ base: 'gap-1' }"
       />
     </div>
-
-    <UDropdownMenu :items="selectedGroupsActions" :content="{ align: 'end' }">
-      <UButton
-        :label="$t('groups.button.selected-groups-actions')"
-        color="warning" variant="subtle"
-        :ui="{ base: 'gap-1' }"
-        :disabled="selectedCount === 0"
-      />
-    </UDropdownMenu>
+    <UChip
+      :text="selectedCount"
+      :ui="{
+        base: 'h-4 min-w-4 text-[12px]' + (selectedCount ? ' visible' : ' invisible'),
+      }"
+    >
+      <UDropdownMenu :items="selectedGroupsActions" :content="{ align: 'end' }">
+        <UButton
+          icon="i-lucide-wand" color="neutral" variant="outline"
+          :ui="{ base: 'gap-1' }"
+        />
+      </UDropdownMenu>
+    </UChip>
   </div>
 
   <div class="grid grid-cols-3 gap-4 my-4 h-8">
