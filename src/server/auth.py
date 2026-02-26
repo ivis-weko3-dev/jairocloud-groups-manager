@@ -39,6 +39,8 @@ def is_user_logged_in(current_user: LocalProxy) -> t.TypeGuard[LoginUser]:
 
 def refresh_session() -> None:
     """Extend the TTL of the Redis login state for login users."""
+    if config.SESSION.strategy == "absolute":
+        return
     if not is_user_logged_in(current_user):
         return
 
