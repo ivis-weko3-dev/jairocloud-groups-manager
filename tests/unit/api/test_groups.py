@@ -62,6 +62,7 @@ def test_post_success(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
     expected_status = 201
     url_for_patch = f"https://host/api/groups/{expected_group.id}"
@@ -88,6 +89,7 @@ def test_post_failure_returns_error_response_and_400(app: Flask, gen_group_id, m
         public=True,
         member_list_visibility="Private",
         repository=None,
+        type="group",
     )
     error_detail = "repository id is required"
     expected_status = 400
@@ -110,6 +112,7 @@ def test_post_already_exists_returns_error_response_and_409(app: Flask, gen_grou
         public=True,
         member_list_visibility="Hidden",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
     error_detail = "id already exist"
     expected_status = 409
@@ -133,6 +136,7 @@ def test_post_unexpected_error_returns_exception(app: Flask, gen_group_id, mocke
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
     error_detail = "unexpected error occurred"
 
@@ -156,6 +160,7 @@ def test_id_get_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
     expected_status = 200
 
@@ -177,6 +182,7 @@ def test_id_get_success_group_permission(app: Flask, gen_group_id, mocker: Mocke
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r2", service_name="repo2"),
+        type="group",
     )
     expected_status = 200
 
@@ -199,6 +205,7 @@ def test_id_get_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mocker
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r3", service_name="repo3"),
+        type="group",
     )
     expected_status = 403
 
@@ -251,6 +258,7 @@ def test_id_put_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
     expected_status = 200
 
@@ -273,6 +281,7 @@ def test_id_put_success_group_permission(app: Flask, gen_group_id, mocker: Mocke
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r2", service_name="repo2"),
+        type="group",
     )
     expected_status = 200
     mocker.patch("server.api.groups.has_permission", return_value=True)
@@ -294,6 +303,7 @@ def test_id_put_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mocker
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r3", service_name="repo3"),
+        type="group",
     )
     expected_status = 403
     expected_message = f"Not have permission to edit {group_id}."
@@ -317,6 +327,7 @@ def test_id_put_update_error_returns_409(app: Flask, gen_group_id, mocker: Mocke
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r4", service_name="repo4"),
+        type="group",
     )
     error_detail = "update error"
     expected_status = 409
@@ -340,6 +351,7 @@ def test_id_put_not_found_returns_404(app: Flask, gen_group_id, mocker: MockerFi
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r5", service_name="repo5"),
+        type="group",
     )
     error_detail = "not found"
     expected_status = 404
@@ -363,6 +375,7 @@ def test_id_put_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r6", service_name="repo6"),
+        type="group",
     )
     error_detail = "unexpected error in id_put"
     mocker.patch("server.api.groups.has_permission", return_value=True)
@@ -384,8 +397,9 @@ def test_id_patch_success_admin(app: Flask, gen_group_id, mocker: MockerFixture)
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r1", service_name="repo1"),
+        type="group",
     )
-    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="members", value=["user1"])])
     expected_status = 200
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch("server.services.groups.update_member", return_value=expected_group)
@@ -406,8 +420,9 @@ def test_id_patch_success_group_permission(app: Flask, gen_group_id, mocker: Moc
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r2", service_name="repo2"),
+        type="group",
     )
-    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="remove", path="member", value=["user1"])])
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="remove", path="members", value=["user1"])])
     expected_status = 200
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch("server.services.groups.update_member", return_value=expected_group)
@@ -428,6 +443,7 @@ def test_id_patch_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mock
         public=True,
         member_list_visibility="Public",
         repository=Repository(id="r3", service_name="repo3"),
+        type="group",
     )
     patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
     expected_status = 403
@@ -445,7 +461,7 @@ def test_id_patch_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mock
 def test_id_patch_update_error_returns_409(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     """Tests id_patch returns ErrorResponse and 409 when update error occurs."""
     group_id = gen_group_id("g4")
-    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="members", value=["user1"])])
     error_detail = "patch error"
     expected_status = 409
 
@@ -463,7 +479,7 @@ def test_id_patch_update_error_returns_409(app: Flask, gen_group_id, mocker: Moc
 def test_id_patch_not_found_returns_404(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     """Tests id_patch returns ErrorResponse and 404 when group not found."""
     group_id = gen_group_id("g5")
-    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="members", value=["user1"])])
     error_detail = "not found"
     expected_status = 404
 
@@ -481,7 +497,7 @@ def test_id_patch_not_found_returns_404(app: Flask, gen_group_id, mocker: Mocker
 def test_id_patch_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     """Tests id_patch returns the unexpected error as-is when an unexpected error occurs during group patch."""
     group_id = gen_group_id("g6")
-    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="member", value=["user1"])])
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="members", value=["user1"])])
     error_detail = "unexpected error in id_patch"
 
     mocker.patch("server.api.groups.has_permission", return_value=True)
@@ -542,6 +558,37 @@ def test_id_delete_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixt
     assert str(exc_info.value) == error_detail
 
 
+def test_id_delete_role_type_group_returns_error_and_400(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns ErrorResponse and 400 when group is role-type group."""
+    group_id = gen_group_id("role1")
+    rolegroups = [group_id]
+    error_message = "Cannot delete role-type group."
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.api.groups.detect_affiliations", return_value=(rolegroups, []))
+    original_func = inspect.unwrap(groups_api.id_delete)
+    result, status = original_func(group_id)
+    assert isinstance(result, groups_api.ErrorResponse)
+    assert status == expected_status
+    assert error_message in result.message
+
+
+def test_id_delete_not_found_returns_error_and_404(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests id_delete returns ErrorResponse and 404 when group not found."""
+    group_id = gen_group_id("notfound")
+    rolegroups = []
+    error_message = "not found"
+    expected_status = 404
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.api.groups.detect_affiliations", return_value=(rolegroups, []))
+    mocker.patch("server.services.groups.delete_by_id", side_effect=groups_api.ResourceNotFound(error_message))
+    original_func = inspect.unwrap(groups_api.id_delete)
+    result, status = original_func(group_id)
+    assert isinstance(result, groups_api.ErrorResponse)
+    assert status == expected_status
+    assert error_message in result.message
+
+
 def test_delete_post_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     """Tests delete_post returns None and 204 for system admin (all groups deleted)."""
     group_ids = {gen_group_id("g1"), gen_group_id("g2")}
@@ -563,7 +610,7 @@ def test_delete_post_partial_failure_admin(app: Flask, gen_group_id, mocker: Moc
     body = DeleteGroupsRequest(group_ids=group_ids)
     failed_group = gen_group_id("g2")
     error_message = f"{failed_group} is failed"
-    expected_status = 500
+    expected_status = 202
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch(
         "server.services.groups.delete_multiple", return_value=groups_api.ErrorResponse(code="", message=error_message)
@@ -582,7 +629,7 @@ def test_delete_post_all_failure_admin(app: Flask, gen_group_id, mocker: MockerF
     body = DeleteGroupsRequest(group_ids=group_ids)
     failed_group = gen_group_id("g3")
     error_message = f"{failed_group} is failed"
-    expected_status = 500
+    expected_status = 202
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch(
         "server.services.groups.delete_multiple", return_value=groups_api.ErrorResponse(code="", message=error_message)
@@ -617,7 +664,7 @@ def test_delete_post_partial_failure_group_permission(app: Flask, gen_group_id, 
 
     failed_group = gen_group_id("g8")
     error_message = f"{failed_group} is failed"
-    expected_status = 500
+    expected_status = 202
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch(
         "server.services.groups.delete_multiple", return_value=groups_api.ErrorResponse(code="", message=error_message)
@@ -637,7 +684,7 @@ def test_delete_post_all_failure_group_permission(app: Flask, gen_group_id, mock
 
     failed_group = gen_group_id("g9")
     error_message = f"{failed_group} is failed"
-    expected_status = 500
+    expected_status = 202
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch(
         "server.services.groups.delete_multiple", return_value=groups_api.ErrorResponse(code="", message=error_message)
@@ -648,6 +695,22 @@ def test_delete_post_all_failure_group_permission(app: Flask, gen_group_id, mock
 
     assert isinstance(result, groups_api.ErrorResponse)
     assert status == expected_status
+
+
+def test_delete_post_role_type_group_returns_error_and_400(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    """Tests delete_post returns ErrorResponse and 400 when role-type group exists in request."""
+    group_ids = {gen_group_id("role1"), gen_group_id("role2")}
+    body = DeleteGroupsRequest(group_ids=group_ids)
+    rolegroups = [gen_group_id("role1")]
+    error_message = "Cannot delete role-type group."
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.api.groups.detect_affiliations", return_value=(rolegroups, []))
+    original_func = inspect.unwrap(groups_api.delete_post)
+    result, status = original_func(body)
+    assert isinstance(result, groups_api.ErrorResponse)
+    assert status == expected_status
+    assert error_message in result.message
 
 
 def test_delete_post_partial_permission(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
