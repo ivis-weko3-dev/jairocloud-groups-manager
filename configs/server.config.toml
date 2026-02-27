@@ -169,9 +169,12 @@ db = "jcgroups"
 # Type of caching backend to use. Possible values: "RedisCache" or "RedisSentinelCache"
 cache_type = "RedisCache"
 
+# Socket timeout (in seconds) for Redis connections.
+socket_timeout = 1.0
+
 # Default timeout (in seconds) for cached items.
 # Use in caching mAP API responses.
-default_timeout = 300
+cache_timeout = 300
 
 # Prefix for cache keys used by app-cache and account-store.
 key_prefix = "jcgroups-"
