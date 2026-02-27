@@ -239,18 +239,16 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     """
     admins = get_system_admins()
 
-    role_groups = prepare_role_groups(
-        t.cast("str", repository.id), t.cast("str", repository.service_name), admins
-    )
     try:
-        service = prepare_service(repository, admins)
+        service, repository_id = prepare_service(repository, admins)
+        role_groups = prepare_role_groups(
+            repository_id, t.cast("str", repository.service_name), admins
+        )
 
         access_token = get_access_token()
         client_secret = get_client_secret()
-        role_groups = [
+        for group in role_groups:
             groups.post(group, access_token=access_token, client_secret=client_secret)
-            for group in role_groups
-        ]
 
         result: MapService | MapError = services.post(
             service,

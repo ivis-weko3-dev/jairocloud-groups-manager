@@ -20,6 +20,7 @@ from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.bulk_request import BulkOperation
 from server.entities.group_detail import GroupDetail
 from server.entities.map_error import MapError
+from server.entities.map_group import MapGroup, MemberUser
 from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import GroupSummary
 from server.exc import (
@@ -47,7 +48,6 @@ from .utils import (
 
 if t.TYPE_CHECKING:
     from server.clients.groups import GroupsSearchResponse
-    from server.entities.map_group import MapGroup
     from server.entities.patch_request import PatchOperation
 
 
@@ -152,16 +152,19 @@ def search(
 
 
 @t.overload
-def get_by_id(group_id: str) -> GroupDetail | None: ...
+def get_by_id(group_id: str, *, more_detail: bool = False) -> GroupDetail | None: ...
 @t.overload
 def get_by_id(group_id: str, *, raw: t.Literal[True]) -> MapGroup | None: ...
 
 
-def get_by_id(group_id: str, *, raw: bool = False) -> GroupDetail | MapGroup | None:
+def get_by_id(
+    group_id: str, *, raw: bool = False, more_detail: bool = False
+) -> GroupDetail | MapGroup | None:
     """Get group from mAP Core API by group_id.
 
     Args:
         group_id (str): ID of the Group resource.
+        more_detail (bool): If True, include more detail sach as repository name.
         raw (bool): If True, return raw MapGroup object. Defaults to False.
 
     Returns:
@@ -212,7 +215,7 @@ def get_by_id(group_id: str, *, raw: bool = False) -> GroupDetail | MapGroup | N
     if raw:
         return result
 
-    return GroupDetail.from_map_group(result)
+    return GroupDetail.from_map_group(result, more_detail=more_detail)
 
 
 def create(group: GroupDetail) -> GroupDetail:
@@ -302,7 +305,7 @@ def update(group: GroupDetail) -> GroupDetail:
         group_id = t.cast("str", group.id)
         current: GroupDetail | None = get_by_id(group_id)
         if current is None:
-            error = f"'Group {group_id}' Not Found"
+            error = f"Group '{group_id}' Not Found"
             raise ResourceNotFound(error)
 
         operations: list[PatchOperation[MapGroup]] = build_patch_operations(

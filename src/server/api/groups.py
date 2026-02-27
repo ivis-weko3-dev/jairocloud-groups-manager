@@ -118,7 +118,7 @@ def id_get(group_id: str) -> tuple[GroupDetail | ErrorResponse, int]:
     if not has_permission(group_id):
         return ErrorResponse(code="", message=""), 403
 
-    result = groups.get_by_id(group_id)
+    result = groups.get_by_id(group_id, more_detail=True)
 
     if result is None:
         return ErrorResponse(code="", message=f"'{group_id}' Not Found"), 404

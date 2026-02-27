@@ -45,7 +45,7 @@ from .search_queries import make_criteria_object
 
 def prepare_service(
     repository: RepositoryDetail, administrators: set[str]
-) -> MapService:
+) -> tuple[MapService, str]:
     """Prepare MapService instance from RepositoryDetail to create.
 
     Args:
@@ -53,7 +53,7 @@ def prepare_service(
         administrators (set[str]): The set of administrator user IDs.
 
     Returns:
-        MapService: The converted MapService instance.
+        tuple: Converted MapService instance and repository ID.
 
     Raises:
         SystemAdminNotFound: If no administrators are provided.
@@ -74,7 +74,7 @@ def prepare_service(
         )
         for role in USER_ROLES
     ]
-    return service
+    return service, repository_id
 
 
 def prepare_role_groups(

@@ -39,7 +39,7 @@ class GroupDetail(BaseModel):
     repository: Repository | None = None
     """The repository the group belongs to."""
 
-    type: t.Literal["group", "role"]
+    type: t.Literal["group", "role"] | None = None
     """The type of the group, either 'group' or 'role'."""
 
     created: datetime | None = None
@@ -64,11 +64,14 @@ class GroupDetail(BaseModel):
     """Configure to use camelCase aliasing and forbid extra fields."""
 
     @classmethod
-    def from_map_group(cls, group: MapGroup) -> GroupDetail:
+    def from_map_group(
+        cls, group: MapGroup, *, more_detail: bool = False
+    ) -> GroupDetail:
         """Create a GroupDetail instance from a MapGroup instance.
 
         Args:
             group (MapGroup): The MapGroup instance to convert.
+            more_detail (bool): Whether to include more detailed information.
 
         Returns:
             GroupDetail: The created GroupDetail instance.
@@ -77,7 +80,7 @@ class GroupDetail(BaseModel):
             make_group_detail,
         )
 
-        return make_group_detail(group, more_detail=True)
+        return make_group_detail(group, more_detail=more_detail)
 
     def to_map_group(self) -> MapGroup:
         """Convert this GroupDetail instance to a MapGroup instance.
