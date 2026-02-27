@@ -23,12 +23,12 @@ interface UserSummary {
   id: string
   userName: string
   role?: UserRole
-  emails?: [string, ...string[]]
+  emails?: string[]
   eppns?: [string, ...string[]]
   lastModified?: string
 }
 
-const PREFERRED_LANGUAGE = ['', 'en', 'ja'] as const
+const PREFERRED_LANGUAGE = ['en', 'ja'] as const
 type PreferredLanguage = (typeof PREFERRED_LANGUAGE)[number]
 
 /** Repository affiliated with user including role */
@@ -49,7 +49,7 @@ interface UserDetail extends Omit<UserSummary, 'role'> {
 
 type UserForm = Omit<Required<UserDetail>, 'repositoryRoles' | 'groups'> & {
   repositoryRoles: { value?: string, label?: string, userRole?: UserRole }[]
-  groups: { id: string, label: string }[]
+  groups: { value?: string, label?: string }[]
 }
 
 type UserCreateForm = Omit<UserForm, 'id' | 'created' | 'lastModified'>

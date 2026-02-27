@@ -8,7 +8,7 @@ import { camelCase } from 'scule'
 import { UButton, UCheckbox, UDropdownMenu, UIcon, ULink, UTooltip } from '#components'
 
 import type { CalendarDate } from '@internationalized/date'
-import type { Row } from '@tanstack/table-core'
+import type { Row, Table } from '@tanstack/table-core'
 import type { ButtonProps, DropdownMenuItem, TableColumn, TableRow } from '@nuxt/ui'
 
 const useUsersTable = () => {
@@ -49,18 +49,58 @@ const useUsersTable = () => {
     return JSON.stringify(filters)
   })
 
-  const selectedMap = useState<Record<string, boolean>>(
+  const selectedMap = useState<Record<string, string | undefined>>(
     `selection-users:${searchIdentityKey.value}`, () => ({}),
   )
 
   /** Number of selected users */
   const selectedCount = computed(() => {
-    return Object.values(selectedMap.value).filter(value => value === true).length
+    return Object.values(selectedMap.value).filter(value => value !== undefined).length
   })
   const toggleSelection = (event: Event | undefined, row: Row<UserSummary>) => {
-    selectedMap.value[row.id] = !selectedMap.value[row.id]
-    row.toggleSelected(selectedMap.value[row.id])
+    selectedMap.value[row.original.id]
+      = selectedMap.value[row.original.id] ? undefined : row.original.userName
   }
+  const toggleAllPageRows = (table: Table<UserSummary>) => {
+    const pageRows = table.getRowModel().rows
+    const allSelected = pageRows.every(row => selectedMap.value[row.original.id] !== undefined)
+
+    if (allSelected) {
+      for (const row of pageRows) {
+        selectedMap.value[row.original.id] = undefined
+      }
+    }
+    else {
+      for (const row of pageRows) {
+        selectedMap.value[row.original.id] = row.original.userName
+      }
+    }
+  }
+  const isAllPageRowsSelected = (table: Table<UserSummary>) => {
+    const pageRows = table.getRowModel().rows
+    return pageRows.length > 0 && pageRows.every(
+      row => selectedMap.value[row.original.id] !== undefined,
+    )
+  }
+  const isSomePageRowsSelected = (table: Table<UserSummary>) => {
+    const pageRows = table.getRowModel().rows
+    const selectedRows = pageRows.filter(row => selectedMap.value[row.original.id] !== undefined)
+    return selectedRows.length > 0 && selectedRows.length < pageRows.length
+  }
+
+  const getSelected = (): { id: string, userName: string }[] => {
+    return Object.entries(selectedMap.value)
+      .filter(([_, userName]) => userName !== undefined)
+      .map(([id, userName]) => ({ id, userName: userName! }))
+  }
+  const clearSelection = () => {
+    selectedMap.value = {}
+  }
+
+  const modals = reactive({
+    add: false,
+    remove: false,
+  })
 
   /** Column names with translations */
   const columnNames = computed<Record<keyof UserSummary, string>>(() => ({
@@ -104,30 +144,40 @@ const useUsersTable = () => {
   /** Actions for selected users */
   const selectedUsersActions = computed<[DropdownMenuItem, ...DropdownMenuItem[]]>(() => [
     {
+      type: 'label' as const,
+      label: $t('users.all-users-actions'),
+    },
+    {
       icon: 'i-lucide-download',
-      label: $t('users.button.selected-users-export'),
-      onSelect() {
-      // TODO: Export selected users
-      },
+      label: $t('users.button.all-users-download'),
+      onSelect() {}, // Placeholder for download action
     },
     {
       type: 'separator' as const,
     },
     {
+      type: 'label' as const,
+      label: $t('users.selected-users-actions'),
+    },
+    {
+      icon: 'i-lucide-download',
+      label: $t('users.button.selected-users-download'),
+      onSelect() {}, // Placeholder for download action
+      disabled: selectedCount.value === 0,
+    },
+    {
       icon: 'i-lucide-user-plus',
       label: $t('users.button.selected-users-add-to-group'),
       color: 'neutral',
-      onSelect() {
-      // TODO: Open add users modal
-      },
+      onSelect: () => modals.add = true,
+      disabled: selectedCount.value === 0,
     },
     {
       icon: 'i-lucide-user-minus',
       label: $t('users.button.selected-users-remove-from-group'),
       color: 'error',
-      onSelect() {
-      // TODO: Open remove users modal
-      },
+      onSelect: () => modals.remove = true,
+      disabled: selectedCount.value === 0,
     },
   ])
 
@@ -144,15 +194,15 @@ const useUsersTable = () => {
       id: 'select',
       header: ({ table }) =>
         h(UCheckbox, {
-          'modelValue': table.getIsSomePageRowsSelected()
+          'modelValue': isSomePageRowsSelected(table)
             ? 'indeterminate'
-            : table.getIsAllPageRowsSelected(),
-          'onUpdate:modelValue': value => table.toggleAllPageRowsSelected(!!value),
+            : isAllPageRowsSelected(table),
+          'onUpdate:modelValue': () => toggleAllPageRows(table),
           'aria-label': 'Select all',
         }),
       cell: ({ row }) =>
         h(UCheckbox, {
-          'modelValue': row.getIsSelected(),
+          'modelValue': selectedMap.value[row.original.id] !== undefined,
           'onUpdate:modelValue': () => toggleSelection(undefined, row),
           'aria-label': 'Select row',
         }),
@@ -496,6 +546,10 @@ const useUsersTable = () => {
     selectedCount,
     /** Toggle selection of a user */
     toggleSelection,
+    /** Get selected users as an array of objects with id and userName */
+    getSelected,
+    /** Clear all selections */
+    clearSelection,
     /** Dropdown items of actions for the selected users */
     selectedUsersActions,
     /** Column definitions for the table with translations */
@@ -517,6 +571,8 @@ const useUsersTable = () => {
     },
     /** Make indicator for the page information */
     makePageInfo,
+    /** Reactive object for the state of modals */
+    modals,
   }
 }
 

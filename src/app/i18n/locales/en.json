@@ -5,6 +5,7 @@
     "create-new": "Create new",
     "delete": "Delete",
     "reload": "Reload",
+    "remove": "Remove",
     "save": "Save",
     "update": "Update",
     "upload": "Upload"
@@ -32,6 +33,7 @@
       "group-create": "You do not have permission to create groups in the selected repository.",
       "group-delete": "You do not have permission to delete this group.",
       "group-edit": "You do not have permission to change information for this group.",
+      "group-member-edit": "You do not have permission to change the members of this group.",
       "repository-access": "You do not have permission to access this repository.",
       "repository-create": "You do not have permission to create a repository.",
       "repository-edit": "You do not have permission to modify information in this repository.",
@@ -193,6 +195,10 @@
     "other": "Other"
   },
   "modal": {
+    "add-users-to-group": {
+      "selection": "Please select the group to add to.",
+      "title": "Add the following users to the group."
+    },
     "delete-group": {
       "description": "Once a group is deleted, it cannot be restored.",
       "title": "Are you sure to delete this group?"
@@ -206,6 +212,10 @@
       "description": "Once the SP connector is deleted, it cannot be restored.",
       "title": "Are you sure to delete the SP connector for this repository?\n",
       "warning": "This action also deletes any groups created in the repository."
+    },
+    "remove-users-from-group": {
+      "selection": "Please select the group to remove.",
+      "title": "Remove the following users from the group."
     }
   },
   "repositories": {
@@ -358,6 +368,9 @@
       "copy-entity-id": {
         "description": "EntityID has been copied to the clipboard."
       },
+      "copy-field": {
+        "description": "{field} has been copied to the clipboard."
+      },
       "copy-group-id": {
         "description": "The group ID has been copied to the clipboard."
       },
@@ -421,6 +434,7 @@
     "affiliated-repositories-description": "Specify the repository and role to assign to the user.",
     "created": "Created",
     "details-affiliation-authority-section": "Affiliation / Authority",
+    "details-affiliation-section": "Affiliation",
     "details-basic-section": "Basic Information",
     "details-title": "User Details",
     "emails": "Email",
@@ -462,6 +476,9 @@
         "at-least-one": "At least one ePPN is required.",
         "required": "ePPN is a required field"
       },
+      "groups": {
+        "must-be-empty-for-system-admin": "System administrators must not belong to any groups."
+      },
       "preferredLanguage": {
         "invalid": "Select the preferred language from the dropdown list."
       },
@@ -481,10 +498,11 @@
     }
   },
   "users": {
+    "all-users-actions": "All users",
     "button": {
-      "selected-users-actions": "Actions for selected users",
+      "all-users-download": "Download all users",
       "selected-users-add-to-group": "Add to group",
-      "selected-users-export": "Export users",
+      "selected-users-download": "Download users",
       "selected-users-remove-from-group": "Remove from group"
     },
     "description": "You can manage users for your repositories.",
@@ -497,6 +515,7 @@
       "repository-admin": "Repository Administrator",
       "system-admin": "System Administrator"
     },
+    "selected-users-actions": "Selected users",
     "table": {
       "column": {
         "emails": "Email",

@@ -143,7 +143,10 @@ base_url = "https://sptest.cg.gakunin.jp"
 timeout = 20
 
 # Update strategy for mAP Core service. Possible values: "put" or "patch"
-update_strategy = "patch"
+update_strategy = "put"
+
+# Whether the user information is editable via this application.
+user_editable = false
 
 
 [postgres]

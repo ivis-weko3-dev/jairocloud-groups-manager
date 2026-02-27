@@ -421,6 +421,9 @@ class MapCoreConfig(BaseModel):
     update_strategy: t.Literal["put", "patch"] = "patch"
     """Update strategy for mAP Core service."""
 
+    user_editable: bool = True
+    """Whether the user information is editable via this application."""
+
 
 class PostgresConfig(BaseModel):
     """Schema for PostgreSQL database configuration."""

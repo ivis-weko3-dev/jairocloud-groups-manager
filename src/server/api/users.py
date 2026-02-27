@@ -104,7 +104,7 @@ def id_get(user_id: str) -> tuple[UserDetail | ErrorResponse, int]:
         - If user not found, status code 404
         - If other error, status code 500
     """
-    user = users.get_by_id(user_id)
+    user = users.get_by_id(user_id, more_detail=True)
     if user is None:
         return ErrorResponse(code="", message="user not found"), 404
 
@@ -134,12 +134,13 @@ def id_put(user_id: str, body: UserDetail) -> tuple[UserDetail | ErrorResponse, 
         - If other error, status code 500
 
     """
-    if user_id != body.id:
-        return ErrorResponse(code="", message="user id mismatch"), 409
+    if body.is_system_admin and not is_current_user_system_admin():
+        return ErrorResponse(code="", message="not has permission"), 403
 
     if not has_permission(body.repository_roles):
-        return ErrorResponse(code="", message="not has permmision"), 403
+        return ErrorResponse(code="", message="not has permission"), 403
 
+    body.id = user_id
     try:
         updated = users.update(body)
     except ResourceNotFound as e:

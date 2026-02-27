@@ -5,11 +5,17 @@ const { stateAsCreate: state } = useUserForm()
 
 const { handleFetchError } = useErrorHandling()
 const onSubmit = async (data: UserCreateForm) => {
+  const { repositoryRoles, groups, ...remain } = data
+
   const payload: UserCreatePayload = {
-    ...data,
-    repositoryRoles: data.repositoryRoles.map(item =>
-      ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
-    ),
+    ...remain,
+    repositoryRoles:
+      remain.isSystemAdmin
+        ? []
+        : repositoryRoles.map(item =>
+            ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
+          ),
+    groups: groups.flatMap(item => item.value ? [{ id: item.value }] : []),
   }
 
   try {
@@ -30,6 +36,7 @@ const onSubmit = async (data: UserCreateForm) => {
           case 403: {
             showError({
               status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.user-create'),
             })
             break
@@ -52,7 +59,7 @@ const onSubmit = async (data: UserCreateForm) => {
     })
 
     toast.add({
-      title: $t('toast.success.creation.title'),
+      title: $t('toast.success.created.title'),
       description: $t('toast.success.user-created.description'),
       color: 'success',
       icon: 'i-lucide-circle-check',

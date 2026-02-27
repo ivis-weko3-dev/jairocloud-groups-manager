@@ -343,7 +343,7 @@ const useUserForm = () => {
     eppns: [''],
     userName: '',
     emails: [''],
-    preferredLanguage: '' as PreferredLanguage,
+    preferredLanguage: undefined as unknown as PreferredLanguage,
     isSystemAdmin: false,
     repositoryRoles: [{ id: '', serviceName: '', userRole: undefined }],
     groups: [{ id: '', displayName: '' }],
@@ -354,7 +354,7 @@ const useUserForm = () => {
   const defaultForm: UserForm = {
     ..._defaultForm,
     repositoryRoles: [{ value: undefined, label: undefined, userRole: undefined }],
-    groups: [{ id: '', label: '' }],
+    groups: [{ value: undefined, label: undefined }],
   }
   const state = reactive<UserForm>({ ...defaultForm })
 
@@ -432,13 +432,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     ).nonempty($t('user.validation.emails.at-least-one')),
     preferredLanguage: z.enum(PREFERRED_LANGUAGE, {
       errorMap: () => ({ message: $t('user.validation.preferredLanguage.invalid') }),
-    }).optional(),
+    }).optional().nullable(),
     isSystemAdmin: z.boolean().default(false),
     repositoryRoles: z.array(z.object({
       value: z.string().optional(),
       userRole: z.enum(userRoles).optional(),
     })),
-    groups: z.array(z.object({ id: z.string() })).optional(),
+    groups: z.array(z.object({ value: z.string().optional() })).optional(),
   }).superRefine((data, context) => {
     if (data.isSystemAdmin === true) {
       const hasFilledRole = data.repositoryRoles.some(role => role.value || role.userRole)
@@ -447,6 +447,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
           code: z.ZodIssueCode.custom,
           message: $t('user.validation.repositoryRoles.must-be-empty-for-system-admin'),
           path: ['repositoryRoles'],
+        })
+      }
+      if (data.groups && data.groups.some(group => group.value)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.groups.must-be-empty-for-system-admin'),
+          path: ['groups'],
         })
       }
     }
@@ -481,7 +488,65 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     }
   }))
 
-  const updateSchema = computed(() => createSchema.value)
+  const updateSchema = computed(() => z.object({
+    eppns: z.array(z.string().optional()).optional(),
+    userName: z.string().optional(),
+    emails: z.array(z.string().optional()).optional(),
+    preferredLanguage: z.string().optional().nullable(),
+    isSystemAdmin: z.boolean().default(false),
+    repositoryRoles: z.array(z.object({
+      value: z.string().optional(),
+      userRole: z.enum(userRoles).optional(),
+    })),
+    groups: z.array(z.object({ value: z.string().optional() })).optional(),
+  }).superRefine((data, context) => {
+    if (data.isSystemAdmin === true) {
+      const hasFilledRole = data.repositoryRoles.some(role => role.value || role.userRole)
+      if (hasFilledRole) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.repositoryRoles.must-be-empty-for-system-admin'),
+          path: ['repositoryRoles'],
+        })
+      }
+      if (data.groups && data.groups.some(group => group.value)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.groups.must-be-empty-for-system-admin'),
+          path: ['groups'],
+        })
+      }
+    }
+    else {
+      for (const [index, role] of data.repositoryRoles.entries()) {
+        if (role.value || role.userRole) {
+          if (!role.value || role.value.length === 0) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: $t('user.validation.repositoryRoles.id.required'),
+              path: ['repositoryRoles', index, 'id'],
+            })
+          }
+          if (!role.userRole) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: $t('user.validation.repositoryRoles.userRole.required'),
+              path: ['repositoryRoles', index, 'userRole'],
+            })
+          }
+        }
+      }
+
+      const hasValidRole = data.repositoryRoles.some(role => role.value && role.userRole)
+      if (!hasValidRole) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.repositoryRoles.at-least-one'),
+          path: ['repositoryRoles'],
+        })
+      }
+    }
+  }))
 
   const getSchemaByMode = (m: FormMode) => {
     return m === 'new' ? createSchema.value : updateSchema.value

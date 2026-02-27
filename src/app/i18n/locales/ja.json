@@ -5,6 +5,7 @@
     "create-new": "新規作成",
     "delete": "削除",
     "reload": "再読み込み",
+    "remove": "除外",
     "save": "保存",
     "update": "更新",
     "upload": "アップロード"
@@ -22,6 +23,7 @@
       "group-create": "選択したリポジトリにグループを作成する権限がありません。",
       "group-delete": "このグループを削除する権限がありません。",
       "group-edit": "このグループの情報を変更する権限がありません。",
+      "group-member-edit": "このグループのメンバーを変更する権限がありません。",
       "repository-access": "このリポジトリにアクセスする権限がありません。",
       "repository-create": "リポジトリを作成する権限がありません。",
       "repository-edit": "このリポジトリの情報を変更する権限がありません。",
@@ -179,6 +181,10 @@
     "other": "その他"
   },
   "modal": {
+    "add-users-to-group": {
+      "selection": "追加先のグループを選択してください。",
+      "title": "以下のユーザーをグループに追加します。"
+    },
     "delete-group": {
       "description": "一度削除したグループは元に戻すことができません。",
       "title": "このグループを削除しますか？"
@@ -192,6 +198,10 @@
       "description": "一度削除した SP コネクタは元に戻すことができません。",
       "title": "このリポジトリに対応する SP コネクタを削除しますか？",
       "warning": "リポジトリに作成されたグループも併せて削除されます。"
+    },
+    "remove-users-from-group": {
+      "selection": "除外元のグループを選択してください。",
+      "title": "以下のユーザーをグループから除外します。"
     }
   },
   "repositories": {
@@ -332,6 +342,9 @@
       "copy-entity-id": {
         "description": "クリップボードに EntityID がコピーされました。"
       },
+      "copy-field": {
+        "description": "クリップボードに{field}がコピーされました。\t"
+      },
       "copy-group-id": {
         "description": "クリップボードにグループ ID がコピーされました。"
       },
@@ -395,15 +408,16 @@
     "affiliated-repositories-description": "ユーザーが所属するリポジトリとロールを指定します。",
     "created": "作成日時",
     "details-affiliation-authority-section": "所属・権限",
+    "details-affiliation-section": "所属",
     "details-basic-section": "基本情報",
     "details-title": "ユーザー詳細",
     "emails": "メールアドレス",
     "emails-description": "ユーザーのメールアドレスです。",
-    "eppns": "ePPN",
+    "eppns": " ePPN ",
     "eppns-description": "IdP によりユーザーに割り当てられた一意で永続的な識別子です。",
     "groups": "所属グループ",
     "groups-description": "ユーザーを所属させるグループを選択します。",
-    "id": "ユーザー ID",
+    "id": "ユーザー ID ",
     "last-modified": "最終更新日時",
     "new-description": "あなたのリポジトリに新しいユーザーを作成できます。",
     "new-title": "ユーザーの作成",
@@ -434,6 +448,9 @@
         "at-least-one": "ePPN は 1 つ以上必須な項目です。",
         "required": "ePPN は必須項目です。"
       },
+      "groups": {
+        "must-be-empty-for-system-admin": "システム管理者はどのグループにも所属していない必要があります。"
+      },
       "preferredLanguage": {
         "invalid": "優先言語はドロップダウンリストから選択してください。"
       },
@@ -444,7 +461,7 @@
         },
         "must-be-empty-for-system-admin": "システム管理者はどのリポジトリにも所属していない必要があります。",
         "userRole": {
-          "required": "ユーザーのロールはドロップダウンリストから選択してください。"
+          "required": "ユーザーのロールをドロップダウンリストから選択してください。"
         }
       },
       "userName": {
@@ -453,10 +470,11 @@
     }
   },
   "users": {
+    "all-users-actions": "すべてのユーザー",
     "button": {
-      "selected-users-actions": "選択ユーザーへのアクション",
+      "all-users-download": "全件ダウンロード",
       "selected-users-add-to-group": "グループに追加",
-      "selected-users-export": "エクスポート",
+      "selected-users-download": "ダウンロード",
       "selected-users-remove-from-group": "グループから除外"
     },
     "description": "あなたのリポジトリのユーザーを管理できます。",
@@ -467,6 +485,7 @@
       "repository-admin": "リポジトリ管理者",
       "system-admin": "システム管理者"
     },
+    "selected-users-actions": "選択したユーザー",
     "table": {
       "column": {
         "emails": "Email",

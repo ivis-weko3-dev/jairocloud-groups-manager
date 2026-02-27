@@ -15,6 +15,7 @@ from flask import current_app
 from pydantic_core import ValidationError
 
 from server.clients import users
+from server.config import config
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
 from server.entities.search_request import SearchResponse, SearchResult
@@ -28,6 +29,7 @@ from server.exc import (
     ResourceNotFound,
     UnexpectedResponseError,
 )
+from server.services.utils.transformers import prepare_user, validate_user_to_map_user
 
 from .token import get_access_token, get_client_secret
 from .utils import (
@@ -40,7 +42,7 @@ from .utils import (
 
 if t.TYPE_CHECKING:
     from server.clients.users import UsersSearchResponse
-    from server.entities.map_user import MapUser
+    from server.entities.map_user import Group, MapUser
     from server.entities.patch_request import PatchOperation
 
 
@@ -136,16 +138,20 @@ def search(
 
 
 @t.overload
-def get_by_id(user_id: str) -> UserDetail | None: ...
+def get_by_id(user_id: str, *, more_detail: bool = False) -> UserDetail | None: ...
 @t.overload
 def get_by_id(user_id: str, *, raw: t.Literal[True]) -> MapUser | None: ...
 
 
-def get_by_id(user_id: str, *, raw: bool = False) -> UserDetail | MapUser | None:
+def get_by_id(
+    user_id: str, *, raw: bool = False, more_detail: bool = False
+) -> UserDetail | MapUser | None:
     """Get a User detail by its ID.
 
     Args:
         user_id (str): ID of the User detail.
+        more_detail (bool):
+            If True, include more detail such as groups and repositories name.
         raw (bool): If True, return raw MapUser object. Defaults to False.
 
     Returns:
@@ -196,7 +202,7 @@ def get_by_id(user_id: str, *, raw: bool = False) -> UserDetail | MapUser | None
     if raw:
         return result
 
-    return UserDetail.from_map_user(result)
+    return UserDetail.from_map_user(result, more_detail=more_detail)
 
 
 @t.overload
@@ -279,10 +285,12 @@ def create(user: UserDetail) -> UserDetail:
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
     try:
+        map_user = prepare_user(user)
+
         access_token = get_access_token()
         client_secret = get_client_secret()
         result: MapUser | MapError = users.post(
-            user.to_map_user(),
+            map_user,
             exclude={"meta"},
             access_token=access_token,
             client_secret=client_secret,
@@ -319,14 +327,14 @@ def create(user: UserDetail) -> UserDetail:
     return UserDetail.from_map_user(result)
 
 
-def update(user: UserDetail) -> UserDetail:
+def update(user: UserDetail) -> UserDetail:  # noqa: C901
     """Update a User resource.
 
     Args:
         user (UserDetail): The User resource to update.
 
     Returns:
-        MapUser: The updated User resource.
+        UserDetail: The updated User resource.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
@@ -335,19 +343,27 @@ def update(user: UserDetail) -> UserDetail:
         ResourceNotFound: If the User resource is not found.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    if not config.MAP_CORE.user_editable:
+        return update_affiliations(user)
+
+    if config.MAP_CORE.update_strategy == "put":
+        return update_put(user)
+
     user_id = t.cast("str", user.id)
     current: UserDetail | None = get_by_id(user_id)
     if current is None:
-        error = f"'{user.id}' Not Found"
+        error = f"User '{user.id}' Not Found"
         raise ResourceNotFound(error)
 
-    operations: list[PatchOperation[MapUser]] = build_patch_operations(
-        current.to_map_user(),
-        user.to_map_user(),
-        exclude={"schemas", "meta"},
-    )
-
     try:
+        validated = validate_user_to_map_user(user, mode="update")
+
+        operations: list[PatchOperation[MapUser]] = build_patch_operations(
+            current.to_map_user(),
+            validated,
+            exclude={"schemas", "meta"},
+        )
+
         access_token = get_access_token()
         client_secret = get_client_secret()
         result: MapUser | MapError = users.patch_by_id(
@@ -392,6 +408,120 @@ def update(user: UserDetail) -> UserDetail:
     return UserDetail.from_map_user(result)
 
 
+def update_put(user: UserDetail) -> UserDetail:  # noqa: C901
+    """Update a User resource using PUT method.
+
+    Args:
+        user (UserDetail): The User resource to update.
+
+    Returns:
+        UserDetail: The updated User resource.
+
+    Raises:
+        OAuthTokenError: If the access token is invalid or expired.
+        CredentialsError: If the client credentials are invalid.
+        ResourceInvalid: If the User resource data is invalid.
+        ResourceNotFound: If the User resource is not found.
+        UnexpectedResponseError: If response from mAP Core API is unexpected.
+    """
+    if not config.MAP_CORE.user_editable:
+        return update_affiliations(user)
+
+    if config.MAP_CORE.update_strategy == "patch":
+        return update(user)
+
+    try:
+        validated = validate_user_to_map_user(user, mode="update")
+
+        access_token = get_access_token()
+        client_secret = get_client_secret()
+        result: MapUser | MapError = users.put_by_id(
+            validated,
+            exclude={"external_id", "meta"},
+            access_token=access_token,
+            client_secret=client_secret,
+        )
+
+    except requests.HTTPError as exc:
+        code = exc.response.status_code
+        if code == HTTPStatus.UNAUTHORIZED:
+            error = "Access token is invalid or expired."
+            raise OAuthTokenError(error) from exc
+
+        if code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            error = "mAP Core API server error."
+            raise UnexpectedResponseError(error) from exc
+
+        error = "Failed to update User resource in mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except requests.RequestException as exc:
+        error = "Failed to communicate with mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except ValidationError as exc:
+        error = "Failed to parse User resource from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except OAuthTokenError, CredentialsError:
+        raise
+
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
+        if re.search(MAP_NOT_FOUND_PATTERN, result.detail):
+            raise ResourceNotFound(result.detail)
+
+        raise ResourceInvalid(result.detail)
+
+    return UserDetail.from_map_user(result)
+
+
+def update_affiliations(user: UserDetail) -> UserDetail:
+    """Update a User's affiliations with groups and repositories.
+
+    Args:
+        user (UserDetail): The User resource to update.
+
+    Returns:
+        UserDetail: The updated User detail.
+
+    Raises:
+        ResourceNotFound: If the User resource is not found.
+    """
+    user_id = t.cast("str", user.id)
+    current: UserDetail | None = get_by_id(user_id)
+    if current is None:
+        error = f"User '{user.id}' Not Found"
+        raise ResourceNotFound(error)
+
+    validated = validate_user_to_map_user(user, mode="update")
+    operations: list[PatchOperation[MapUser]] = build_patch_operations(
+        current.to_map_user(),
+        validated,
+        include={"groups"},
+    )
+
+    current_app.logger.info(
+        "Built patch operations for user '%s': %s", user_id, operations
+    )
+
+    from server.services import groups  # noqa: PLC0415
+
+    for op in operations:
+        if op.op == "replace":
+            continue
+        if op.op == "add":
+            group_id = t.cast("Group", op.value).value
+        elif match := re.search(r'groups\[value eq "(.*?)"\]', op.path):
+            group_id = match.group(1)
+        else:
+            continue
+
+        groups.update_member(group_id, **{op.op: {user_id}})
+
+    return t.cast("UserDetail", get_by_id(user_id))
+
+
 @t.overload
 def get_system_admins() -> set[str]: ...
 @t.overload
@@ -434,7 +564,7 @@ def count(criteria: UsersCriteria) -> int:
         CredentialsError: If the client credentials are invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
-    criteria.l = -1
+    criteria.l = 1
     try:
         query = build_search_query(criteria)
         access_token = get_access_token()

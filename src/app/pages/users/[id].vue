@@ -19,15 +19,16 @@ const { data: user, refresh } = useFetch<UserDetail>(
       switch (response.status) {
         case 403: {
           showError({
-            statusCode: 403,
-            statusMessage: $t('error-page.forbidden.user-access'),
+            status: 403,
+            statusText: 'Forbidden',
+            message: $t('error-page.forbidden.user-access'),
           })
           break
         }
         case 404: {
           showError({
-            statusCode: 404,
-            statusMessage: $t('error-page.not-found.user'),
+            status: 404,
+            message: $t('error-page.not-found.user'),
           })
           break
         }
@@ -60,7 +61,7 @@ watch(user, (newUser: UserDetail) => {
         }))
       : defaultForm.repositoryRoles,
     groups: newUser.groups?.length
-      ? newUser.groups?.map(group => ({ id: group.id, label: group.displayName }))
+      ? newUser.groups?.map(group => ({ value: group.id, label: group.displayName }))
       : defaultForm.groups,
     created: created ? dateFormatter.format(created) : defaultForm.created,
     lastModified: lastModified ? dateFormatter.format(lastModified) : defaultForm.lastModified,
@@ -68,11 +69,17 @@ watch(user, (newUser: UserDetail) => {
 }, { immediate: true })
 
 const onSubmit = async (data: UserUpdateForm) => {
+  const { repositoryRoles, groups, ...remain } = data
   const payload: UserUpdatePayload = {
-    ...data,
-    repositoryRoles: data.repositoryRoles.map(item =>
-      ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
-    ),
+    ...remain,
+    emails: remain.emails.filter(email => email.trim() !== ''),
+    repositoryRoles:
+      remain.isSystemAdmin
+        ? []
+        : repositoryRoles.map(item =>
+            ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
+          ),
+    groups: groups.flatMap(item => item.value ? [{ id: item.value }] : []),
   }
 
   try {
@@ -93,6 +100,7 @@ const onSubmit = async (data: UserUpdateForm) => {
           case 403: {
             showError({
               status: 403,
+              statusText: 'Forbidden',
               message: $t('error-page.forbidden.user-edit'),
             })
             break
