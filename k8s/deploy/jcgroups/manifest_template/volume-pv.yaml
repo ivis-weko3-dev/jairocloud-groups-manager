@@ -1,0 +1,26 @@
+---
+# web / worker が共有するファイル置き場の PV。
+# server.config.toml の [storage.local] temporary / storage (= /var/tmp/jcgroups)
+# が指す先で、web がアップロードした CSV を Celery worker が読む。
+#
+# replicas > 1 で運用するなら Pod をまたいで同じ物が見える必要があるため
+# ReadWriteMany (NFS) にしている。RWX を用意できない場合は
+# server.config.toml の [storage] type を object_storage に切り替えるか、
+# STORAGE_TYPE=emptydir + REPLICAS=1 で運用すること。
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-storage-pv
+  labels:
+    volume: __DOMAIN_NAME__-storage-nfs
+spec:
+  capacity:
+    storage: __STORAGE_SIZE__
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: __STORAGE_CLASS__
+  nfs:
+    server: __NFS_SERVER__
+    path: __NFS_PATH__

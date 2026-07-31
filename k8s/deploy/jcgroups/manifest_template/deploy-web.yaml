@@ -1,0 +1,286 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-web
+spec:
+  replicas: __REPLICAS__
+  selector:
+    matchLabels:
+      app: __DOMAIN_NAME__-nginx
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: __DOMAIN_NAME__-nginx
+      annotations:
+        # Secret / ConfigMap を作り直したときはこの値を変えて rollout させる。
+        # subPath マウントは Secret の更新が Pod に反映されないため。
+        config-revision: "__CONFIG_REVISION__"
+    spec:
+      # nginx イメージに焼き込まれた `upstream api_server { server web:5050; }` を
+      # 同一 Pod 内の web コンテナへ向ける。
+      # __VHOST__ も自身に向けておく (SP が自分の handlerURL を叩く場合の保険)。
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - web
+            - __VHOST__
+      # 【必須】k8s は Namespace 内の Service ごとに Docker link 互換の環境変数を
+      # 注入する。Service 名 `redis` に対して REDIS_PORT=tcp://<ClusterIP>:6379 が
+      # 入り、weko-group-cache-db の設定フィールド REDIS_PORT (pydantic-settings が
+      # 環境変数から読む) と衝突して起動に失敗する:
+      #   ValidationError: cache_groups.redis_port
+      #     Input should be a valid integer, unable to parse string as an integer
+      #     [input_value='tcp://10.96.201.60:6379']
+      # POSTGRES_PORT / RABBITMQ_PORT も同様に注入されるため、注入自体を止める。
+      enableServiceLinks: false
+      securityContext:
+        # 共有ストレージ (storage-volume) を uid 1000 の web / worker から
+        # 読み書きできるようにする。
+        fsGroup: 1000
+      containers:
+        # ------------------------------------------------------------------
+        # nginx + Shibboleth SP + 静的 SPA
+        #
+        # nginx / shibd / shibauthorizer / shibresponder は Unix ドメイン
+        # ソケット (/opt/shibboleth/*.sock) で通信するため、1 コンテナ内に
+        # supervisord で同居させる必要がある (nginx/supervisord.conf)。
+        # ここだけは 1 プロセス 1 コンテナにできない。
+        # ------------------------------------------------------------------
+        - name: nginx
+          # 【重要】このイメージには configs/app.config.ts の serverName が
+          # ビルド時に静的 SPA へインライン展開されている。
+          # vhost ごとにビルドし直したイメージを指定すること
+          # (k8s/scripts/build_images.sh がその手順)。
+          image: __NGINX_IMAGE__
+          imagePullPolicy: __IMAGE_PULL_POLICY__
+          resources:
+            limits:
+              memory: "__NGINX_MEMORY_LIMIT__"
+            requests:
+              memory: "128Mi"
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          volumeMounts:
+            # nginx のサーバ証明書
+            - mountPath: /etc/nginx/server.crt
+              subPath: server.crt
+              name: __DOMAIN_NAME__-tls-volume
+              readOnly: true
+            - mountPath: /etc/nginx/server.key
+              subPath: server.key
+              name: __DOMAIN_NAME__-tls-volume
+              readOnly: true
+            # Shibboleth SP の署名 / 暗号化鍵 (nginx/Dockerfile は同じ物を流用)
+            - mountPath: /etc/shibboleth/server.crt
+              subPath: server.crt
+              name: __DOMAIN_NAME__-tls-volume
+              readOnly: true
+            - mountPath: /etc/shibboleth/server.key
+              subPath: server.key
+              name: __DOMAIN_NAME__-tls-volume
+              readOnly: true
+            # entityID / RequestMapper の Host 名が nginx/shibboleth2.xml では
+            # localhost 固定なので、vhost で置換したものに差し替える。
+            - mountPath: /etc/shibboleth/shibboleth2.xml
+              subPath: shibboleth2.xml
+              name: __DOMAIN_NAME__-shibboleth2-volume
+              readOnly: true
+            # shibd の状態 (セッションキャッシュ / メタデータキャッシュ)
+            - mountPath: /var/cache/shibboleth
+              name: __DOMAIN_NAME__-shib-cache-volume
+          startupProbe:
+            httpGet:
+              path: /
+              port: 443
+              scheme: HTTPS
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 443
+              scheme: HTTPS
+            timeoutSeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 443
+              scheme: HTTPS
+            timeoutSeconds: 3
+            periodSeconds: 20
+        # ------------------------------------------------------------------
+        # Flask API (uwsgi)
+        # ------------------------------------------------------------------
+        - name: web
+          image: __APP_IMAGE__
+          imagePullPolicy: __IMAGE_PULL_POLICY__
+          # イメージ既定の CMD (supervisord -c supervisord.web.conf) は使わない。
+          # prod ステージは USER root のまま supervisord が pyuser に降格する構造
+          # だが、k8s では 1 コンテナ 1 プロセスにして非 root で直接起動する。
+          command: [ "uwsgi", "--ini", "/code/uwsgi.ini" ]
+          envFrom:
+            - configMapRef:
+                name: __DOMAIN_NAME__-configmap
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          resources:
+            limits:
+              memory: "__MEMORY_LIMIT__"
+            requests:
+              memory: "__MEMORY_REQUEST__"
+              cpu: "200m"
+          ports:
+            - containerPort: 5050
+          volumeMounts:
+            - mountPath: /code/configs/server.config.toml
+              subPath: server.config.toml
+              name: __DOMAIN_NAME__-config-volume
+              readOnly: true
+            # server.config.toml の [sp] crt / key (既定 ./certs/server.crt)。
+            # mAP Core への OAuth トークン発行に使う。
+            - mountPath: /code/certs
+              name: __DOMAIN_NAME__-sp-cert-volume
+              readOnly: true
+            # weko-group-cache-db が /var/mnt/<FQDN>/server.crt|key を読む。
+            - mountPath: /var/mnt
+              name: __DOMAIN_NAME__-institution-certs-volume
+              readOnly: true
+            # [storage.local] temporary / storage が指す先
+            - mountPath: /var/tmp/jcgroups
+              name: __DOMAIN_NAME__-storage-volume
+          # uwsgi は uwsgi プロトコルを話すため HTTP プローブは使えない。
+          startupProbe:
+            tcpSocket:
+              port: 5050
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            tcpSocket:
+              port: 5050
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5050
+            periodSeconds: 20
+        # ------------------------------------------------------------------
+        # Celery worker
+        #
+        # グループキャッシュ更新タスク update_task() がここで動き、
+        # WEKO が読む Redis db4 のキーを書く。
+        # ------------------------------------------------------------------
+        - name: worker
+          image: __APP_IMAGE__
+          imagePullPolicy: __IMAGE_PULL_POLICY__
+          # 【重要】supervisord.worker.conf の `celery -A server.celery_app worker`
+          # には --concurrency 指定がない。Celery はノードの CPU 数だけ prefork
+          # するため、CPU limit を付けてもコア数分 fork してメモリを食い潰す。
+          # 必ず明示すること。
+          command:
+            - celery
+            - -A
+            - server.celery_app
+            - worker
+            - --concurrency
+            - "__CELERY_CONCURRENCY__"
+            - --loglevel
+            - INFO
+          envFrom:
+            - configMapRef:
+                name: __DOMAIN_NAME__-configmap
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          resources:
+            limits:
+              memory: "__WORKER_MEMORY_LIMIT__"
+            requests:
+              memory: "__MEMORY_REQUEST__"
+              cpu: "200m"
+          volumeMounts:
+            - mountPath: /code/configs/server.config.toml
+              subPath: server.config.toml
+              name: __DOMAIN_NAME__-config-volume
+              readOnly: true
+            - mountPath: /code/certs
+              name: __DOMAIN_NAME__-sp-cert-volume
+              readOnly: true
+            - mountPath: /var/mnt
+              name: __DOMAIN_NAME__-institution-certs-volume
+              readOnly: true
+            # web がアップロードしたファイルを worker が読むので同じ物を見せる
+            - mountPath: /var/tmp/jcgroups
+              name: __DOMAIN_NAME__-storage-volume
+          # HTTP ポートを持たないので celery inspect ping で見る。
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "celery -A server.celery_app inspect ping -d celery@$(hostname)"
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 15
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "celery -A server.celery_app inspect ping -d celery@$(hostname)"
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 3
+      #__IMAGE_PULL_SECRET__imagePullSecrets:
+      #__IMAGE_PULL_SECRET__  - name: __IMAGE_PULL_SECRET_NAME__
+      restartPolicy: Always
+      volumes:
+        - name: __DOMAIN_NAME__-config-volume
+          secret:
+            secretName: __DOMAIN_NAME__-secret
+        - name: __DOMAIN_NAME__-tls-volume
+          secret:
+            secretName: __DOMAIN_NAME__-tls
+            # shibd (_shibd ユーザ) が鍵を読む必要がある。
+            # nginx/Dockerfile が chmod 644 しているのと同じ理由。
+            defaultMode: 0644
+        - name: __DOMAIN_NAME__-shibboleth2-volume
+          configMap:
+            name: __DOMAIN_NAME__-shibboleth2
+        - name: __DOMAIN_NAME__-shib-cache-volume
+          emptyDir: {}
+        - name: __DOMAIN_NAME__-sp-cert-volume
+          secret:
+            secretName: __DOMAIN_NAME__-sp-cert
+            defaultMode: 0400
+        - name: __DOMAIN_NAME__-institution-certs-volume
+          secret:
+            secretName: __DOMAIN_NAME__-institution-certs
+            defaultMode: 0400
+            optional: true
+            # Secret のキー名に "/" は使えないので、機関ごとの
+            # /var/mnt/<FQDN>/server.crt|key は items[].path で組み立てる。
+            # この行は make_jcgroups_manifests.sh が
+            # INSTITUTION_CERTS_DIR の中身から生成した items: に差し替える。
+            #__INSTITUTION_CERT_ITEMS__
+        # STORAGE_TYPE に応じて make_jcgroups_manifests.sh が片方だけ残す。
+        #__STORAGE_PVC__- name: __DOMAIN_NAME__-storage-volume
+        #__STORAGE_PVC__  persistentVolumeClaim:
+        #__STORAGE_PVC__    claimName: __DOMAIN_NAME__-storage-pvc
+        #__STORAGE_EMPTYDIR__- name: __DOMAIN_NAME__-storage-volume
+        #__STORAGE_EMPTYDIR__  emptyDir: {}
+      #__NODE_SELECTOR__nodeSelector:
+      #__NODE_SELECTOR__  nodeType: __NODE_TYPE__
+
+status: {}

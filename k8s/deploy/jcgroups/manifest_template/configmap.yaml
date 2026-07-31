@@ -1,0 +1,14 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-configmap
+data:
+  # 【注意】アプリの設定は環境変数から読めない。
+  # `src/server/config.py` に env 読み込み機構がないため、接続先やシークレットは
+  # すべて server.config.toml 経由になる (Secret __DOMAIN_NAME__-secret としてマウント)。
+  # ここに置けるのは Flask / Python / OS レベルの環境変数だけ。
+  TZ: "Asia/Tokyo"
+  FLASK_ENV: "production"
+  FLASK_APP: "server.app"
+  PYTHONUNBUFFERED: "1"

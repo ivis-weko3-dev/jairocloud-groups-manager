@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-storage-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: __STORAGE_SIZE__
+  storageClassName: "__STORAGE_CLASS__"
+  selector:
+    matchLabels:
+      volume: __DOMAIN_NAME__-storage-nfs

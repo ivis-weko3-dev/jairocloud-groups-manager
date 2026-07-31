@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-ingress
+  annotations:
+    # 【重要】バックエンドは必ず HTTPS で叩く。
+    # Shibboleth SP は handlerSSL="true" / cookieProps="https" で動くため、
+    # Ingress で TLS を落として HTTP で Pod に渡すと SP のハンドラが動かない。
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.org/ssl-services: "__DOMAIN_NAME__-nginx"
+    nginx.org/server-tokens: "off"
+    # SP のメタデータ / CSV インポートで大きめの body を通す。
+    # (server.config.toml の [api] max_upload_size に合わせる)
+    nginx.ingress.kubernetes.io/proxy-body-size: "__MAX_UPLOAD_SIZE__"
+spec:
+  tls:
+    - hosts:
+        - __VHOST__
+      secretName: __DOMAIN_NAME__-cert
+  ingressClassName: __INGRESS_CLASS__
+  rules:
+    - host: __VHOST__
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: __DOMAIN_NAME__-nginx
+                port:
+                  number: 443
+
+# SP に TLS ごと素通しさせたい場合は、この Ingress を使わずに
+# Service を type: LoadBalancer にして 443 を直接公開するか、
+# ingress-nginx の ssl-passthrough (--enable-ssl-passthrough +
+# nginx.ingress.kubernetes.io/ssl-passthrough: "true") を使う。
+# その場合クライアントに見せる証明書は __DOMAIN_NAME__-tls の方になる。

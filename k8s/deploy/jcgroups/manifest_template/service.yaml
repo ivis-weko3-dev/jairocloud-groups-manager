@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-nginx
+spec:
+  type: __SERVICE_TYPE__
+  selector:
+    app: __DOMAIN_NAME__-nginx
+  # クライアント IP を保持する (Shibboleth SP のアクセス制御・ログ用)。
+  # ClusterIP では指定できないフィールドなので、SERVICE_TYPE=ClusterIP のときは
+  # make_jcgroups_manifests.sh がこの行を削除する。
+  #__EXTERNAL_TRAFFIC_POLICY__externalTrafficPolicy: Local
+  ports:
+    - name: nginx-http-port
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: nginx-https-port
+      protocol: TCP
+      port: 443
+      targetPort: 443
+
+# アプリ (uwsgi) 向けの Service は作らない。
+# nginx イメージには `upstream api_server { server web:5050; }` が焼き込まれて
+# いる (nginx/conf.d/default.conf) が、deploy-web.yaml の hostAliases で
+# `web` を 127.0.0.1 に向けているため、同一 Pod 内のアプリコンテナへ直接届く。
+# Service 経由にすると nginx が起動時に解決した ClusterIP をキャッシュし続ける
+# 問題を抱えるので、同居させたこの構成のほうが素直。

@@ -1,0 +1,194 @@
+---
+# ミドルウェア (PostgreSQL / Redis / RabbitMQ)
+#
+# 【注意】これは検証・動作確認用の単一インスタンス構成である。
+# 本番では chart / Operator に置き換え、DEPLOY_MIDDLEWARE=false にして
+# params.env の POSTGRES_HOST / REDIS_URL / RABBITMQ_URL を
+# 既存クラスタへ向けること:
+#   - PostgreSQL : CloudNativePG, Zalando postgres-operator
+#   - Redis      : bitnami/redis (Sentinel 構成にするなら server.config.toml の
+#                  cache_type を RedisSentinelCache にして [redis.sentinel] を埋める)
+#   - RabbitMQ   : rabbitmq-cluster-operator
+#
+# Service 名は params.env の既定値 (postgres / redis / rabbitmq) に揃えてある。
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: __NAMESPACE__
+  name: postgres
+spec:
+  selector:
+    app: __DOMAIN_NAME__-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-pgdata-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: __PGDATA_SIZE__
+  # storageClassName は指定しない (クラスタ既定の StorageClass を使う)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: __DOMAIN_NAME__-postgres
+  template:
+    metadata:
+      labels:
+        app: __DOMAIN_NAME__-postgres
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: postgres
+          image: postgres:12
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "__POSTGRES_DB__"
+            - name: POSTGRES_USER
+              value: "__POSTGRES_USER__"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __DOMAIN_NAME__-middleware
+                  key: POSTGRES_PASSWORD
+            # PVC のルートに lost+found がある環境でも初期化できるように
+            # サブディレクトリを使う。
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: pgdata
+          readinessProbe:
+            exec:
+              command: [ "pg_isready", "-U", "__POSTGRES_USER__", "-d", "__POSTGRES_DB__" ]
+            periodSeconds: 10
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: __DOMAIN_NAME__-pgdata-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: __NAMESPACE__
+  name: redis
+spec:
+  selector:
+    app: __DOMAIN_NAME__-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: __DOMAIN_NAME__-redis
+  template:
+    metadata:
+      labels:
+        app: __DOMAIN_NAME__-redis
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: redis
+          image: redis:7.4.1
+          args: [ "redis-server", "--appendonly", "yes" ]
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: [ "redis-cli", "ping" ]
+            periodSeconds: 10
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: __NAMESPACE__
+  name: rabbitmq
+spec:
+  selector:
+    app: __DOMAIN_NAME__-rabbitmq
+  ports:
+    - port: 5672
+      targetPort: 5672
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: __DOMAIN_NAME__-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: __DOMAIN_NAME__-rabbitmq
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.0.2
+          ports:
+            - containerPort: 5672
+          env:
+            # compose.prod.yaml と同じ。長時間タスク用にタイムアウトを延長。
+            - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
+              value: "-rabbit consumer_timeout 10800000"
+          readinessProbe:
+            exec:
+              command: [ "rabbitmq-diagnostics", "-q", "ping" ]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 10
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"

@@ -1,0 +1,57 @@
+---
+# DB 初期化 Job
+#
+# テーブル作成は自動実行されない。初回デプロイ時と、モデル追加時に実行する。
+#   flask db init   … データベースを作る (既にあれば何もしない)
+#   flask db create … テーブルを作る
+#
+# deploy_jcgroups.sh は deploy-web.yaml より先にこの Job を完了させる。
+# 再実行するときは `kubectl delete job` してから apply すること
+# (Job の spec は immutable なので上書き apply できない)。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: __NAMESPACE__
+  name: __DOMAIN_NAME__-db-init
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: __DOMAIN_NAME__-db-init
+    spec:
+      # deploy-web.yaml と同じ理由で必須 (REDIS_PORT 等の注入を止める)
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+      containers:
+        - name: db-init
+          image: __APP_IMAGE__
+          imagePullPolicy: __IMAGE_PULL_POLICY__
+          # FLASK_APP=server.app はイメージの ENV と ConfigMap の両方で設定済み
+          command: [ "sh", "-c", "flask db init && flask db create" ]
+          envFrom:
+            - configMapRef:
+                name: __DOMAIN_NAME__-configmap
+          volumeMounts:
+            - mountPath: /code/configs/server.config.toml
+              subPath: server.config.toml
+              name: __DOMAIN_NAME__-config-volume
+              readOnly: true
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      #__IMAGE_PULL_SECRET__imagePullSecrets:
+      #__IMAGE_PULL_SECRET__  - name: __IMAGE_PULL_SECRET_NAME__
+      volumes:
+        - name: __DOMAIN_NAME__-config-volume
+          secret:
+            secretName: __DOMAIN_NAME__-secret
+      #__NODE_SELECTOR__nodeSelector:
+      #__NODE_SELECTOR__  nodeType: __NODE_TYPE__

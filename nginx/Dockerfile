@@ -50,6 +50,15 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm i --frozen-lockfile
 
 COPY --chown=node:node . .
+
+# `configs/app.config.ts` is inlined into the generated SPA at build time,
+# so the hostname has to be fixed here rather than at runtime.
+ARG SERVER_NAME=localhost
+RUN sed -i \
+    "s|^const serverName = '.*' as string$|const serverName = '${SERVER_NAME}' as string|" \
+    configs/app.config.ts && \
+    grep -q "const serverName = '${SERVER_NAME}' as string" configs/app.config.ts
+
 RUN NODE_ENV=production pnpm nuxt generate
 
 
